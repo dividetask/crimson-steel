@@ -194,6 +194,17 @@ helpers do
     encounter_state.combat_active? && encounter_state.phase == :combat
   end
 
+  # Attack targets for the player's target picker: every other Combatant,
+  # enemies (the other side of the PC / non-PC line) first.
+  def api_targets(mine)
+    mine_pc = creature_is_pc?(mine[:creature_id])
+    encounter_state.combatants.reject { |c| c[:id] == mine[:id] }.map do |c|
+      pc = creature_is_pc?(c[:creature_id])
+      { combatant_id: c[:id], name: tracker_name(c), enemy: pc != mine_pc,
+        dying: !!(encounter_state.creature_dying?(c[:id]) rescue false) }
+    end.sort_by { |t| [t[:enemy] ? 0 : 1, t[:name]] }
+  end
+
   def api_my_combatant(acc)
     encounter_state.combatants.find { |c| c[:creature_id].to_s == acc.id.to_s }
   end
@@ -254,6 +265,12 @@ get '/api/initiative' do
         is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }
     end,
     options: my_turn ? api_turn_options(mine) : [],
+    # Who an attack can target (enemies first), when it is this player's turn.
+    targets: (my_turn ? api_targets(mine) : []),
+    # Steps waiting on this player in any attack (their turn or not).
+    prompts: my_prompts(acc),
+    # This player's own attacks in progress.
+    flows: (mine ? action_flows.active.select { |f| f.attacker_id == mine[:id] }.map { |f| flow_status_view(f) } : []),
     requests: my_turn ? PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) } : []
   )
 end
@@ -270,6 +287,15 @@ post '/api/turn/requests' do
   opt = api_turn_options(mine).find { |o| o[:key] == body['key'].to_s }
   api_error(422, 'unknown option') unless opt
   api_error(422, opt[:disabled_reason]) if opt[:disabled]
+
+  # An attack runs as a step-by-step flow: target's defense, ally shields,
+  # Luck and the dice are asked of each player in turn (lib/routes/action_flows.rb).
+  if opt[:kind] == 'attack'
+    api_error(422, 'choose a target') if body['target_id'].to_s.empty?
+    flow, err = start_attack_flow(mine, opt[:key].sub('attack:', ''), body['dice'], body['target_id'])
+    api_error(422, err) if err
+    api_json(ok: true, flow: flow_status_view(flow))
+  end
   dice = nil
   cost = opt[:pool_cost].to_i
   unless opt[:dice].empty?

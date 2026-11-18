@@ -25,6 +25,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     private var selectedKey: String? = null
     private var selectedDice: Int? = null
+    private var selectedTarget: Int? = null
+    /** The option picked on each choice prompt, until it is sent (task id -> value). */
+    private val promptPick = mutableMapOf<String, String>()
     private var expanded = false
     private var wasMyTurn = false
     private var busy = false
@@ -38,14 +41,19 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         done(r)
     }
 
-    private fun pending(d: Initiative) = d.requests.sumOf { it.poolCost }
+    /** Combat Pool asked for this turn but not spent yet: requests, plus attacks in progress (spent when the DM commits). */
+    private fun pending(d: Initiative) = d.requests.sumOf { it.poolCost } + d.flows.sumOf { it.poolCost }
     private fun poolLeft(d: Initiative) = (d.pool?.current ?: 0) - pending(d)
     private fun mainLeft(d: Initiative): Int? =
-        d.mainActionsRemaining?.takeIf { it >= 0 }?.let { it - d.requests.count { r -> r.category == ActionCategory.MAIN } }
+        d.mainActionsRemaining?.takeIf { it >= 0 }?.let {
+            it - d.requests.count { r -> r.category == ActionCategory.MAIN } - d.flows.size  // an Attack is a Main Action
+        }
     private fun manaLeft(d: Initiative): Int? = d.mana?.let { m -> m.current - d.requests.sumOf { it.manaCost } }
 
     override fun build(d: Initiative): View {
         val col = Ui.vertical(ctx, 12)
+        // Steps of an attack waiting on this player — on anyone's turn.
+        if (d.prompts.isNotEmpty()) promptsSection(col, d)
         if (!d.combatActive) {
             col.addView(Ui.text(ctx, "No combat right now.", 18f, Ui.TEXT, bold = true))
             col.addView(Ui.text(ctx, "This screen fills in when the DM starts combat.", 14f, Ui.TEXT_DIM),
@@ -83,7 +91,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         val mana = d.mana?.let { "${manaLeft(d)} / ${it.max}" } ?: "—"
         card.addView(Ui.text(ctx, "Main Actions $main  ·  Mana $mana", 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 6)))
         if (pending(d) > 0) {
-            card.addView(Ui.text(ctx, "Includes ${pending(d)} dice requested this turn (not spent until the DM resolves them).",
+            card.addView(Ui.text(ctx, "Includes ${pending(d)} dice asked for this turn (not spent until the DM resolves them).",
                 12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 2)))
         }
         return card
@@ -152,6 +160,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             })
             col.addView(card, Ui.matchWidth())
         }
+
+        flowsSection(col, d)
 
         for (category in ActionCategory.entries) {
             val inCategory = d.options.filter { it.category == category }
@@ -222,6 +232,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
 
         if (isSelected) {
+            if (opt.kind == "attack") targetPicker(card, d)
             val cost = selectedCost(d)
             val left = poolLeft(d).coerceAtLeast(0)
             // Exactly what is in the Combat Pool right now, with what this choice would spend in yellow.
@@ -240,10 +251,17 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 }
             }
             val needsDice = opt.dice.isNotEmpty() && selectedDice == null
+            val needsTarget = opt.kind == "attack" && d.targets.none { it.combatantId == selectedTarget }
             val blocker = blocker(d, opt, selectedDice)
+            val targetName = d.targets.find { it.combatantId == selectedTarget }?.name
             val confirm = Button(ctx).apply {
-                text = if (needsDice) "Choose dice" else opt.actionText
-                isEnabled = blocker == null && !needsDice && !busy
+                text = when {
+                    needsTarget -> "Choose a target"
+                    needsDice -> "Choose dice"
+                    opt.kind == "attack" -> "Attack $targetName with ${opt.name}"
+                    else -> opt.actionText
+                }
+                isEnabled = blocker == null && !needsDice && !needsTarget && !busy
                 setOnClickListener { request(opt) }
             }
             if (blocker != null && !needsDice) card.addView(Ui.text(ctx, blocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 6)))
@@ -258,38 +276,17 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
      * included), then one die button per count. Choosing a count lights every
      * die up to it — choosing 6 lights the 5 dice to its left and the 6 button.
      */
-    private fun diceStrip(d: Initiative, opt: TurnOption): View {
-        val first = opt.dice.first().dice
-        val chips = mutableListOf<View>()
-        val chosen = selectedDice ?: 0
-        for (n in 1 until first) {
-            chips += DieChip(ctx, null).apply { lit = n <= chosen }
-        }
-        for (choice in opt.dice) {
-            val ok = affordable(d, choice.poolCost, choice.affordable)
-            chips += DieChip(ctx, choice.dice).apply {
-                lit = choice.dice <= chosen
-                available = ok
-                contentDescription = "${choice.dice} dice, ${choice.poolCost} Combat Pool"
-                if (ok) Ui.makeTappable(this, ctx) { selectedDice = choice.dice; render() }
-            }
-        }
-        val perRow = 10
-        val grid = Ui.vertical(ctx)
-        chips.chunked(perRow).forEach { rowChips ->
-            val row = Ui.horizontal(ctx)
-            rowChips.forEach { row.addView(it, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 2) }) }
-            repeat(perRow - rowChips.size) { row.addView(View(ctx), Ui.weighted().apply { marginEnd = Ui.dp(ctx, 2) }) }
-            grid.addView(row, Ui.matchWidth(Ui.dp(ctx, 2)))
-        }
-        return grid
-    }
+    private fun diceStrip(d: Initiative, opt: TurnOption): View =
+        Ui.diceStrip(ctx, opt.dice.map { c ->
+            Triple(c.dice, affordable(d, c.poolCost, c.affordable)) { selectedDice = c.dice; render() }
+        }, selectedDice ?: 0)
 
     private fun request(opt: TurnOption) {
         val send = {
             busy = true
             render()
-            Session.requestAction(opt.key, if (opt.dice.isEmpty()) null else selectedDice) { r ->
+            val target = if (opt.kind == "attack") selectedTarget else null
+            Session.requestAction(opt.key, if (opt.dice.isEmpty()) null else selectedDice, target) { r ->
                 busy = false
                 if (r.isSuccess) clearSelection()
                 afterChange(r)
@@ -317,5 +314,151 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private fun clearSelection() {
         selectedKey = null
         selectedDice = null
+        selectedTarget = null
     }
+
+    // --- Attacks: target, prompts, status -------------------------------------------
+
+    /** Who to attack: one chip per Combatant, enemies first. */
+    private fun targetPicker(card: LinearLayout, d: Initiative) {
+        card.addView(Ui.text(ctx, "Target", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
+        var row: LinearLayout? = null
+        d.targets.forEachIndexed { i, t ->
+            if (i % 2 == 0) {
+                row = Ui.horizontal(ctx)
+                card.addView(row, Ui.matchWidth(Ui.dp(ctx, 4)))
+            }
+            val on = t.combatantId == selectedTarget
+            val chip = Ui.text(ctx, t.name + if (t.dying) " (dying)" else "", 14f,
+                if (t.enemy) Ui.TEXT else Ui.TEXT_DIM, bold = on).apply {
+                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(Ui.dp(ctx, 8), Ui.dp(ctx, 9), Ui.dp(ctx, 8), Ui.dp(ctx, 9))
+                background = Ui.rounded(if (on) Ui.CRIMSON else Ui.BG, Ui.dpf(ctx, 8f),
+                    if (on) Ui.GOLD else if (t.enemy) Ui.DIE_FAIL else Ui.SURFACE_HI, Ui.dp(ctx, 1))
+            }
+            Ui.makeTappable(chip, ctx) { selectedTarget = t.combatantId; render() }
+            row!!.addView(chip, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 6) })
+        }
+        if (d.targets.size % 2 == 1) row?.addView(View(ctx), Ui.weighted())
+        if (d.targets.isEmpty()) card.addView(Ui.text(ctx, "No one to attack.", 13f, Ui.TEXT_DIM))
+    }
+
+    /** This player's own attacks in progress, one line per step. */
+    private fun flowsSection(col: LinearLayout, d: Initiative) {
+        if (d.flows.isEmpty()) return
+        col.addView(Ui.sectionHeader(ctx, "Your attack"))
+        for (f in d.flows) {
+            val card = Ui.card(ctx)
+            card.addView(Ui.text(ctx, f.summary, 15f, Ui.TEXT, bold = true))
+            card.addView(Ui.text(ctx, stageText(f.stage), 12f, Ui.GOLD), Ui.matchWidth(Ui.dp(ctx, 2)))
+            for (st in f.steps) {
+                val what = when {
+                    st.step == "declare" -> "Your request"
+                    st.step == "defense" -> "${st.owner}'s defense"
+                    st.step == "ally_defense" -> "${st.owner}'s shield"
+                    st.step.startsWith("luck:") -> "${st.owner}'s Luck"
+                    st.step.startsWith("roll:") -> "${st.owner} rolls"
+                    else -> st.step
+                }
+                val state = when (st.status) {
+                    "waiting" -> "waiting"
+                    "submitted" -> "${st.summary ?: "answered"} \u2014 waiting for the DM"
+                    else -> st.summary ?: "done"
+                }
+                card.addView(Ui.text(ctx, "\u2022 $what: $state", 13f, if (st.status == "approved") Ui.TEXT_DIM else Ui.TEXT),
+                    Ui.matchWidth(Ui.dp(ctx, 3)))
+            }
+            col.addView(card, Ui.matchWidth(Ui.dp(ctx, 4)))
+        }
+    }
+
+    private fun stageText(stage: String) = when (stage) {
+        "declare" -> "Waiting for the DM to approve your attack"
+        "respond" -> "Defenses"
+        "luck" -> "Luck"
+        "roll" -> "Rolling"
+        "resolve" -> "The DM is resolving it"
+        else -> stage
+    }
+
+    /** Steps waiting on this player: defense, ally shield, Luck, or a roll. */
+    private fun promptsSection(col: LinearLayout, d: Initiative) {
+        col.addView(Ui.sectionHeader(ctx, "Your move"))
+        for (p in d.prompts) col.addView(promptCard(p), Ui.matchWidth(Ui.dp(ctx, 6)))
+    }
+
+    private fun promptCard(p: com.dividetask.crimsonsteel.data.Prompt): View {
+        val card = Ui.vertical(ctx, 12).apply {
+            background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), if (p.waiting) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 2))
+        }
+        card.addView(Ui.text(ctx, p.title, 17f, Ui.GOLD, bold = true))
+        card.addView(Ui.text(ctx, p.body, 13f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
+        if (!p.waiting) {
+            card.addView(Ui.text(ctx, "Sent: ${p.summary ?: ""} \u2014 waiting for the DM to approve.", 13f, Ui.TEXT_DIM),
+                Ui.matchWidth(Ui.dp(ctx, 8)))
+            return card
+        }
+        val roll = p.roll
+        if (p.kind == "roll" && roll != null) {
+            card.addView(Ui.text(ctx, RollFlow.paramsLine(roll.diceCount, roll.tn, roll.startingValue), 13f, Ui.TEXT_DIM),
+                Ui.matchWidth(Ui.dp(ctx, 6)))
+            card.addView(Button(ctx).apply {
+                text = "Roll ${roll.name}"
+                isEnabled = !busy
+                setOnClickListener {
+                    RollFlow.promptRoll(ctx, roll.name, roll) { dice, rerolled, final, done ->
+                        Session.submitRoll(p.flowId, p.taskId, dice, rerolled, final) { r ->
+                            done(r.isSuccess)
+                            afterChange(r)
+                        }
+                    }
+                }
+            }, Ui.matchWidth(Ui.dp(ctx, 8)))
+            return card
+        }
+
+        // A choice: options grouped as on the DM's builder (No defense, Dodge, Parry…).
+        val picked = promptPick[p.taskId]
+        for ((group, opts) in p.options.groupBy { it.group }) {
+            val withDice = opts.filter { it.dice != null }
+            if (withDice.isEmpty()) {
+                for (o in opts) card.addView(choiceChip(o.summary, o.value == picked, !o.disabled) {
+                    promptPick[p.taskId] = o.value; render()
+                }, Ui.matchWidth(Ui.dp(ctx, 6)))
+            } else {
+                card.addView(Ui.text(ctx, opts.first().groupLabel, 14f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
+                val chosen = withDice.find { it.value == picked }?.dice ?: 0
+                card.addView(Ui.diceStrip(ctx, withDice.map { o ->
+                    Triple(o.dice!!, !o.disabled) { promptPick[p.taskId] = o.value; render() }
+                }, chosen), Ui.matchWidth(Ui.dp(ctx, 4)))
+                if (group.isNotEmpty() && withDice.all { it.disabled }) {
+                    card.addView(Ui.text(ctx, "Not enough Combat Pool.", 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 2)))
+                }
+            }
+        }
+        val pick = p.options.find { it.value == picked }
+        card.addView(Button(ctx).apply {
+            text = pick?.summary ?: "Choose one"
+            isEnabled = pick != null && !busy
+            setOnClickListener {
+                busy = true
+                render()
+                Session.answerPrompt(p.flowId, p.taskId, pick!!.value) { r ->
+                    busy = false
+                    if (r.isSuccess) promptPick.remove(p.taskId)
+                    afterChange(r)
+                }
+            }
+        }, Ui.matchWidth(Ui.dp(ctx, 10)))
+        return card
+    }
+
+    private fun choiceChip(label: String, on: Boolean, enabled: Boolean, onTap: () -> Unit): View =
+        Ui.text(ctx, label, 14f, if (enabled) Ui.TEXT else Ui.TEXT_FAINT, bold = on).apply {
+            setPadding(Ui.dp(ctx, 12), Ui.dp(ctx, 10), Ui.dp(ctx, 12), Ui.dp(ctx, 10))
+            background = Ui.rounded(if (on) Ui.CRIMSON else Ui.BG, Ui.dpf(ctx, 8f), if (on) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 1))
+            if (enabled) Ui.makeTappable(this, ctx, onTap)
+        }
 }

@@ -1,0 +1,113 @@
+<%#
+  Player actions panel (docs/project/action_flow.md) — DM only, on the
+  Encounter page above the Turn Action panel. One block per player-driven
+  attack in progress. Each step of the current stage shows who owns it and
+  where it stands:
+    waiting   — the owner has not answered: the DM may answer for them
+                (Decide / Roll for …), which clears the owner's phone prompt.
+    submitted — the owner answered: Approve, or Send back to ask again.
+    approved  — done.
+  At the end (resolve) the DM opens the Attack builder pre-filled with every
+  choice and roll, then confirms and commits it as usual.
+
+  Locals: flows (active ActionFlow list), acting_id (the acting Combatant).
+  Refreshed in place every few seconds by public/js/ui/flowsPanel.js.
+%>
+<% stage_names = { 'declare' => 'Request', 'respond' => 'Defenses', 'luck' => 'Luck', 'roll' => 'Rolls', 'resolve' => 'Ready to resolve' } %>
+<% step_name = lambda do |t|
+     case t['step']
+     when 'declare' then 'Attack request'
+     when 'defense' then 'Defense'
+     when 'ally_defense' then 'Ally shield'
+     when /\Aluck:/ then 'Luck'
+     when /\Aroll:/ then "Roll: #{t.dig('roll', 'name')}"
+     else t['step']
+     end
+   end %>
+<div id="action-flows" class="action-flows" data-flows-panel="1">
+  <% unless flows.empty? %>
+    <h3 class="af-title">Player actions</h3>
+    <% if (err = session.delete(:flow_error)) %>
+      <p class="af-error"><%= Rack::Utils.escape_html(err) %></p>
+    <% end %>
+    <% flows.each do |f| %>
+      <% declare = f.stage_tasks('declare').first %>
+      <section class="af-flow" data-flow-id="<%= f.id %>">
+        <header class="af-head">
+          <span class="af-what"><strong><%= Rack::Utils.escape_html(f.attacker_name) %></strong> attacks: <%= Rack::Utils.escape_html(declare['summary'].to_s) %></span>
+          <span class="af-stage"><%= stage_names[f.stage] %></span>
+          <form method="post" action="/encounter/flows/<%= f.id %>/cancel" class="af-inline"
+                onsubmit="return confirm('Cancel this attack? Nothing has been spent.');">
+            <button type="submit" class="af-btn af-cancel">Cancel</button>
+          </form>
+        </header>
+
+        <% done_before = f.tasks.select { |t| t['stage'] != f.stage && t['status'] == 'approved' && t['kind'] != 'declare' } %>
+        <% unless done_before.empty? %>
+          <ul class="af-done">
+            <% done_before.each do |t| %>
+              <li><%= step_name.call(t) %> (<%= Rack::Utils.escape_html(t['owner_name']) %>): <%= Rack::Utils.escape_html(t['summary'].to_s) %><%= t['by'] == 'dm' ? ' — by DM' : '' %></li>
+            <% end %>
+          </ul>
+        <% end %>
+
+        <% if f.stage == 'resolve' %>
+          <div class="af-resolve">
+            <% if acting_id == f.attacker_id %>
+              <button type="button" class="af-btn af-primary af-open-builder" data-flow-id="<%= f.id %>">Open in Attack builder</button>
+              <span class="af-note">Fills in every choice and roll; check it, then Confirm and Commit as usual.</span>
+            <% else %>
+              <span class="af-note">Open the turn of <%= Rack::Utils.escape_html(f.attacker_name) %> to resolve this attack.</span>
+            <% end %>
+          </div>
+        <% else %>
+          <table class="af-tasks">
+            <% f.stage_tasks.each do |t| %>
+              <tr class="af-task af-<%= t['status'] %>">
+                <td class="af-step"><%= step_name.call(t) %></td>
+                <td class="af-owner"><%= Rack::Utils.escape_html(t['owner_name']) %></td>
+                <td class="af-answer">
+                  <% if t['status'] == 'waiting' %>
+                    <span class="af-wait">waiting<%= t['owner_id'] ? '' : ' for the DM' %></span>
+                  <% else %>
+                    <%= Rack::Utils.escape_html(t['summary'].to_s) %><%= t['by'] == 'dm' ? ' — by DM' : '' %>
+                  <% end %>
+                  <% if t['kind'] == 'roll' %>
+                    <span class="af-roll-params"><%= t.dig('roll', 'dice_count') %> dice @ TN <%= t.dig('roll', 'tn') %><%= t.dig('roll', 'positive_reroll').to_i.positive? ? ", reroll +#{t.dig('roll', 'positive_reroll')}" : '' %><%= t.dig('roll', 'negative_reroll').to_i.positive? ? ", reroll −#{t.dig('roll', 'negative_reroll')}" : '' %></span>
+                  <% end %>
+                </td>
+                <td class="af-actions">
+                  <% if t['status'] == 'submitted' %>
+                    <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/approve" class="af-inline">
+                      <button type="submit" class="af-btn af-primary">Approve</button>
+                    </form>
+                    <% unless t['kind'] == 'declare' %>
+                      <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/reject" class="af-inline">
+                        <button type="submit" class="af-btn">Send back</button>
+                      </form>
+                    <% end %>
+                  <% elsif t['status'] == 'waiting' %>
+                    <% if t['kind'] == 'roll' %>
+                      <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/roll" class="af-inline">
+                        <button type="submit" class="af-btn">Roll for <%= Rack::Utils.escape_html(t['owner_name']) %></button>
+                      </form>
+                    <% else %>
+                      <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/decide" class="af-inline">
+                        <select name="value" class="af-select">
+                          <% f.options_for(t).each do |o| %>
+                            <option value="<%= Rack::Utils.escape_html(o[:value]) %>"<%= ' disabled' if o[:disabled] %>><%= Rack::Utils.escape_html(o[:summary]) %></option>
+                          <% end %>
+                        </select>
+                        <button type="submit" class="af-btn">Decide for <%= Rack::Utils.escape_html(t['owner_name']) %></button>
+                      </form>
+                    <% end %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </table>
+        <% end %>
+      </section>
+    <% end %>
+  <% end %>
+</div>

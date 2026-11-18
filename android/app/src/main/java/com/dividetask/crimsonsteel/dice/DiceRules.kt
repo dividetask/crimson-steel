@@ -114,4 +114,32 @@ object DiceRules {
         dois >= DiceConfig.SUCCESS_THRESHOLD -> Outcome.SUCCESS
         else -> Outcome.FAILURE
     }
+
+    /**
+     * Luck rerolls (dice_resolution_design.md → Reroll; the server's
+     * ActionFlow.apply_rerolls): a positive reroll rerolls up to [positive]
+     * non-Successes, lowest first; a negative reroll up to [negative]
+     * Successes, highest first. Each die is rerolled at most once.
+     * Returns the final dice and, per position, the new value or null.
+     */
+    fun applyRerolls(
+        dice: List<Int>, tn: Int, positive: Int, negative: Int,
+        roll: () -> Int,
+    ): Pair<List<Int>, List<Int?>> {
+        val final = dice.toMutableList()
+        val rerolled = MutableList<Int?>(dice.size) { null }
+        fun pick(count: Int, eligible: (Int) -> Boolean, highestFirst: Boolean) {
+            if (count <= 0) return
+            val idx = dice.indices.filter { eligible(dice[it]) && rerolled[it] == null }
+                .sortedWith(compareBy<Int>({ if (highestFirst) -dice[it] else dice[it] }, { it }))
+            for (i in idx.take(count)) {
+                val v = roll()
+                final[i] = v
+                rerolled[i] = v
+            }
+        }
+        pick(negative, { it >= tn }, highestFirst = true)
+        pick(positive, { it < tn }, highestFirst = false)
+        return Pair(final, rerolled)
+    }
 }

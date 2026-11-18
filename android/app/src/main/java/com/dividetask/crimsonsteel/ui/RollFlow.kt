@@ -145,4 +145,79 @@ object RollFlow {
         val crits = if (r.criticalCount > 0) " · ${r.criticalCount} crit${if (r.criticalCount == 1) "" else "s"}" else ""
         detailView.text = "Dice: ${r.dice.sortedDescending().joinToString(" ")}$crits"
     }
+
+    /**
+     * Roll for an attack step (docs/project/action_flow.md): the dice tumble,
+     * then any Luck rerolls tumble on their own, then the result shows and is
+     * sent to the DM at once — like a public roll, it cannot be rolled again.
+     * [send] posts it and reports whether it arrived.
+     */
+    fun promptRoll(
+        ctx: Context, title: String, roll: com.dividetask.crimsonsteel.data.PromptRoll,
+        send: (dice: List<Int>, rerolled: List<Int?>, final: List<Int>, done: (Boolean) -> Unit) -> Unit,
+    ) {
+        val dialog = Dialog(ctx, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        val root = Ui.vertical(ctx, 18).apply {
+            background = Ui.rounded(Ui.BG, Ui.dpf(ctx, 14f), Ui.SURFACE_HI, Ui.dp(ctx, 1))
+        }
+        val badge = Ui.text(ctx, "ROLL \u2014 sent to the DM", 12f, Ui.TEXT, bold = true).apply {
+            background = Ui.rounded(Ui.CRIMSON, Ui.dpf(ctx, 12f))
+            setPadding(Ui.dp(ctx, 10), Ui.dp(ctx, 4), Ui.dp(ctx, 10), Ui.dp(ctx, 4))
+        }
+        root.addView(badge, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root.addView(Ui.text(ctx, title, 22f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 12)))
+        val luck = buildList {
+            if (roll.positiveReroll > 0) add("Luck: reroll up to ${roll.positiveReroll} low dice")
+            if (roll.negativeReroll > 0) add("Luck against you: reroll up to ${roll.negativeReroll} high dice")
+        }
+        root.addView(Ui.text(ctx, paramsLine(roll.diceCount, roll.tn, roll.startingValue) +
+            if (luck.isEmpty()) "" else "\n" + luck.joinToString("\n"), 14f, Ui.TEXT_DIM))
+        val diceView = DiceView(ctx)
+        root.addView(diceView, Ui.matchWidth(Ui.dp(ctx, 12)))
+        val stepView = Ui.text(ctx, " ", 13f, Ui.GOLD).apply { gravity = Gravity.CENTER }
+        root.addView(stepView, Ui.matchWidth())
+        val resultView = Ui.text(ctx, " ", 24f, Ui.TEXT, bold = true).apply { gravity = Gravity.CENTER }
+        root.addView(resultView, Ui.matchWidth(Ui.dp(ctx, 6)))
+        val statusView = Ui.text(ctx, " ", 13f, Ui.TEXT_DIM).apply { gravity = Gravity.CENTER }
+        root.addView(statusView, Ui.matchWidth())
+        val close = Button(ctx).apply { text = "Close"; isEnabled = false; setOnClickListener { dialog.dismiss() } }
+        root.addView(close, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            gravity = Gravity.END
+            topMargin = Ui.dp(ctx, 14)
+        })
+
+        val rng = kotlin.random.Random.Default
+        val die = { rng.nextInt(1, com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE + 1) }
+        val initial = List(roll.diceCount) { die() }
+        val (final, rerolled) = com.dividetask.crimsonsteel.dice.DiceRules.applyRerolls(
+            initial, roll.tn, roll.positiveReroll, roll.negativeReroll, die)
+
+        fun finish() {
+            val dois = com.dividetask.crimsonsteel.dice.DiceRules.dois(final, roll.tn, roll.startingValue)
+            val crits = final.count { it == com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE }
+            resultView.text = "$dois ${if (kotlin.math.abs(dois) == 1) "success" else "successes"}" +
+                if (crits > 0) " \u00b7 $crits crit${if (crits == 1) "" else "s"}" else ""
+            statusView.text = "Sending to the DM\u2026"
+            send(initial, rerolled, final) { ok ->
+                statusView.text = if (ok) "Sent \u2014 waiting for the DM to approve." else "NOT sent (connection problem). The DM can roll for you."
+                close.isEnabled = true
+            }
+        }
+
+        val rerolledAt = rerolled.indices.filter { rerolled[it] != null }.toSet()
+        diceView.onSettled = {
+            if (rerolledAt.isEmpty()) finish() else {
+                stepView.text = "Luck: rerolling ${rerolledAt.size} ${if (rerolledAt.size == 1) "die" else "dice"}"
+                diceView.onSettled = { stepView.text = "After Luck"; finish() }
+                diceView.postDelayed({ diceView.roll(final, roll.tn, only = rerolledAt) }, 700)
+            }
+        }
+        dialog.setCancelable(false)
+        dialog.setContentView(root)
+        dialog.window?.setLayout((ctx.resources.displayMetrics.widthPixels * 0.94f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+        diceView.roll(initial, roll.tn)
+    }
 }

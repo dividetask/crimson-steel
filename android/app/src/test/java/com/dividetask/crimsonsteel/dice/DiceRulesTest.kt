@@ -49,4 +49,17 @@ class DiceRulesTest {
         assertEquals(Outcome.FAILURE, DiceRules.outcome(-1))
         assertEquals(Outcome.FUMBLE, DiceRules.outcome(-2))
     }
+
+    @Test fun rerollsMatchTheServerRule() {
+        // Same case as spec/action_flow_spec.rb: negative 1 takes the 9, positive 2 the 1 then the 2.
+        val (final, rerolled) = DiceRules.applyRerolls(listOf(2, 9, 3, 7, 1), 7, 2, 1) { 6 }
+        assertEquals(listOf(6, 6, null, null, 6), rerolled)
+        assertEquals(listOf(6, 6, 3, 7, 6), final)
+    }
+
+    @Test fun noRerollsLeavesDiceAlone() {
+        val (final, rerolled) = DiceRules.applyRerolls(listOf(4, 5), 7, 0, 0) { error("must not roll") }
+        assertEquals(listOf(4, 5), final)
+        assertEquals(listOf<Int?>(null, null), rerolled)
+    }
 }

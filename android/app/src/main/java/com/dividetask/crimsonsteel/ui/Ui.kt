@@ -138,4 +138,31 @@ object Ui {
         }
         return Pair(bar, titleView)
     }
+
+    /**
+     * A dice-count picker: (lowest count − 1) plain dice, then one die button
+     * per count. Every die up to [chosen] is lit. [choices]: (count, enabled, onTap).
+     */
+    fun diceStrip(ctx: Context, choices: List<Triple<Int, Boolean, () -> Unit>>, chosen: Int): View {
+        val chips = mutableListOf<View>()
+        val first = choices.minOfOrNull { it.first } ?: 1
+        for (n in 1 until first) chips += DieChip(ctx, null).apply { lit = n <= chosen }
+        for ((n, enabled, onTap) in choices.sortedBy { it.first }) {
+            chips += DieChip(ctx, n).apply {
+                lit = n <= chosen
+                available = enabled
+                contentDescription = "$n dice"
+                if (enabled) makeTappable(this, ctx, onTap)
+            }
+        }
+        val perRow = 10
+        val grid = vertical(ctx)
+        chips.chunked(perRow).forEach { rowChips ->
+            val row = horizontal(ctx)
+            rowChips.forEach { row.addView(it, weighted().apply { marginEnd = dp(ctx, 2) }) }
+            repeat(perRow - rowChips.size) { row.addView(View(ctx), weighted().apply { marginEnd = dp(ctx, 2) }) }
+            grid.addView(row, matchWidth(dp(ctx, 2)))
+        }
+        return grid
+    }
 }

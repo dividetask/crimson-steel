@@ -210,6 +210,56 @@ data class TurnRequest(
     }
 }
 
+/** Someone an attack can target (enemies first). */
+data class TargetChoice(val combatantId: Int, val name: String, val enemy: Boolean, val dying: Boolean)
+
+/** One answer a prompt offers. Options sharing a [group] with a [dice] count form one dice picker. */
+data class PromptOption(
+    val value: String, val label: String, val summary: String,
+    val group: String, val groupLabel: String, val dice: Int?, val disabled: Boolean,
+)
+
+/** The dice a roll prompt asks for, already worked out by the server (TN after both sides' bonuses). */
+data class PromptRoll(
+    val name: String, val diceCount: Int, val tn: Int, val startingValue: Int,
+    val positiveReroll: Int, val negativeReroll: Int,
+)
+
+/**
+ * A step of an attack waiting on this player (docs/project/action_flow.md):
+ * choose a defense, shield an ally, use Luck, or roll. [status] is "waiting"
+ * (answer it) or "submitted" (sent; waiting for the DM to approve).
+ */
+data class Prompt(
+    val flowId: String, val taskId: String, val kind: String, val step: String,
+    val title: String, val body: String, val status: String, val summary: String?,
+    val options: List<PromptOption>, val roll: PromptRoll?,
+) {
+    val waiting: Boolean get() = status == "waiting"
+
+    companion object {
+        fun list(a: JSONArray?) = a.mapObjects { p ->
+            Prompt(
+                flowId = p.optString("flow_id"), taskId = p.optString("task_id"), kind = p.optString("kind"),
+                step = p.optString("step"), title = p.optString("title"), body = p.optString("body"),
+                status = p.optString("status"), summary = p.optStringOrNull("summary"),
+                options = p.optJSONArray("options").mapObjects {
+                    PromptOption(it.optString("value"), it.optString("label"), it.optString("summary"),
+                        it.optString("group"), it.optString("group_label"), it.optIntOrNull("dice"), it.optBoolean("disabled"))
+                },
+                roll = p.optJSONObject("roll")?.let {
+                    PromptRoll(it.optString("name"), it.optInt("dice_count"), it.optInt("tn"), it.optInt("starting_value"),
+                        it.optInt("positive_reroll"), it.optInt("negative_reroll"))
+                },
+            )
+        }
+    }
+}
+
+/** One of this player's own attacks in progress, for the status lines. */
+data class FlowStatus(val flowId: String, val stage: String, val summary: String, val poolCost: Int, val steps: List<FlowStep>)
+data class FlowStep(val step: String, val owner: String, val status: String, val summary: String?)
+
 data class InitiativeEntry(
     val combatantId: Int, val name: String, val isPc: Boolean,
     val acting: Boolean, val isYou: Boolean, val initiative: String?,
@@ -225,6 +275,9 @@ data class Initiative(
     val order: List<InitiativeEntry>,
     val options: List<TurnOption>,
     val requests: List<TurnRequest>,
+    val targets: List<TargetChoice> = emptyList(),
+    val prompts: List<Prompt> = emptyList(),
+    val flows: List<FlowStatus> = emptyList(),
 ) {
     companion object {
         fun from(j: JSONObject): Initiative {
@@ -263,6 +316,16 @@ data class Initiative(
                     )
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),
+                targets = j.optJSONArray("targets").mapObjects {
+                    TargetChoice(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("enemy"), it.optBoolean("dying"))
+                },
+                prompts = Prompt.list(j.optJSONArray("prompts")),
+                flows = j.optJSONArray("flows").mapObjects { f ->
+                    FlowStatus(f.optString("flow_id"), f.optString("stage"), f.optString("summary"), f.optInt("pool_cost"),
+                        f.optJSONArray("tasks").mapObjects {
+                            FlowStep(it.optString("step"), it.optString("owner"), it.optString("status"), it.optStringOrNull("summary"))
+                        })
+                },
             )
         }
     }

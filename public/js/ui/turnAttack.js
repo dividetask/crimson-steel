@@ -114,6 +114,9 @@ export class TurnAttack {
     // the target it hit (the weapon then stops re-asking on later strikes).
     const strikeSpell = container.getAttribute('data-strike-spell');
     if (strikeSpell) base.active_spell_name = strikeSpell;
+    // A player-driven attack pre-filled from the Player actions panel
+    // (flowsPanel.js): the commit closes that flow.
+    if (container.dataset.flowId) base.flow_id = container.dataset.flowId;
 
     // Target's own defense (Dodge / Block / Parry / none).
     const def = rolls.find((r) => r.id === 'defender');

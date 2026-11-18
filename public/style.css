@@ -4956,3 +4956,31 @@ button.spell-school-badge { font-family: inherit; }
 .ta-player-request-label { flex: 1; }
 .ta-player-request-cost { color: #666; font-size: 0.9em; }
 .ta-player-request-dismiss { margin: 0; }
+
+/* Player actions panel (views/_action_flows.erb). */
+.action-flows:empty { display: none; }
+.af-title { margin: 12px 0 6px; }
+.af-error { color: #b71c1c; font-weight: bold; }
+.af-flow { border: 1px solid #d4a84a; border-radius: 8px; background: #fffaf0; padding: 8px 10px; margin-bottom: 10px; }
+.af-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.af-what { flex: 1; }
+.af-stage { font-size: 0.85em; background: #5a0e14; color: #fff; border-radius: 10px; padding: 2px 8px; }
+.af-inline { display: inline; margin: 0; }
+.af-btn { padding: 3px 10px; border: 1px solid #999; border-radius: 4px; background: #fff; cursor: pointer; }
+.af-primary { background: #9f1d24; border-color: #9f1d24; color: #fff; }
+.af-cancel { color: #9f1d24; }
+.af-done { margin: 6px 0; padding-left: 18px; color: #555; font-size: 0.9em; }
+.af-tasks { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.af-tasks td { padding: 4px 6px; border-top: 1px solid #eadfc6; vertical-align: middle; }
+.af-step { font-weight: bold; white-space: nowrap; }
+.af-owner { white-space: nowrap; }
+.af-wait { color: #888; font-style: italic; }
+.af-submitted .af-answer { font-weight: bold; }
+.af-approved { color: #4a7c3a; }
+.af-roll-params { display: block; color: #777; font-size: 0.85em; }
+.af-actions { text-align: right; white-space: nowrap; }
+.af-select { max-width: 260px; }
+.af-resolve { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
+.af-note { color: #666; font-size: 0.9em; }
+.af-prefill-note { background: #fff8e6; border: 1px solid #d4a84a; border-radius: 6px; padding: 6px 8px; }
+.af-prefill-warn { border-color: #b71c1c; color: #b71c1c; }

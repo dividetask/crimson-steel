@@ -127,6 +127,13 @@
   </form>
 <% end %>
 
+<%# Player actions (docs/project/action_flow.md): attacks players started from
+    the Android app, waiting on the DM's approval. DM-only. %>
+<% if @viewer == :dm %>
+  <%= erb :_action_flows, locals: { flows: ActionFlows.instance.active, acting_id: @encounter_state.acting_combatant_id } %>
+  <script type="module" src="/js/ui/flowsPanel.js"></script>
+<% end %>
+
 <%# Turn Action panel (turn_action_stub.md): DM-only, acts on the Acting
     Combatant. Rendered only when a Combatant currently holds the turn. %>
 <% if @viewer == :dm && phase == :combat && @acting_row %>

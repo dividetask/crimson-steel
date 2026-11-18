@@ -56,8 +56,34 @@ class MainActivity : Activity() {
     private val poll = object : Runnable {
         override fun run() {
             if (!resumed) return
-            if (playing) screen?.refresh() else checkAssignment()
-            handler.postDelayed(this, if (playing) current.pollMs else 3000)
+            if (playing) {
+                screen?.refresh()
+                if (current != Tab.INITIATIVE) checkPrompts()
+            } else checkAssignment()
+            handler.postDelayed(this, if (playing) minOf(current.pollMs, 3000) else 3000)
+        }
+    }
+
+    /** Prompt ids already announced, so each "your move" is announced once. */
+    private val announced = mutableSetOf<String>()
+
+    /**
+     * From any tab: when an attack step waits on this player (choose a defense,
+     * roll…), badge the Initiative tab and say so once.
+     */
+    private fun checkPrompts() {
+        Session.prompts { r ->
+            val waiting = r.getOrNull()?.filter { it.waiting } ?: return@prompts
+            tabViews[Tab.INITIATIVE]?.let { tv ->
+                tv.text = if (waiting.isEmpty()) Tab.INITIATIVE.label else "${Tab.INITIATIVE.label} \u25CF${waiting.size}"
+                tv.setTextColor(if (waiting.isEmpty()) (if (current == Tab.INITIATIVE) Ui.TEXT else Ui.TEXT_DIM) else Ui.GOLD)
+            }
+            val fresh = waiting.filter { announced.add(it.taskId) }
+            if (fresh.isNotEmpty()) {
+                DebugLog.i(TAG, "prompt: ${fresh.joinToString { it.title }}")
+                android.widget.Toast.makeText(this, "Your move: ${fresh.first().title} (Initiative tab)",
+                    android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -211,6 +237,7 @@ class MainActivity : Activity() {
 
     private fun select(tab: Tab) {
         current = tab
+        tabViews[Tab.INITIATIVE]?.text = Tab.INITIATIVE.label
         for ((t, tv) in tabViews) {
             val on = t == tab
             tv.setTextColor(if (on) Ui.TEXT else Ui.TEXT_DIM)

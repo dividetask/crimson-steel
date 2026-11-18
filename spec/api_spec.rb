@@ -19,6 +19,7 @@ RSpec.describe 'Android app JSON API', type: :request do
     header 'Host', '192.168.1.10:4567'
     DeviceRegistry.instance_variable_set(:@instance, DeviceRegistry.new(File.join(tmp, 'devices.json')))
     PlayerRequests.instance = PlayerRequests.new
+    ActionFlows.instance = ActionFlows.new
     cond = Hash.new { |h, id| h[id] = Conditions::Instance.new }
     Encounter.state = Encounter::State.new(
       {}, data_path: File.join(tmp, 'encounter.json'),
@@ -156,10 +157,10 @@ RSpec.describe 'Android app JSON API', type: :request do
     it 'records a request without spending anything, and lets the player withdraw it' do
       mine = start_combat_on_my_turn!
       pool_before = Encounter.state.combat_pool_remaining(mine[:id])
-      j = api_post('/api/turn/requests', key: 'attack:Unarmed', dice: 3)
+      j = api_post('/api/turn/requests', key: 'move')
       expect(last_response.status).to eq(200)
       expect(j['requests'].length).to eq(1)
-      expect(j['requests'].first).to include('label' => 'Attack: Unarmed', 'dice' => 3, 'pool_cost' => 3)
+      expect(j['requests'].first).to include('label' => 'Move', 'dice' => nil, 'pool_cost' => Encounter::Config.move_cost)
       expect(Encounter.state.combat_pool_remaining(mine[:id])).to eq(pool_before)
 
       id = j['requests'].first['id']
@@ -169,7 +170,8 @@ RSpec.describe 'Android app JSON API', type: :request do
 
     it 'rejects a dice count outside the choices' do
       start_combat_on_my_turn!
-      api_post('/api/turn/requests', key: 'attack:Unarmed', dice: 99)
+      target = api_get('/api/initiative')['targets'].first
+      api_post('/api/turn/requests', key: 'attack:Unarmed', dice: 99, target_id: target['combatant_id'])
       expect(last_response.status).to eq(422)
     end
 
@@ -212,6 +214,137 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(last_response.status).to eq(302)
       header 'Host', '192.168.1.10:4567'
       expect(api_get('/api/initiative')['requests']).to eq([])
+    end
+  end
+
+  describe 'player-driven attack flow' do
+    let(:other_pc) { Creatures.player_controlled[1] }
+    let(:dm_env) { { 'REMOTE_ADDR' => '127.0.0.1' } }
+
+    def dm_post(path, params = {})
+      header 'Host', 'localhost'
+      post path, params, dm_env
+      header 'Host', '192.168.1.10:4567'
+    end
+
+    # A second phone, assigned to another Player Character.
+    def as_other_phone
+      with_session(:other) do
+        header 'Host', '192.168.1.10:4567'
+        get '/api/hello', {}, 'REMOTE_ADDR' => '192.168.1.51'
+        device = last_response.headers['set-cookie'].to_s[/crimson_device_id=([^;]+)/, 1]
+        DeviceRegistry.instance.assign_character(device, other_pc[:id])
+        yield
+      end
+    end
+
+    def other_get(path)
+      get path, {}, 'REMOTE_ADDR' => '192.168.1.51'
+      JSON.parse(last_response.body)
+    end
+
+    def other_post(path, body)
+      post path, JSON.generate(body), 'REMOTE_ADDR' => '192.168.1.51', 'CONTENT_TYPE' => 'application/json'
+      JSON.parse(last_response.body)
+    end
+
+    before { assign_device! }
+
+    def attack_other_pc!
+      start_combat_on_my_turn!
+      ini = api_get('/api/initiative')
+      target = ini['targets'].find { |t| t['name'] == other_pc[:name] }
+      atk = ini['options'].find { |o| o['kind'] == 'attack' && o['dice'].any? { |d| d['affordable'] } }
+      dice = atk['dice'].find { |d| d['affordable'] }['dice']
+      j = api_post('/api/turn/requests', key: atk['key'], dice: dice, target_id: target['combatant_id'])
+      expect(last_response.status).to eq(200), j.inspect
+      ActionFlows.instance.active.last
+    end
+
+    it 'lists targets for the attacker, enemies first' do
+      start_combat_on_my_turn!
+      targets = api_get('/api/initiative')['targets']
+      expect(targets).not_to be_empty
+      expect(targets.map { |t| t['enemy'] }).to eq(targets.map { |t| t['enemy'] }.sort_by { |e| e ? 0 : 1 })
+    end
+
+    it 'needs a target to attack' do
+      start_combat_on_my_turn!
+      atk = api_get('/api/initiative')['options'].find { |o| o['kind'] == 'attack' }
+      api_post('/api/turn/requests', key: atk['key'], dice: 2)
+      expect(last_response.status).to eq(422)
+    end
+
+    it 'runs request -> DM approval -> defender prompt -> rolls -> pre-fill -> commit closes it' do
+      flow = attack_other_pc!
+      expect(flow.stage).to eq('declare')
+
+      # The DM sees it and approves the request.
+      header 'Host', 'localhost'
+      get '/encounter', {}, dm_env
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include('class="af-title">Player actions')
+      expect(last_response.body).to include('/approve')
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
+      expect(flow.stage).to eq('respond')
+
+      # The target's phone is asked for a defense, and answers.
+      as_other_phone do
+        prompts = other_get('/api/prompts')['prompts']
+        defense = prompts.find { |p| p['step'] == 'defense' }
+        expect(defense['options'].map { |o| o['value'] }).to include('none')
+        j = other_post("/api/prompts/#{flow.id}/#{defense['task_id']}", value: 'none')
+        expect(j['prompts'].find { |p| p['task_id'] == defense['task_id'] }['status']).to eq('submitted')
+      end
+
+      # The attacker cannot answer the defender's step.
+      t = flow.open_tasks.find { |x| x['step'] == 'defense' }
+      api_post("/api/prompts/#{flow.id}/#{t['id']}", value: 'none')
+      expect(last_response.status).to eq(403)
+
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{t['id']}/approve")
+      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: flow.options_for(x).first[:value]) } if flow.stage == 'luck'
+      expect(flow.stage).to eq('roll')
+
+      # The attacker rolls on their phone; the DM approves it.
+      roll = api_get('/api/initiative')['prompts'].find { |p| p['kind'] == 'roll' }
+      n = roll['roll']['dice_count']
+      api_post("/api/prompts/#{flow.id}/#{roll['task_id']}", roll: { dice: [10] * n, final: [10] * n })
+      expect(last_response.status).to eq(200)
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{roll['task_id']}/approve")
+      expect(flow.stage).to eq('resolve')
+
+      header 'Host', 'localhost'
+      get "/encounter/flows/#{flow.id}/prefill", {}, dm_env
+      pre = JSON.parse(last_response.body)
+      expect(pre['choices'].map(&:first)).to eq(%w[target action defense])
+      expect(pre['rolls']['attacker']['successes']).to eq(2 * n)
+
+      # A committed attack carrying the flow id closes it.
+      payload = { target_id: pre['choices'][0][1].to_i, weapon_type: pre['choices'][1][1].split('|').first, commit: true,
+                  flow_id: flow.id, luck: [], defense: { choice: 'none' },
+                  attacker: { id: flow.attacker_id, dice: n, speed: 0, successes: 2 * n } }
+      post '/encounter/resolve_attack', JSON.generate(payload), dm_env.merge('CONTENT_TYPE' => 'application/json')
+      expect(last_response.status).to eq(200), last_response.body[0, 300]
+      expect(flow.status).to eq('done')
+    end
+
+    it 'lets the DM decide for a player, which clears their prompt' do
+      flow = attack_other_pc!
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
+      t = flow.open_tasks.find { |x| x['step'] == 'defense' }
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{t['id']}/decide", value: 'none')
+      expect(flow.task(t['id'])).to include('status' => 'approved', 'by' => 'dm')
+      as_other_phone do
+        expect(other_get('/api/prompts')['prompts'].map { |p| p['task_id'] }).not_to include(t['id'])
+      end
+    end
+
+    it 'keeps the DM actions DM-only' do
+      flow = attack_other_pc!
+      post "/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve", {}, player_env
+      expect(last_response.status).to eq(403)
+      expect(flow.stage).to eq('declare')
     end
   end
 

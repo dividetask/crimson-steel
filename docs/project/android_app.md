@@ -100,6 +100,8 @@ Spells that take a minute or longer to cast are not offered, as on the web.
 
 ### Requests
 
+**Attacks** are different: they run step by step — the target chooses a defense on their own phone, allies and Luck holders are asked, everyone rolls on their phone, and the DM approves each step and finishes it in the pre-filled Attack builder. See [action_flow.md](action_flow.md). Everything else below is a plain request.
+
 Tapping an option opens it: a dice-count picker (counts the pool can't afford are disabled), then **Request**. A request **spends nothing**. It is sent to the server (`POST /api/turn/requests`), listed under *Requested this turn* with an **Undo last** button, and shown to the DM in a **Player requests** box at the top of the turn panel on the web Encounter page. The DM resolves it with the normal Attack / Move / Cast / Item / Special flow, which does the spending, or presses **Dismiss**.
 
 Requests belong to the turn they were made in. Once the turn moves on they disappear. They are kept in memory, so restarting the server clears them.
@@ -156,6 +158,7 @@ All endpoints answer JSON for the device's assigned Character, or `409 {"error":
 | `GET /api/initiative` | Combat state, turn order (no vitals), the player's pool / Main Actions / Mana, and on their turn the options and this turn's requests. |
 | `POST /api/turn/requests` | Body `{ "key": "<option key>", "dice": <n> }`. Records a request for the DM. |
 | `POST /api/turn/requests/:id/delete` | Withdraws one of this turn's requests. |
+| `GET /api/prompts`, `POST /api/prompts/:flow_id/:task_id` | Attack steps waiting on this player, and answering one ([action_flow.md](action_flow.md)). |
 | `GET /api/notes` | Chronicle entries visible to the Character (public text only), with chapter names. |
 | `GET /api/scene` | Current chapter, in-game time, and the active Chronicle entries visible to the Character. |
 | `POST /encounter/player_requests/:id/dismiss` | DM only: dismiss a request from the turn panel. |

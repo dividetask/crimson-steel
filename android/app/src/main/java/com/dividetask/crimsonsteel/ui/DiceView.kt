@@ -37,6 +37,8 @@ class DiceView(context: Context) : View(context) {
         val restAngle: Float,  // small tilt once settled
         var face: Int,
         var lastFaceSwap: Float = -1f,
+        /** Stays where it is while the others roll (a die Luck did not reroll). */
+        val still: Boolean = false,
     )
 
     private var dice: List<Die> = emptyList()
@@ -71,11 +73,15 @@ class DiceView(context: Context) : View(context) {
     /** Total animation time in ms. */
     var durationMs = 1600L
 
-    /** Start rolling [values] (already decided by the Roller) against [tn]. */
-    fun roll(values: List<Int>, tn: Int) {
+    /**
+     * Start rolling [values] (already decided by the Roller) against [tn].
+     * With [only], just those positions tumble (Luck rerolls); the rest stay put.
+     */
+    fun roll(values: List<Int>, tn: Int, only: Set<Int>? = null) {
         this.tn = tn
         animator?.cancel()
         dice = values.mapIndexed { i, v ->
+            if (only != null && i !in only) return@mapIndexed Die(v, 0f, 0f, 0f, 0f, 0f, v, still = true)
             Die(
                 finalValue = v,
                 delay = i * 0.04f,
@@ -138,13 +144,13 @@ class DiceView(context: Context) : View(context) {
             val restX = (w - inRow * cell) / 2f + cell * (col + 0.5f)
             val restY = cell * 0.65f + row * cell * 1.1f
 
-            val local = ((progress - d.delay) / (1f - d.delay)).coerceIn(0f, 1f)
+            val local = if (d.still) 1f else ((progress - d.delay) / (1f - d.delay)).coerceIn(0f, 1f)
             val settled = local >= 1f
             val ease = 1f - (1f - local) * (1f - local) * (1f - local)   // ease-out cubic
 
             // Travel from off-screen toward the resting spot, with a decaying bounce.
-            val x = d.startX * w + (restX - d.startX * w) * ease
-            val baseY = d.startY * height + (restY - d.startY * height) * ease
+            val x = if (d.still) restX else d.startX * w + (restX - d.startX * w) * ease
+            val baseY = if (d.still) restY else d.startY * height + (restY - d.startY * height) * ease
             val bounce = abs(sin(local * PI * 3).toFloat()) * exp(-4f * local) * cell * 0.6f
             val y = baseY - bounce
             val angle = d.restAngle + d.spin * (1f - ease)

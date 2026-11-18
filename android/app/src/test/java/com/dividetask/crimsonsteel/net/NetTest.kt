@@ -80,4 +80,33 @@ class NetTest {
         assertEquals(SkillView("Evocation", 7, 2), dart.skill)
         assertEquals("Attack with Rapier", i.options[0].copy(name = "Rapier").actionText)
     }
+
+    @Test fun parsesPromptsTargetsAndFlows() {
+        val j = JSONObject("""
+            {"ok":true,"combat_active":true,"round_label":"Round 1","my_turn":false,"options":[],"requests":[],
+             "targets":[{"combatant_id":5,"name":"Wolf","enemy":true,"dying":false}],
+             "prompts":[
+               {"flow_id":"f1","task_id":"t1","kind":"choice","step":"defense","title":"Choose your defense",
+                "body":"Ash attacks you.","status":"waiting","summary":null,
+                "options":[{"value":"none","label":"No defense","summary":"No defense","group":"none",
+                            "group_label":"No defense","dice":null,"disabled":false},
+                           {"value":"dodge|2","label":"2","summary":"Dodge — 2 dice","group":"dodge",
+                            "group_label":"Dodge","dice":2,"disabled":false}]},
+               {"flow_id":"f1","task_id":"t2","kind":"roll","step":"roll:defender","title":"Roll Dodge","body":"",
+                "status":"submitted","summary":"9 7 → 2 successes",
+                "roll":{"name":"Dodge","dice_count":2,"tn":7,"starting_value":0,"positive_reroll":1,"negative_reroll":0}}],
+             "flows":[{"flow_id":"f2","stage":"respond","summary":"Rapier — 4 dice at Wolf","pool_cost":6,
+                       "tasks":[{"step":"defense","owner":"Wolf","status":"waiting","summary":null}]}]}
+        """.trimIndent())
+        val i = Initiative.from(j)
+        assertEquals("Wolf", i.targets.single().name)
+        val defense = i.prompts[0]
+        assertTrue(defense.waiting)
+        assertEquals(2, defense.options[1].dice)
+        assertNull(defense.options[0].dice)
+        val roll = i.prompts[1]
+        assertEquals(false, roll.waiting)
+        assertEquals(1, roll.roll!!.positiveReroll)
+        assertEquals(6, i.flows.single().poolCost)
+    }
 }

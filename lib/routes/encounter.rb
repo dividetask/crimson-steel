@@ -1169,6 +1169,9 @@ post '/encounter/resolve_attack' do
   if result[:committed]
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
+    # A player-driven attack (lib/action_flow.rb) finished in the pre-filled
+    # builder: it is done, so it leaves the Player actions panel and the phones.
+    ActionFlows.instance.find(payload['flow_id'])&.done! if payload['flow_id']
     # An Active Spells strike remembers the target it just struck, so a weapon
     # that had no target set (a fresh / seeded one) stops re-asking on later
     # strikes; Retarget is how the DM changes it thereafter.

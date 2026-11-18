@@ -147,10 +147,32 @@ object Session {
     fun scene(done: (Result<Pair<Scene, String>>) -> Unit) =
         withApi({ val j = it.get("/api/scene"); Pair(Scene.from(j), j.toString()) }, done)
 
-    /** Ask the DM for an action this turn. */
-    fun requestAction(key: String, dice: Int?, done: (Result<Unit>) -> Unit) = withApi({
-        it.postJson("/api/turn/requests", JSONObject().put("key", key).apply { if (dice != null) put("dice", dice) })
+    /** Ask the DM for an action this turn. An attack also names its target and starts a step-by-step attack. */
+    fun requestAction(key: String, dice: Int?, targetId: Int? = null, done: (Result<Unit>) -> Unit) = withApi({
+        it.postJson("/api/turn/requests", JSONObject().put("key", key).apply {
+            if (dice != null) put("dice", dice)
+            if (targetId != null) put("target_id", targetId)
+        })
         Unit
+    }, done)
+
+    /** Steps waiting on this player in any attack (for the tab badge). */
+    fun prompts(done: (Result<List<com.dividetask.crimsonsteel.data.Prompt>>) -> Unit) =
+        withApi({ com.dividetask.crimsonsteel.data.Prompt.list(it.get("/api/prompts").optJSONArray("prompts")) }, done)
+
+    /** Answer a choice prompt (defense, ally shield, Luck) with one of its option values. */
+    fun answerPrompt(flowId: String, taskId: String, value: String, done: (Result<Unit>) -> Unit) = withApi({
+        it.postJson("/api/prompts/$flowId/$taskId", JSONObject().put("value", value)); Unit
+    }, done)
+
+    /** Send the dice rolled for a roll prompt (as rolled, any Luck rerolls, and the final dice). */
+    fun submitRoll(flowId: String, taskId: String, dice: List<Int>, rerolled: List<Int?>, final: List<Int>,
+                   done: (Result<Unit>) -> Unit) = withApi({
+        val roll = JSONObject()
+            .put("dice", org.json.JSONArray(dice))
+            .put("rerolled", org.json.JSONArray().apply { rerolled.forEach { v -> put(v ?: JSONObject.NULL) } })
+            .put("final", org.json.JSONArray(final))
+        it.postJson("/api/prompts/$flowId/$taskId", JSONObject().put("roll", roll)); Unit
     }, done)
 
     fun withdrawRequest(id: String, done: (Result<Unit>) -> Unit) =
