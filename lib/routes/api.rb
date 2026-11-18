@@ -1,0 +1,331 @@
+# JSON API for the Android app (docs/project/android_app.md).
+#
+# The app is a player device: it is identified like any browser, by the
+# `crimson_device_id` cookie (lib/routes/devices.rb), and shows the Character
+# the DM assigned to that device on the Status page. Every endpoint answers
+# for that Character only, with the same player visibility rules the web pages
+# use (enemy vitals redacted, Chronicle entries filtered per Character, no DM
+# descriptions).
+#
+# Inventory changes reuse the web routes unchanged (/inventory/equip,
+# /inventory/unequip, /inventory/discard, /inventory/claim,
+# /inventory/claim_equip), so the app can do exactly what the web sheet does.
+# Public Skill Rolls go to the web's POST /dm/roll.
+#
+# A turn request (POST /api/turn/requests) spends nothing: it is listed on the
+# DM's turn panel, and the DM resolves it through the normal flow.
+
+helpers do
+  # Halt with a JSON body. Accepts a Hash or bare keywords (`api_json(ok: true)`);
+  # `status:` is the HTTP status, never a body field.
+  def api_json(obj = {}, status: 200, **fields)
+    content_type :json
+    halt status, JSON.generate(obj.merge(fields))
+  end
+
+  def api_error(status, error, **extra)
+    api_json({ ok: false, error: error }.merge(extra), status: status)
+  end
+
+  # The assigned Character's accessor, or halt with `unassigned`.
+  def api_character!
+    cid = assigned_character_id
+    api_error(409, 'unassigned', device: assignment_short_id(current_device_id)) unless cid
+    acc = (Creatures.lookup(cid) rescue nil)
+    api_error(409, 'unassigned', device: assignment_short_id(current_device_id)) unless acc
+    acc
+  end
+
+  def api_time_label(ts)
+    ts  = ts.transform_keys(&:to_sym)
+    cal = Timekeeping.calendar_date(ts[:day_index])
+    hh, mm, = Timekeeping.time_of_day(ts[:round_of_day]).split(':')
+    "#{cal[:day_of_week]}, #{cal[:day_of_month]} #{Timekeeping.month_name(cal[:month])} #{cal[:year]} · #{hh}:#{mm}"
+  rescue StandardError
+    nil
+  end
+
+  # A Roll the app can throw as-is: Dice Count, final TN and Starting Value
+  # are computed here (Dice Resolution), so the app never re-derives them.
+  def api_roll(name, dice_count, bpl, ranks: 0)
+    tn = DiceResolution.compute_target_number(bpl)
+    { name: name, dice_count: dice_count.to_i, tn: tn[:tn], starting_value: tn[:starting_value],
+      base_tn: DiceResolution.config.base_target_number, bonus_penalty_list: bpl, ranks: ranks.to_i }
+  end
+
+  def api_competency(bonus)
+    bonus.to_i.zero? ? [] : [['Competency', bonus.to_i]]
+  end
+
+  def api_sheet(acc)
+    d = CreatureSheet.build(acc)
+    h = d[:header]
+    v = d[:vitals]
+    attributes = Array(d[:attributes_table]).map do |a|
+      save_tokens = Array(a.dig(:save, :tokens)).reject { |t| t[:conditional] }
+                                                .map { |t| [(t[:type] || 'Resistance').to_s, t[:amount].to_i] }
+      { key: a[:key].to_s, label: a[:attr], score: a[:score],
+        check: api_roll("#{a[:attr]} check", a.dig(:check, :dice), api_competency(a.dig(:check, :bonus))),
+        save:  api_roll("#{a[:attr]} save", a.dig(:save, :dice),
+                        api_competency(a.dig(:save, :bonus)) + save_tokens, ranks: a.dig(:save, :ranks)) }
+    end
+    skills = CreatureSheet.all_skills(acc).map do |s|
+      r = CreatureSheet.skill_roll(acc, s[:key])
+      roll = r ? { name: r[:roll_name], dice_count: r[:dice_count], tn: r[:tn], starting_value: r[:starting_value],
+                   base_tn: r[:base_tn], bonus_penalty_list: r[:bonus_penalty_list], ranks: r[:ranks] } : nil
+      s.merge(roll: roll)
+    end
+    {
+      ok: true,
+      id: acc.id, name: h[:name], player: h[:player], summary: h[:summary],
+      tier: (h[:hide_tier] ? nil : h[:tier]),
+      vitals: {
+        hp: v[:hp], temp_hp: v[:temp_hp].to_i, mana: v[:mana], toxicity: v[:toxicity],
+        damage_reduction: v[:damage_reduction].to_i, damage_resilience: v[:damage_resilience].to_i
+      },
+      speed: d[:speed], initiative_dice: d.dig(:initiative, :dice_count), perception: d[:perception],
+      attributes: attributes, skills: skills,
+      abilities: Array(d[:abilities]).map { |a| { name: a[:name], description: a[:description].to_s } },
+      spells: Array(d[:spells]).map { |g| { tier: g[:tier], names: Array(g[:names]) } },
+      active_effects: Array(d[:active_effects])
+    }
+  end
+
+  # --- Turn options ----------------------------------------------------------
+
+  def api_category_for_cost(cost)
+    case cost.to_i
+    when Encounter::Config.free_action_minimum  then 'free'
+    when Encounter::Config.bonus_action_minimum then 'bonus'
+    else 'main'
+    end
+  end
+
+  def api_dice_choices(range, pool, speed: 0)
+    range.map { |n| { dice: n, pool_cost: speed + n, affordable: speed + n <= pool } }
+  end
+
+  # The player's options for their turn, built from the same server code as
+  # the DM's turn menu (turn_action_stub.md): equipped weapons with their
+  # Martial Dice Cap, Move, known + Wand/Ring Spells, carried Potions/Scrolls,
+  # usable Special Abilities, active persistent Spells, and End Turn.
+  def api_turn_options(combatant)
+    es   = encounter_state
+    acc  = (Creatures.lookup(combatant[:creature_id]) rescue nil)
+    pool = (es.combat_pool_remaining(combatant[:id]) rescue 0) || 0
+    mana = combatant_mana_left(combatant[:creature_id], acc)
+    can_act = (es.creature_can_act?(combatant[:id]) rescue true)
+    out = []
+    end_turn = { key: 'end_turn', label: 'End Turn', kind: 'end_turn', category: 'free',
+                 detail: 'Finish your turn.', dice: [], pool_cost: 0, mana_cost: 0, disabled: false }
+    return [end_turn] unless can_act && acc
+
+    attack_weapons(combatant, acc).each do |w|
+      speed = [w[:speed].to_i, 0].max
+      cap   = w[:dice_cap].to_i
+      out << { key: "attack:#{w[:item_type]}", label: "Attack: #{w[:display_name]}", kind: 'attack', category: 'main',
+               detail: "Speed #{speed} + 1 per die · up to #{cap} dice (Martial)",
+               dice: api_dice_choices(2..cap, pool, speed: speed), pool_cost: nil, mana_cost: 0 }
+    end
+
+    move = Encounter::Config.move_cost
+    out << { key: 'move', label: 'Move', kind: 'move', category: 'main',
+             detail: "Costs #{move} Combat Pool dice", dice: [], pool_cost: move, mana_cost: 0 }
+
+    castable = lambda do |sp, kind, prefix|
+      min    = sp[:action_min].to_i
+      cap    = sp[:dice_cap].to_i
+      rolled = sp[:requires_roll] || sp[:reservoir]
+      skill  = Encounter::Special.pretty_skill(sp[:skill].to_s)
+      detail = +"Tier #{sp[:tier]}"
+      detail << " · #{sp[:mana_cost]} mana" if sp[:mana_cost].to_i.positive?
+      detail << (rolled ? " · 1 per die · up to #{cap} dice (#{skill})" : " · costs #{min} Combat Pool dice")
+      detail << " · ×#{sp[:quantity]}" if sp[:quantity].to_i > 1
+      opt = { key: "#{prefix}:#{sp[:key]}", label: "#{kind == 'item' ? 'Use' : 'Cast'}: #{sp[:display]}", kind: kind,
+              category: api_category_for_cost(min), detail: detail,
+              dice: rolled ? api_dice_choices(min..[cap, min - 1].max, pool) : [],
+              pool_cost: rolled ? nil : min, mana_cost: sp[:mana_cost].to_i }
+      opt[:disabled_reason] = 'not enough Mana' unless sp[:affordable]
+      opt[:disabled_reason] ||= "Dice Cap #{cap} is below the #{min}-dice minimum" if rolled && cap < min
+      opt
+    end
+    spells = (known_spell_castables(acc, pool, mana) + granted_item_castables(combatant, acc, pool, mana))
+             .reject { |sp| sp[:long_cast] }
+    spells.each { |sp| out << castable.call(sp, 'cast', 'cast') }
+    consumable_castables(combatant, acc, pool).reject { |sp| sp[:long_cast] }
+                                              .each { |sp| out << castable.call(sp, 'item', 'item') }
+
+    Array((es.special_options(combatant[:id]) rescue [])).each do |s|
+      cost = s[:action_cost].to_i
+      opt = { key: "special:#{s[:name]}", label: s[:label].to_s, kind: 'special', category: s[:activation].to_s,
+              detail: s[:summary].to_s, mana_cost: s[:mana_cost].to_i,
+              dice: s[:channeled] ? api_dice_choices(cost..[pool, cost].max, pool) : [],
+              pool_cost: s[:channeled] ? nil : cost }
+      opt[:category] = 'main' unless %w[main bonus free].include?(opt[:category])
+      opt[:disabled_reason] = s[:disabled_reason] if s[:disabled]
+      out << opt
+    end
+
+    Array((active_persistent_spells(combatant) rescue [])).each do |e|
+      out << { key: "active:#{e[:spell_name]}", label: "#{e[:spell_name]} (conc)", kind: 'active_spell', category: 'main',
+               detail: 'Attack, retarget, refill or end this Spell — the DM picks the details.',
+               dice: [], pool_cost: 0, mana_cost: 0 }
+    end
+
+    out << end_turn
+    out.each { |o| o[:disabled] = !o[:disabled_reason].nil? }
+  end
+
+  # In Combat as the players see it: combat running and the party's Phase is
+  # Combat (the same condition the web Encounter page uses for the turn panel).
+  def api_in_combat?
+    encounter_state.combat_active? && encounter_state.phase == :combat
+  end
+
+  def api_my_combatant(acc)
+    encounter_state.combatants.find { |c| c[:creature_id].to_s == acc.id.to_s }
+  end
+
+  def api_request_view(r)
+    r.slice('id', 'key', 'label', 'category', 'dice', 'pool_cost', 'mana_cost', 'at')
+  end
+end
+
+# Who am I? Lets the app confirm it found a Crimson Steel server and whether
+# the DM has assigned this device a Character yet.
+get '/api/hello' do
+  cid = assigned_character_id
+  info = cid && (Creatures.get(cid) rescue nil)
+  api_json(ok: true, service: LanDiscovery::SERVICE, version: LanDiscovery::VERSION,
+           campaign: (Chronicle.store.campaign_name rescue nil),
+           device: assignment_short_id(current_device_id),
+           character: info ? { id: cid, name: info[:name] } : nil)
+end
+
+get '/api/sheet' do
+  api_json(api_sheet(api_character!))
+end
+
+get '/api/inventory' do
+  acc  = api_character!
+  data = inventory_stub_data(acc.id)
+  api_json(ok: true, creature_id: acc.id, manageable: manageable_creature?(acc.id.to_s),
+           equipped: data[:equipped], inventory: data[:inventory], sell: data[:sell])
+end
+
+get '/api/initiative' do
+  acc = api_character!
+  es  = encounter_state
+  reconcile_player_combatants!
+  acting = es.acting_combatant_id
+  mine   = api_my_combatant(acc)
+  rows = es.combatants.map { |c| build_tracker_row(c, acting) }
+  rows = rows.sort_by { |r| [r[:initiative].to_s.empty? ? 1 : 0, invert_init(r[:initiative].to_s), r[:combatant_id]] }
+  rows = Encounter::Visibility.redact_rows(rows, viewer: :player, sees_injury: viewer_sees_injury?)
+  my_turn = !!(mine && api_in_combat? && acting == mine[:id])
+
+  me = nil
+  if mine
+    pool_max = (es.get_combat_pool(mine[:id]) rescue nil)
+    v = CreatureSheet.vitals(acc, acc.tier) rescue nil
+    me = { combatant_id: mine[:id],
+           pool: pool_max && { remaining: (es.combat_pool_remaining(mine[:id]) rescue 0), max: pool_max },
+           main_actions_remaining: (es.main_actions_remaining(mine[:id]) rescue nil),
+           mana: v && v[:mana] }
+  end
+  key = mine && PlayerRequests.turn_key(es, mine[:id])
+  api_json(
+    ok: true, combat_active: api_in_combat?, round_label: es.round_label,
+    acting_combatant_id: acting, my_turn: my_turn, me: me,
+    order: rows.map do |r|
+      { combatant_id: r[:combatant_id], name: r[:name], is_pc: r[:is_pc], acting: r[:acting],
+        is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }
+    end,
+    options: my_turn ? api_turn_options(mine) : [],
+    requests: my_turn ? PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) } : []
+  )
+end
+
+# Ask the DM for an action this turn. Body (JSON): { key, dice }.
+post '/api/turn/requests' do
+  acc = api_character!
+  es  = encounter_state
+  mine = api_my_combatant(acc)
+  api_error(409, 'not_your_turn') unless mine && api_in_combat? && es.acting_combatant_id == mine[:id]
+  body = (JSON.parse(request.body.read) rescue nil)
+  api_error(400, 'invalid payload') unless body.is_a?(Hash)
+
+  opt = api_turn_options(mine).find { |o| o[:key] == body['key'].to_s }
+  api_error(422, 'unknown option') unless opt
+  api_error(422, opt[:disabled_reason]) if opt[:disabled]
+  dice = nil
+  cost = opt[:pool_cost].to_i
+  unless opt[:dice].empty?
+    choice = opt[:dice].find { |d| d[:dice] == body['dice'].to_i }
+    api_error(422, 'choose a dice count') unless choice
+    api_error(422, 'not enough Combat Pool') unless choice[:affordable]
+    dice = choice[:dice]
+    cost = choice[:pool_cost]
+  end
+  key = PlayerRequests.turn_key(es, mine[:id])
+  PlayerRequests.instance.add(combatant_id: mine[:id], creature_id: acc.id, turn_key: key,
+                              key: opt[:key], label: opt[:label], category: opt[:category],
+                              dice: dice, pool_cost: cost, mana_cost: opt[:mana_cost])
+  api_json(ok: true, requests: PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) })
+end
+
+# Withdraw one of this turn's requests (the app's Undo).
+post '/api/turn/requests/:id/delete' do
+  acc  = api_character!
+  mine = api_my_combatant(acc)
+  api_error(404, 'not in combat') unless mine
+  PlayerRequests.instance.remove(params[:id], combatant_id: mine[:id])
+  key = PlayerRequests.turn_key(encounter_state, mine[:id])
+  api_json(ok: true, requests: PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) })
+end
+
+# Chronicle notes visible to this Character (public text only).
+get '/api/notes' do
+  acc = api_character!
+  store = Chronicle.store
+  entries = store.list_entries(visible_to: acc.id)
+                 .sort_by { |e| [e['chapter'] || 0, e['notes_position'] || 9999] }
+  chapters = store.list_chapters.to_h { |c| [c[:number], c[:name]] }
+  api_json(
+    ok: true, current_chapter: store.current_chapter,
+    chapters: store.list_chapters,
+    notes: entries.map do |e|
+      title = e['entry_type'] == 'creature' ? resolve_creature_for(e)[:full_title] : e['title'].to_s
+      { id: e['id'], type: e['entry_type'], chapter: e['chapter'], chapter_name: chapters[e['chapter']],
+        title: title, body: e['public_description'].to_s, image: e['image'], active: !!e['active'] }
+    end
+  )
+end
+
+# The current scene: what is active in the Chronicle right now (the same list
+# the web Encounter page shows players), plus the in-game time.
+get '/api/scene' do
+  acc = api_character!
+  store = Chronicle.store
+  current = store.list_chapters.find { |c| c[:number] == store.current_chapter }
+  active = store.list_entries(active_only: true, visible_to: acc.id).sort_by { |e| e['scene_position'] || 9999 }
+  api_json(
+    ok: true, campaign: (store.campaign_name rescue nil),
+    chapter: current && current[:name], time: api_time_label(store.timestamp),
+    combat_active: api_in_combat?,
+    entries: active.map do |e|
+      creature = e['entry_type'] == 'creature'
+      { id: e['id'], type: e['entry_type'],
+        title: creature ? resolve_creature_for(e)[:full_title] : e['title'].to_s,
+        body: e['public_description'].to_s, image: e['image'] }
+    end
+  )
+end
+
+# The DM dismisses a player request from the turn panel (it was handled, or
+# refused). DM only.
+post '/encounter/player_requests/:id/dismiss' do
+  halt 403 unless dm_view?
+  PlayerRequests.instance.remove(params[:id])
+  redirect(request.referer || '/encounter')
+end

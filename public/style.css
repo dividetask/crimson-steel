@@ -4941,3 +4941,18 @@ button.spell-school-badge { font-family: inherit; }
 .cs-class-feature-name { font-weight: bold; color: #33251a; }
 .cs-class-feature-sep { color: #8a6a3a; }
 .cs-class-feature-desc { font-size: 14px; color: #4a3a2c; }
+
+/* Player requests from the Android app, on the DM's turn panel (lib/player_requests.rb). */
+.ta-player-requests {
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border: 1px solid #d4a84a;
+  border-radius: 6px;
+  background: #fff8e6;
+}
+.ta-player-requests-title { font-weight: bold; margin-bottom: 4px; }
+.ta-player-requests ul { list-style: none; margin: 0; padding: 0; }
+.ta-player-requests li { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
+.ta-player-request-label { flex: 1; }
+.ta-player-request-cost { color: #666; font-size: 0.9em; }
+.ta-player-request-dismiss { margin: 0; }

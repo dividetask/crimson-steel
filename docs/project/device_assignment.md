@@ -49,3 +49,7 @@ On the Character Sheets page (`lib/routes/character_sheets.rb`):
 - The default applies only to a bare visit. Once the player pages with the Prev/Next arrows or jumps to an explicit Character, that choice wins — players can still scroll through every player Character.
 - If the assigned Character is not in the player's roster (e.g. the assignment was cleared), the page falls back to the first player Character, exactly as it did before assignment existed.
 - The DM is unaffected: the DM navigates every Creature through the roster sidebar.
+
+## Android app
+
+The Android app ([android_app.md](android_app.md)) is a device like any browser: it receives the same `crimson_device_id` cookie on its first request, keeps it, and appears in the assignment table (its Browser column shows the app's HTTP client). Until the DM assigns it a Character, the app shows a waiting screen with the device's eight-character id so the DM can find the right row.

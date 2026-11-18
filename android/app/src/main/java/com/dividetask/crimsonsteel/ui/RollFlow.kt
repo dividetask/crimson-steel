@@ -8,11 +8,11 @@ import android.view.ViewGroup
 import android.view.Window
 import android.widget.Button
 import android.widget.LinearLayout
-import com.dividetask.crimsonsteel.dice.RollLog
-import com.dividetask.crimsonsteel.dice.RollRequest
+import com.dividetask.crimsonsteel.dice.RollSpec
 import com.dividetask.crimsonsteel.dice.RollResult
 import com.dividetask.crimsonsteel.dice.RollVisibility
 import com.dividetask.crimsonsteel.dice.Roller
+import com.dividetask.crimsonsteel.net.Session
 
 /**
  * Tap a Skill / Check / Save -> ask "Public roll or Test roll?" -> show the
@@ -24,9 +24,8 @@ import com.dividetask.crimsonsteel.dice.Roller
  */
 object RollFlow {
 
-    fun start(ctx: Context, characterName: String, request: RollRequest) {
-        val t = request.target
-        val params = paramsLine(request.inputs.diceCap, t.tn, t.startingValue)
+    fun start(ctx: Context, characterName: String, request: RollSpec) {
+        val params = paramsLine(request.diceCount, request.tn, request.startingValue)
         AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle("Roll ${request.name}?")
             .setMessage(
@@ -53,7 +52,7 @@ object RollFlow {
         return "$dice dice @ TN $tn$sv"
     }
 
-    private fun showRoll(ctx: Context, characterName: String, request: RollRequest, visibility: RollVisibility) {
+    private fun showRoll(ctx: Context, characterName: String, request: RollSpec, visibility: RollVisibility) {
         val dialog = Dialog(ctx, android.R.style.Theme_DeviceDefault_Dialog_NoActionBar)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
 
@@ -62,11 +61,7 @@ object RollFlow {
         }
 
         val badgeColor = if (visibility == RollVisibility.PUBLIC) Ui.CRIMSON else Ui.SURFACE_HI
-        val badgeText = when {
-            visibility == RollVisibility.TEST -> "TEST ROLL — not sent"
-            RollLog.CONNECTED -> "PUBLIC ROLL — sent to DM"
-            else -> "PUBLIC ROLL — offline, not sent yet"
-        }
+        val badgeText = if (visibility == RollVisibility.TEST) "TEST ROLL — not sent" else "PUBLIC ROLL — sending…"
         val badge = Ui.text(ctx, badgeText, 12f, Ui.TEXT, bold = true).apply {
             background = Ui.rounded(badgeColor, Ui.dpf(ctx, 12f))
             setPadding(Ui.dp(ctx, 10), Ui.dp(ctx, 4), Ui.dp(ctx, 10), Ui.dp(ctx, 4))
@@ -100,7 +95,12 @@ object RollFlow {
 
         fun doRoll() {
             val result = Roller.roll(request, visibility)
-            RollLog.record(result)
+            if (visibility == RollVisibility.PUBLIC) {
+                // Rolled once, then logged for the DM (POST /dm/roll), like the web compact roll.
+                Session.sendRoll(result) { r ->
+                    badge.text = if (r.isSuccess) "PUBLIC ROLL — sent to DM" else "PUBLIC ROLL — NOT sent (connection problem)"
+                }
+            }
             paramsView.text = paramsLine(result.dice.size, result.tn, result.startingValue)
             startingView.text = startingText(result.startingValue)
             resultView.text = " "

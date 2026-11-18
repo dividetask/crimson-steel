@@ -1,0 +1,278 @@
+package com.dividetask.crimsonsteel.data
+
+import com.dividetask.crimsonsteel.dice.RollSpec
+import org.json.JSONArray
+import org.json.JSONObject
+
+/*
+ * What the server sends (lib/routes/api.rb). Each type parses itself from the
+ * API's JSON; missing optional fields fall back to empty values so a newer or
+ * older server never crashes the app.
+ */
+
+private inline fun <T> JSONArray?.mapObjects(f: (JSONObject) -> T): List<T> =
+    if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }.map(f)
+
+private fun JSONObject.optIntOrNull(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
+
+private fun JSONObject.optStringOrNull(key: String): String? =
+    if (has(key) && !isNull(key)) optString(key).takeIf { it.isNotEmpty() } else null
+
+data class CharacterRef(val id: Int, val name: String)
+
+data class Hello(val campaign: String, val device: String, val character: CharacterRef?) {
+    companion object {
+        fun from(j: JSONObject) = Hello(
+            campaign = j.optString("campaign"),
+            device = j.optString("device"),
+            character = j.optJSONObject("character")?.let { CharacterRef(it.optInt("id"), it.optString("name")) },
+        )
+    }
+}
+
+fun rollSpecFrom(j: JSONObject?): RollSpec? {
+    if (j == null) return null
+    val bpl = j.optJSONArray("bonus_penalty_list")
+    val mods = if (bpl == null) emptyList() else (0 until bpl.length()).mapNotNull { i ->
+        bpl.optJSONArray(i)?.let { Pair(it.optString(0), it.optInt(1)) }
+    }
+    return RollSpec(
+        name = j.optString("name"),
+        diceCount = j.optInt("dice_count"),
+        tn = j.optInt("tn"),
+        startingValue = j.optInt("starting_value"),
+        baseTn = j.optInt("base_tn"),
+        bonusPenaltyList = mods,
+        ranks = j.optInt("ranks"),
+    )
+}
+
+data class Meter(val current: Int, val max: Int) {
+    companion object {
+        fun from(j: JSONObject?, maxKey: String = "max") =
+            j?.let { Meter(it.optInt("current"), it.optInt(maxKey)) }
+    }
+}
+
+data class SheetAttribute(val key: String, val label: String, val score: Int, val check: RollSpec?, val save: RollSpec?)
+
+data class SheetSkill(
+    val key: String, val name: String, val attribute: String, val ranks: Int,
+    val trained: Boolean, val dice: Int, val bonus: Int, val roll: RollSpec?,
+)
+
+data class Ability(val name: String, val description: String)
+
+data class Sheet(
+    val id: Int,
+    val name: String,
+    val player: String,
+    val summary: String,
+    val tier: Int?,
+    val hp: Meter?,
+    val tempHp: Int,
+    val mana: Meter?,
+    val toxicity: Meter?,
+    val damageReduction: Int,
+    val damageResilience: Int,
+    val speed: Int,
+    val attributes: List<SheetAttribute>,
+    val skills: List<SheetSkill>,
+    val abilities: List<Ability>,
+) {
+    companion object {
+        fun from(j: JSONObject): Sheet {
+            val v = j.optJSONObject("vitals") ?: JSONObject()
+            return Sheet(
+                id = j.optInt("id"),
+                name = j.optString("name"),
+                player = j.optString("player"),
+                summary = j.optString("summary"),
+                tier = j.optIntOrNull("tier"),
+                hp = Meter.from(v.optJSONObject("hp")),
+                tempHp = v.optInt("temp_hp"),
+                mana = Meter.from(v.optJSONObject("mana")),
+                toxicity = Meter.from(v.optJSONObject("toxicity"), maxKey = "threshold"),
+                damageReduction = v.optInt("damage_reduction"),
+                damageResilience = v.optInt("damage_resilience"),
+                speed = j.optInt("speed"),
+                attributes = j.optJSONArray("attributes").mapObjects {
+                    SheetAttribute(it.optString("key"), it.optString("label"), it.optInt("score"),
+                        rollSpecFrom(it.optJSONObject("check")), rollSpecFrom(it.optJSONObject("save")))
+                },
+                skills = j.optJSONArray("skills").mapObjects {
+                    SheetSkill(it.optString("key"), it.optString("name"), it.optString("attribute"),
+                        it.optInt("ranks"), it.optBoolean("trained"), it.optInt("dice"), it.optInt("bonus"),
+                        rollSpecFrom(it.optJSONObject("roll")))
+                },
+                abilities = j.optJSONArray("abilities").mapObjects { Ability(it.optString("name"), it.optString("description")) },
+            )
+        }
+    }
+}
+
+// --- Inventory -----------------------------------------------------------------
+
+data class InventoryRow(
+    val index: Int, val name: String, val category: String, val quantity: Int,
+    val equipped: Boolean, val equippable: Boolean,
+)
+
+data class Inventory(
+    val creatureId: Int,
+    val manageable: Boolean,
+    val equipped: List<InventoryRow>,
+    val carried: List<InventoryRow>,
+    val sellPile: List<InventoryRow>,
+) {
+    companion object {
+        private fun rows(a: JSONArray?) = a.mapObjects {
+            InventoryRow(it.optInt("index"), it.optString("name"), it.optString("category"),
+                it.optInt("quantity", 1), it.optBoolean("equipped"), it.optBoolean("equippable"))
+        }
+
+        fun from(j: JSONObject) = Inventory(
+            creatureId = j.optInt("creature_id"),
+            manageable = j.optBoolean("manageable", true),
+            equipped = rows(j.optJSONArray("equipped")),
+            carried = rows(j.optJSONArray("inventory")),
+            sellPile = rows(j.optJSONArray("sell")),
+        )
+    }
+}
+
+// --- Initiative and turn ---------------------------------------------------------
+
+enum class ActionCategory(val key: String, val label: String) {
+    MAIN("main", "Main Action"),
+    BONUS("bonus", "Bonus Action"),
+    FREE("free", "Free Action");
+
+    companion object {
+        fun of(key: String) = entries.find { it.key == key } ?: MAIN
+    }
+}
+
+data class DiceChoice(val dice: Int, val poolCost: Int, val affordable: Boolean)
+
+data class TurnOption(
+    val key: String,
+    val label: String,
+    val kind: String,
+    val category: ActionCategory,
+    val detail: String,
+    val dice: List<DiceChoice>,
+    val poolCost: Int?,
+    val manaCost: Int,
+    val disabledReason: String?,
+) {
+    val isEndTurn: Boolean get() = kind == "end_turn"
+}
+
+data class TurnRequest(
+    val id: String, val label: String, val category: ActionCategory,
+    val dice: Int?, val poolCost: Int, val manaCost: Int,
+) {
+    val summary: String
+        get() = buildString {
+            append(label)
+            if (dice != null) append(" — $dice dice")
+            append(" (pool $poolCost")
+            if (manaCost > 0) append(", mana $manaCost")
+            append(")")
+        }
+
+    companion object {
+        fun list(a: JSONArray?) = a.mapObjects {
+            TurnRequest(it.optString("id"), it.optString("label"), ActionCategory.of(it.optString("category")),
+                it.optIntOrNull("dice"), it.optInt("pool_cost"), it.optInt("mana_cost"))
+        }
+    }
+}
+
+data class InitiativeEntry(
+    val combatantId: Int, val name: String, val isPc: Boolean,
+    val acting: Boolean, val isYou: Boolean, val initiative: String?,
+)
+
+data class Initiative(
+    val combatActive: Boolean,
+    val roundLabel: String,
+    val myTurn: Boolean,
+    val pool: Meter?,
+    val mainActionsRemaining: Int?,
+    val mana: Meter?,
+    val order: List<InitiativeEntry>,
+    val options: List<TurnOption>,
+    val requests: List<TurnRequest>,
+) {
+    companion object {
+        fun from(j: JSONObject): Initiative {
+            val me = j.optJSONObject("me")
+            val pool = me?.optJSONObject("pool")?.let { Meter(it.optInt("remaining"), it.optInt("max")) }
+            return Initiative(
+                combatActive = j.optBoolean("combat_active"),
+                roundLabel = j.optString("round_label"),
+                myTurn = j.optBoolean("my_turn"),
+                pool = pool,
+                mainActionsRemaining = me?.optIntOrNull("main_actions_remaining"),
+                mana = Meter.from(me?.optJSONObject("mana")),
+                order = j.optJSONArray("order").mapObjects {
+                    InitiativeEntry(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("is_pc"),
+                        it.optBoolean("acting"), it.optBoolean("is_you"), it.optStringOrNull("initiative"))
+                },
+                options = j.optJSONArray("options").mapObjects { o ->
+                    TurnOption(
+                        key = o.optString("key"),
+                        label = o.optString("label"),
+                        kind = o.optString("kind"),
+                        category = ActionCategory.of(o.optString("category")),
+                        detail = o.optString("detail"),
+                        dice = o.optJSONArray("dice").mapObjects {
+                            DiceChoice(it.optInt("dice"), it.optInt("pool_cost"), it.optBoolean("affordable"))
+                        },
+                        poolCost = o.optIntOrNull("pool_cost"),
+                        manaCost = o.optInt("mana_cost"),
+                        disabledReason = o.optStringOrNull("disabled_reason"),
+                    )
+                },
+                requests = TurnRequest.list(j.optJSONArray("requests")),
+            )
+        }
+    }
+}
+
+// --- Notes and scene ---------------------------------------------------------------
+
+data class Note(val id: Int, val type: String, val chapter: Int?, val chapterName: String?, val title: String, val body: String)
+
+data class Notes(val currentChapter: Int?, val notes: List<Note>) {
+    companion object {
+        fun from(j: JSONObject) = Notes(
+            currentChapter = j.optIntOrNull("current_chapter"),
+            notes = j.optJSONArray("notes").mapObjects {
+                Note(it.optInt("id"), it.optString("type"), it.optIntOrNull("chapter"),
+                    it.optStringOrNull("chapter_name"), it.optString("title"), it.optString("body"))
+            },
+        )
+    }
+}
+
+data class SceneEntry(val id: Int, val type: String, val title: String, val body: String)
+
+data class Scene(
+    val campaign: String?, val chapter: String?, val time: String?,
+    val combatActive: Boolean, val entries: List<SceneEntry>,
+) {
+    companion object {
+        fun from(j: JSONObject) = Scene(
+            campaign = j.optStringOrNull("campaign"),
+            chapter = j.optStringOrNull("chapter"),
+            time = j.optStringOrNull("time"),
+            combatActive = j.optBoolean("combat_active"),
+            entries = j.optJSONArray("entries").mapObjects {
+                SceneEntry(it.optInt("id"), it.optString("type"), it.optString("title"), it.optString("body"))
+            },
+        )
+    }
+}

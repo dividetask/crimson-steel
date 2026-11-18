@@ -6,13 +6,10 @@ import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
-import android.widget.ScrollView
-import com.dividetask.crimsonsteel.data.ActionKind
-import com.dividetask.crimsonsteel.data.ActionMenu
-import com.dividetask.crimsonsteel.data.ActionOption
-import com.dividetask.crimsonsteel.data.Character
-import com.dividetask.crimsonsteel.data.TurnState
-import com.dividetask.crimsonsteel.dice.ActionCategory
+import com.dividetask.crimsonsteel.data.ActionCategory
+import com.dividetask.crimsonsteel.data.Initiative
+import com.dividetask.crimsonsteel.data.TurnOption
+import com.dividetask.crimsonsteel.net.Session
 
 /**
  * Combat screen. Top to bottom:
@@ -20,116 +17,135 @@ import com.dividetask.crimsonsteel.dice.ActionCategory
  *  - the initiative order (compacts to a single "your turn" row on your turn; tap to expand),
  *  - on your turn, your action options grouped by Main / Bonus / Free Action.
  *
- * Picking an action and its dice *declares* it: the pool, Main Actions and mana
- * are spent locally. The DM resolves the action (rolls, targets, defenses).
+ * Picking an action and its dice sends a *request* to the DM (it appears on
+ * the DM's turn panel). Nothing is spent until the DM resolves it, so the
+ * pool shown here subtracts this turn's pending requests.
  */
-class InitiativeScreen(private val ctx: Context, private val c: Character, private val turn: TurnState) {
+class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<Initiative>(ctx, onError) {
 
-    private val scroll = ScrollView(ctx)
-    private val options: List<ActionOption> = ActionMenu.options(c)
-    private var selected: ActionOption? = null
+    private var selectedKey: String? = null
     private var selectedDice: Int? = null
+    private var expanded = false
+    private var wasMyTurn = false
+    private var busy = false
 
-    val view: View get() = scroll
+    override fun fetch(done: (Result<Pair<Initiative, String>>) -> Unit) = Session.initiative { r ->
+        r.onSuccess { (d, _) ->
+            // A new turn starts with the initiative list compacted and nothing selected.
+            if (d.myTurn && !wasMyTurn) { expanded = false; clearSelection() }
+            wasMyTurn = d.myTurn
+        }
+        done(r)
+    }
 
-    init { render() }
+    private fun pending(d: Initiative) = d.requests.sumOf { it.poolCost }
+    private fun poolLeft(d: Initiative) = (d.pool?.current ?: 0) - pending(d)
+    private fun mainLeft(d: Initiative): Int? =
+        d.mainActionsRemaining?.takeIf { it >= 0 }?.let { it - d.requests.count { r -> r.category == ActionCategory.MAIN } }
+    private fun manaLeft(d: Initiative): Int? = d.mana?.let { m -> m.current - d.requests.sumOf { it.manaCost } }
 
-    private fun render() {
-        val keepY = scroll.scrollY
+    override fun build(d: Initiative): View {
         val col = Ui.vertical(ctx, 12)
-        col.addView(poolCard(), Ui.matchWidth())
-        col.addView(Ui.sectionHeader(ctx, "Initiative — Round ${turn.round}"))
-        if (turn.isMyTurn && !turn.initiativeExpanded) {
-            col.addView(compactTurnRow(), Ui.matchWidth())
-        } else {
-            fullOrder(col)
+        if (!d.combatActive) {
+            col.addView(Ui.text(ctx, "No combat right now.", 18f, Ui.TEXT, bold = true))
+            col.addView(Ui.text(ctx, "This screen fills in when the DM starts combat.", 14f, Ui.TEXT_DIM),
+                Ui.matchWidth(Ui.dp(ctx, 6)))
+            return col
         }
-        if (turn.isMyTurn) {
-            actionMenu(col)
+        d.pool?.let { col.addView(poolCard(d), Ui.matchWidth()) }
+        col.addView(Ui.sectionHeader(ctx, "Initiative — ${d.roundLabel}"))
+        if (d.myTurn && !expanded) col.addView(compactTurnRow(d), Ui.matchWidth()) else fullOrder(col, d)
+
+        if (d.myTurn) {
+            actionMenu(col, d)
         } else {
-            col.addView(Ui.text(ctx, "Waiting for ${turn.order[turn.currentIndex].name}.", 14f, Ui.TEXT_DIM),
+            val acting = d.order.find { it.acting }
+            col.addView(Ui.text(ctx, acting?.let { "Waiting for ${it.name}." } ?: "Waiting for the DM.", 14f, Ui.TEXT_DIM),
                 Ui.matchWidth(Ui.dp(ctx, 14)))
-            col.addView(Button(ctx).apply {
-                text = "Offline test: start my turn"
-                setOnClickListener { turn.startMyTurn(); clearSelection(); render() }
-            }, Ui.matchWidth(Ui.dp(ctx, 8)))
         }
-        scroll.removeAllViews()
-        scroll.addView(col)
-        scroll.post { scroll.scrollTo(0, keepY) }
+        return col
     }
 
     // --- Combat Pool ------------------------------------------------------------
 
-    private fun poolCard(): View {
+    private fun poolCard(d: Initiative): View {
+        val pool = d.pool!!
+        val left = poolLeft(d).coerceAtLeast(0)
         val card = Ui.card(ctx)
         val top = Ui.horizontal(ctx)
         top.addView(Ui.text(ctx, "Combat Pool", 14f, Ui.TEXT_DIM), Ui.weighted())
-        top.addView(Ui.text(ctx, "${turn.poolRemaining} / ${turn.poolMax}", 18f,
-            PoolView.colorFor(turn.poolRemaining, turn.poolMax).takeIf { turn.poolRemaining > 0 } ?: Ui.TEXT_DIM,
-            bold = true))
+        top.addView(Ui.text(ctx, "$left / ${pool.max}", 18f,
+            if (left > 0) PoolView.colorFor(left, pool.max) else Ui.TEXT_DIM, bold = true))
         card.addView(top, Ui.matchWidth())
-        card.addView(PoolView(ctx).apply { max = turn.poolMax; remaining = turn.poolRemaining }, Ui.matchWidth(Ui.dp(ctx, 6)))
-        val main = if (turn.isMyTurn) "${turn.mainActionsLeft} / 2" else "—"
-        card.addView(Ui.text(ctx, "Main Actions $main  ·  Mana ${turn.mana} / ${c.vitals.manaMax}", 13f, Ui.TEXT_DIM),
-            Ui.matchWidth(Ui.dp(ctx, 6)))
+        card.addView(PoolView(ctx).apply { max = pool.max; remaining = left }, Ui.matchWidth(Ui.dp(ctx, 6)))
+        val main = mainLeft(d)?.let { "$it / 2" } ?: "—"
+        val mana = d.mana?.let { "${manaLeft(d)} / ${it.max}" } ?: "—"
+        card.addView(Ui.text(ctx, "Main Actions $main  ·  Mana $mana", 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 6)))
+        if (pending(d) > 0) {
+            card.addView(Ui.text(ctx, "Includes ${pending(d)} dice requested this turn (not spent until the DM resolves them).",
+                12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 2)))
+        }
         return card
     }
 
     // --- Initiative order ---------------------------------------------------------
 
-    private fun compactTurnRow(): View {
-        val me = turn.order[turn.currentIndex]
+    private fun compactTurnRow(d: Initiative): View {
+        val me = d.order.find { it.isYou }
         val row = Ui.horizontal(ctx).apply {
             setPadding(Ui.dp(ctx, 12), Ui.dp(ctx, 12), Ui.dp(ctx, 12), Ui.dp(ctx, 12))
             background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), Ui.CRIMSON, Ui.dp(ctx, 2))
         }
-        row.addView(Ui.text(ctx, "${me.name} (you)", 16f, Ui.TEXT, bold = true), Ui.weighted())
+        row.addView(Ui.text(ctx, "${me?.name ?: "You"} (you)", 16f, Ui.TEXT, bold = true), Ui.weighted())
         row.addView(Ui.text(ctx, "Your turn  ▾", 14f, Ui.GOLD, bold = true))
-        Ui.makeTappable(row, ctx) { turn.initiativeExpanded = true; render() }
+        Ui.makeTappable(row, ctx) { expanded = true; render() }
         return row
     }
 
-    private fun fullOrder(col: LinearLayout) {
-        if (turn.isMyTurn) {
+    private fun fullOrder(col: LinearLayout, d: Initiative) {
+        if (d.myTurn) {
             val collapse = Ui.text(ctx, "Hide initiative  ▴", 13f, Ui.GOLD, bold = true).apply {
                 setPadding(Ui.dp(ctx, 4), Ui.dp(ctx, 4), Ui.dp(ctx, 4), Ui.dp(ctx, 8))
             }
-            Ui.makeTappable(collapse, ctx) { turn.initiativeExpanded = false; render() }
+            Ui.makeTappable(collapse, ctx) { expanded = false; render() }
             col.addView(collapse)
         }
-        turn.order.forEachIndexed { i, e ->
-            val current = i == turn.currentIndex
+        d.order.forEachIndexed { i, e ->
             val card = Ui.horizontal(ctx).apply {
                 setPadding(Ui.dp(ctx, 12), Ui.dp(ctx, 10), Ui.dp(ctx, 12), Ui.dp(ctx, 10))
                 background = Ui.rounded(
-                    if (current) Ui.CRIMSON_DARK else Ui.SURFACE, Ui.dpf(ctx, 10f),
-                    if (current) Ui.CRIMSON else null, Ui.dp(ctx, 2),
+                    if (e.acting) Ui.CRIMSON_DARK else Ui.SURFACE, Ui.dpf(ctx, 10f),
+                    if (e.acting) Ui.CRIMSON else null, Ui.dp(ctx, 2),
                 )
             }
             card.addView(Ui.text(ctx, "${i + 1}", 16f, Ui.TEXT_DIM, bold = true),
                 LinearLayout.LayoutParams(Ui.dp(ctx, 28), LinearLayout.LayoutParams.WRAP_CONTENT))
             val names = Ui.vertical(ctx)
-            names.addView(Ui.text(ctx, e.name + if (e.isYou) "  (you)" else "", 15f, Ui.TEXT, bold = current || e.isYou))
-            names.addView(Ui.text(ctx, if (e.isPlayerCharacter) "Player character" else "Enemy", 12f,
-                if (e.isPlayerCharacter) Ui.TEXT_DIM else Ui.DIE_FAIL))
+            names.addView(Ui.text(ctx, e.name + if (e.isYou) "  (you)" else "", 15f, Ui.TEXT, bold = e.acting || e.isYou))
+            names.addView(Ui.text(ctx, if (e.isPc) "Player character" else "Enemy", 12f,
+                if (e.isPc) Ui.TEXT_DIM else Ui.DIE_FAIL))
             card.addView(names, Ui.weighted())
-            if (current) card.addView(Ui.text(ctx, "Turn", 13f, Ui.GOLD, bold = true))
+            if (e.acting) card.addView(Ui.text(ctx, "Turn", 13f, Ui.GOLD, bold = true))
             col.addView(card, Ui.matchWidth(Ui.dp(ctx, 6)))
         }
     }
 
     // --- Action menu ----------------------------------------------------------------
 
-    private fun actionMenu(col: LinearLayout) {
-        if (turn.declared.isNotEmpty()) {
-            col.addView(Ui.sectionHeader(ctx, "Declared this turn"))
+    private fun actionMenu(col: LinearLayout, d: Initiative) {
+        if (d.requests.isNotEmpty()) {
+            col.addView(Ui.sectionHeader(ctx, "Requested this turn"))
             val card = Ui.card(ctx)
-            for (d in turn.declared) card.addView(Ui.text(ctx, "• ${d.summary}", 14f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
-            card.addView(Ui.text(ctx, "Offline — not sent to the DM yet.", 12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 6)))
+            for (r in d.requests) card.addView(Ui.text(ctx, "• ${r.summary}", 14f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
+            card.addView(Ui.text(ctx, "Shown on the DM's turn panel. The DM resolves each one.", 12f, Ui.TEXT_FAINT),
+                Ui.matchWidth(Ui.dp(ctx, 6)))
             card.addView(Button(ctx).apply {
                 text = "Undo last"
-                setOnClickListener { turn.undoLast(); clearSelection(); render() }
+                isEnabled = !busy
+                setOnClickListener {
+                    busy = true
+                    Session.withdrawRequest(d.requests.last().id) { r -> busy = false; afterChange(r) }
+                }
             }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 gravity = Gravity.END
             })
@@ -137,16 +153,36 @@ class InitiativeScreen(private val ctx: Context, private val c: Character, priva
         }
 
         for (category in ActionCategory.entries) {
-            val inCategory = options.filter { it.category == category }
+            val inCategory = d.options.filter { it.category == category }
             if (inCategory.isEmpty()) continue     // empty categories are skipped, as on the web
             col.addView(Ui.sectionHeader(ctx, category.label))
-            for (opt in inCategory) col.addView(optionCard(opt), Ui.matchWidth(Ui.dp(ctx, 6)))
+            for (opt in inCategory) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 6)))
         }
     }
 
-    private fun optionCard(opt: ActionOption): View {
-        val isSelected = opt == selected
-        val baseBlocker = turn.blocker(opt, opt.diceChoices.firstOrNull())
+    /** Why [opt] can't be requested with [dice] right now, or null if it can. */
+    private fun blocker(d: Initiative, opt: TurnOption, dice: Int?): String? {
+        if (opt.isEndTurn) return null
+        opt.disabledReason?.let { return it.replaceFirstChar { c -> c.uppercase() } + "." }
+        if (opt.category == ActionCategory.MAIN && (mainLeft(d) ?: 1) <= 0) return "No Main Actions left."
+        if (opt.manaCost > 0 && (manaLeft(d) ?: Int.MAX_VALUE) < opt.manaCost) return "Not enough mana."
+        if (opt.dice.isNotEmpty()) {
+            if (dice == null) {
+                return if (opt.dice.none { affordable(d, it.poolCost, it.affordable) }) "Not enough Combat Pool." else null
+            }
+            val choice = opt.dice.find { it.dice == dice } ?: return "Choose how many dice."
+            if (!affordable(d, choice.poolCost, choice.affordable)) return "Not enough Combat Pool."
+        } else if ((opt.poolCost ?: 0) > poolLeft(d)) {
+            return "Not enough Combat Pool."
+        }
+        return null
+    }
+
+    private fun affordable(d: Initiative, cost: Int, serverSays: Boolean) = serverSays && cost <= poolLeft(d)
+
+    private fun optionCard(d: Initiative, opt: TurnOption): View {
+        val isSelected = opt.key == selectedKey
+        val baseBlocker = blocker(d, opt, null)
         val card = Ui.vertical(ctx, 12).apply {
             background = Ui.rounded(
                 if (isSelected) Ui.SURFACE_HI else Ui.SURFACE, Ui.dpf(ctx, 10f),
@@ -157,87 +193,99 @@ class InitiativeScreen(private val ctx: Context, private val c: Character, priva
         title.addView(Ui.text(ctx, opt.label, 16f, if (baseBlocker == null) Ui.TEXT else Ui.TEXT_FAINT, bold = true), Ui.weighted())
         if (opt.manaCost > 0) title.addView(Ui.text(ctx, "${opt.manaCost} mana", 12f, Ui.TEXT_DIM))
         card.addView(title, Ui.matchWidth())
-        card.addView(Ui.text(ctx, opt.detail, 12f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 2)))
+        if (opt.detail.isNotBlank()) card.addView(Ui.text(ctx, opt.detail, 12f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 2)))
         if (baseBlocker != null && !isSelected) {
             card.addView(Ui.text(ctx, baseBlocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 2)))
         }
 
         Ui.makeTappable(card, ctx) {
-            if (selected == opt) clearSelection() else { selected = opt; selectedDice = null }
+            if (selectedKey == opt.key) clearSelection() else { selectedKey = opt.key; selectedDice = null }
             render()
         }
 
         if (isSelected) {
-            if (opt.diceChoices.isNotEmpty()) {
+            if (opt.dice.isNotEmpty()) {
                 card.addView(Ui.text(ctx, "How many dice?", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
-                card.addView(diceButtons(opt), Ui.matchWidth(Ui.dp(ctx, 4)))
+                card.addView(diceButtons(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
             }
-            val blocker = turn.blocker(opt, selectedDice)
-            val needsDice = opt.diceChoices.isNotEmpty() && selectedDice == null
+            val needsDice = opt.dice.isNotEmpty() && selectedDice == null
+            val blocker = blocker(d, opt, selectedDice)
+            val cost = if (opt.dice.isEmpty()) opt.poolCost ?: 0 else opt.dice.find { it.dice == selectedDice }?.poolCost ?: 0
             val declare = Button(ctx).apply {
                 text = when {
-                    opt.kind == ActionKind.END_TURN -> "End turn"
+                    opt.isEndTurn -> "Ask to end my turn"
                     needsDice -> "Choose dice"
-                    else -> "Declare \u2014 pool ${opt.poolCost(selectedDice)}"
+                    else -> "Request — pool $cost"
                 }
-                isEnabled = blocker == null
-                setOnClickListener { declare(opt) }
+                isEnabled = blocker == null && !needsDice && !busy
+                setOnClickListener { request(opt) }
             }
-            if (blocker != null && !needsDice) {
-                card.addView(Ui.text(ctx, blocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 6)))
-            }
+            if (blocker != null && !needsDice) card.addView(Ui.text(ctx, blocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 6)))
             card.addView(declare, Ui.matchWidth(Ui.dp(ctx, 8)))
         }
         return card
     }
 
     /** Dice-count buttons, five per row; counts the pool can't afford are disabled. */
-    private fun diceButtons(opt: ActionOption): View {
+    private fun diceButtons(d: Initiative, opt: TurnOption): View {
         val grid = Ui.vertical(ctx)
         var row: LinearLayout? = null
-        opt.diceChoices.forEachIndexed { i, n ->
+        opt.dice.forEachIndexed { i, choice ->
             if (i % 5 == 0) {
                 row = Ui.horizontal(ctx)
                 grid.addView(row, Ui.matchWidth(Ui.dp(ctx, 4)))
             }
-            val affordable = turn.blocker(opt, n) == null
-            val on = n == selectedDice
+            val ok = affordable(d, choice.poolCost, choice.affordable)
+            val on = choice.dice == selectedDice
             val cell = Ui.vertical(ctx).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(0, Ui.dp(ctx, 6), 0, Ui.dp(ctx, 6))
                 background = Ui.rounded(
-                    when { on -> Ui.CRIMSON; affordable -> Ui.BG; else -> Ui.SURFACE },
+                    when { on -> Ui.CRIMSON; ok -> Ui.BG; else -> Ui.SURFACE },
                     Ui.dpf(ctx, 8f), if (on) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 1),
                 )
-                addView(Ui.text(ctx, "$n", 17f, if (affordable) Ui.TEXT else Ui.TEXT_FAINT, bold = true))
-                addView(Ui.text(ctx, "pool ${opt.poolCost(n)}", 10f, if (affordable) Ui.TEXT_DIM else Ui.TEXT_FAINT))
+                addView(Ui.text(ctx, "${choice.dice}", 17f, if (ok) Ui.TEXT else Ui.TEXT_FAINT, bold = true))
+                addView(Ui.text(ctx, "pool ${choice.poolCost}", 10f, if (ok) Ui.TEXT_DIM else Ui.TEXT_FAINT))
             }
-            if (affordable) Ui.makeTappable(cell, ctx) { selectedDice = n; render() }
+            if (ok) Ui.makeTappable(cell, ctx) { selectedDice = choice.dice; render() }
             row!!.addView(cell, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 4) })
         }
-        // Pad the last row so cells keep the same width.
-        val leftover = (5 - opt.diceChoices.size % 5) % 5
+        val leftover = (5 - opt.dice.size % 5) % 5
         repeat(leftover) { row?.addView(View(ctx), Ui.weighted().apply { marginEnd = Ui.dp(ctx, 4) }) }
         return grid
     }
 
-    private fun declare(opt: ActionOption) {
-        if (opt.kind == ActionKind.END_TURN) {
+    private fun request(opt: TurnOption) {
+        val send = {
+            busy = true
+            render()
+            Session.requestAction(opt.key, if (opt.dice.isEmpty()) null else selectedDice) { r ->
+                busy = false
+                if (r.isSuccess) clearSelection()
+                afterChange(r)
+            }
+        }
+        if (opt.isEndTurn) {
             AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                .setTitle("End your turn?")
-                .setMessage(if (turn.poolRemaining > 0) "${turn.poolRemaining} Combat Pool dice left for Reactions." else null)
-                .setPositiveButton("End turn") { _, _ -> turn.declare(opt, null); clearSelection(); render() }
+                .setTitle("Ask the DM to end your turn?")
+                .setPositiveButton("Ask") { _, _ -> send() }
                 .setNegativeButton("Cancel", null)
                 .show()
-            return
+        } else {
+            send()
         }
-        turn.declare(opt, if (opt.diceChoices.isEmpty()) null else selectedDice) ?: return
-        clearSelection()
-        render()
+    }
+
+    private fun afterChange(r: Result<Unit>) {
+        r.onFailure { e ->
+            val msg = (e as? com.dividetask.crimsonsteel.net.ApiException)?.error ?: "Connection problem"
+            toast("Not sent: $msg")
+        }
+        refresh(force = true)
     }
 
     private fun clearSelection() {
-        selected = null
+        selectedKey = null
         selectedDice = null
     }
 }

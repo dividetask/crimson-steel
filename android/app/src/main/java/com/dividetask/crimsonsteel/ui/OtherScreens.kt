@@ -1,53 +1,85 @@
 package com.dividetask.crimsonsteel.ui
 
 import android.content.Context
-import android.view.Gravity
 import android.view.View
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import com.dividetask.crimsonsteel.data.Note
+import com.dividetask.crimsonsteel.data.Notes
 import com.dividetask.crimsonsteel.data.Scene
+import com.dividetask.crimsonsteel.net.Session
 
-/** Game notes, newest last. Tap a note to expand it. */
-object NotesScreen {
-    fun build(ctx: Context, notes: List<Note>): View {
+/** Chronicle notes this Character can see, grouped by chapter. Tap a note to expand it. */
+class NotesScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<Notes>(ctx, onError) {
+
+    private val expanded = mutableSetOf<Int>()
+
+    override fun fetch(done: (Result<Pair<Notes, String>>) -> Unit) = Session.notes(done)
+
+    override fun build(d: Notes): View {
         val col = Ui.vertical(ctx, 12)
-        for (n in notes) {
-            val card = Ui.card(ctx)
-            card.addView(Ui.text(ctx, n.title, 16f, Ui.TEXT, bold = true))
-            card.addView(Ui.text(ctx, n.date, 12f, Ui.GOLD))
-            val body = Ui.text(ctx, n.body, 14f, Ui.TEXT_DIM).apply {
-                maxLines = 2
-                ellipsize = android.text.TextUtils.TruncateAt.END
-                setPadding(0, Ui.dp(ctx, 6), 0, 0)
+        if (d.notes.isEmpty()) {
+            col.addView(Ui.text(ctx, "No notes yet.", 15f, Ui.TEXT_DIM))
+            return col
+        }
+        var chapter: Int? = -1
+        for (n in d.notes) {
+            if (n.chapter != chapter) {
+                chapter = n.chapter
+                val label = n.chapterName?.let { "Chapter ${n.chapter}: $it" } ?: n.chapter?.let { "Chapter $it" } ?: "Unfiled"
+                col.addView(Ui.sectionHeader(ctx, label + if (n.chapter == d.currentChapter) " (current)" else ""))
             }
-            card.addView(body)
+            val open = n.id in expanded
+            val card = Ui.card(ctx)
+            card.addView(Ui.text(ctx, n.title.ifBlank { "(untitled)" }, 16f, Ui.TEXT, bold = true))
+            if (n.type == "creature") card.addView(Ui.text(ctx, "Character of interest", 12f, Ui.GOLD))
+            if (n.body.isNotBlank()) {
+                card.addView(Ui.text(ctx, n.body, 14f, Ui.TEXT_DIM).apply {
+                    if (!open) {
+                        maxLines = 2
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    setPadding(0, Ui.dp(ctx, 6), 0, 0)
+                })
+            }
             Ui.makeTappable(card, ctx) {
-                val collapsed = body.maxLines == 2
-                body.maxLines = if (collapsed) Int.MAX_VALUE else 2
+                if (!expanded.add(n.id)) expanded.remove(n.id)
+                render()
             }
             col.addView(card, Ui.matchWidth(Ui.dp(ctx, 8)))
         }
-        return ScrollView(ctx).apply { addView(col) }
+        return col
     }
 }
 
-/** What the party is looking at right now. */
-object SceneScreen {
-    fun build(ctx: Context, s: Scene): View {
+/** What is in play right now: the Chronicle entries the DM has made active, plus the in-game time. */
+class SceneScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<Scene>(ctx, onError) {
+
+    override fun fetch(done: (Result<Pair<Scene, String>>) -> Unit) = Session.scene(done)
+
+    override fun build(d: Scene): View {
         val col = Ui.vertical(ctx, 12)
-        col.addView(Ui.text(ctx, s.title, 22f, Ui.TEXT, bold = true))
-        col.addView(Ui.text(ctx, s.location, 14f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 4)))
-        col.addView(Ui.text(ctx, s.time, 13f, Ui.GOLD), Ui.matchWidth(Ui.dp(ctx, 2)))
+        col.addView(Ui.text(ctx, d.chapter ?: d.campaign ?: "Current scene", 22f, Ui.TEXT, bold = true))
+        d.time?.let { col.addView(Ui.text(ctx, it, 13f, Ui.GOLD), Ui.matchWidth(Ui.dp(ctx, 2))) }
+        if (d.combatActive) col.addView(Ui.text(ctx, "In combat — see Initiative", 13f, Ui.DIE_FAIL, bold = true),
+            Ui.matchWidth(Ui.dp(ctx, 4)))
 
-        val desc = Ui.card(ctx)
-        desc.addView(Ui.text(ctx, s.description, 15f, Ui.TEXT).apply { setLineSpacing(0f, 1.2f) })
-        col.addView(desc, Ui.matchWidth(Ui.dp(ctx, 14)))
+        if (d.entries.isEmpty()) {
+            col.addView(Ui.text(ctx, "Nothing in the scene yet.", 15f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 14)))
+            return col
+        }
+        val people = d.entries.filter { it.type == "creature" }
+        val things = d.entries.filter { it.type != "creature" }
+        if (things.isNotEmpty()) {
+            col.addView(Ui.sectionHeader(ctx, "Scene"))
+            for (e in things) col.addView(entryCard(e.title, e.body), Ui.matchWidth(Ui.dp(ctx, 6)))
+        }
+        if (people.isNotEmpty()) {
+            col.addView(Ui.sectionHeader(ctx, "Present"))
+            for (e in people) col.addView(entryCard(e.title, e.body), Ui.matchWidth(Ui.dp(ctx, 6)))
+        }
+        return col
+    }
 
-        col.addView(Ui.sectionHeader(ctx, "Present"))
-        val present = Ui.card(ctx)
-        for (p in s.present) present.addView(Ui.text(ctx, "• $p", 15f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
-        col.addView(present, Ui.matchWidth())
-        return ScrollView(ctx).apply { addView(col) }
+    private fun entryCard(title: String, body: String): View = Ui.card(ctx).apply {
+        if (title.isNotBlank()) addView(Ui.text(ctx, title, 16f, Ui.TEXT, bold = true))
+        if (body.isNotBlank()) addView(Ui.text(ctx, body, 14f, Ui.TEXT_DIM).apply { setLineSpacing(0f, 1.15f) })
     }
 }

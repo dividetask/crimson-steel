@@ -45,6 +45,18 @@ helpers do
     out
   end
 
+  # The attacker's equipped weapons (plus natural attacks and Unarmed), each
+  # with its Martial Dice Cap and Competency — Dexterity drives a ranged
+  # weapon's Martial, Strength a melee one. Shared by the DM's Attack builder
+  # and the Android app's turn options (lib/routes/api.rb).
+  def attack_weapons(attacker, acc = (Creatures.lookup(attacker[:creature_id]) rescue nil))
+    equipped_weapons(attacker[:creature_id]).map do |w|
+      attr = w[:ranged] ? :dex : :str
+      ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
+      w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
+    end
+  end
+
   def attack_builder_blob(attacker, active_spells: false, strike_spell: nil)
     acc      = Creatures.lookup(attacker[:creature_id]) rescue nil
     die      = DiceResolution.config.die_size
@@ -77,11 +89,7 @@ helpers do
       list
     end
 
-    weapons = active_spells ? [] : equipped_weapons(attacker[:creature_id]).map do |w|
-      attr = w[:ranged] ? :dex : :str
-      ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
-      w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
-    end
+    weapons = active_spells ? [] : attack_weapons(attacker, acc)
 
     strike_target_id = nil
     if active_spells

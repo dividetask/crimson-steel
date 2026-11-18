@@ -1,21 +1,26 @@
 package com.dividetask.crimsonsteel.dice
 
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.random.Random
 
-/** A Roll the player can make from the character sheet. */
-data class RollRequest(
+/**
+ * A Roll as the server computed it (lib/routes/api.rb → api_roll): Dice Count,
+ * final TN and Starting Value already include every Bonus and Penalty, so the
+ * app only throws the dice and scores them.
+ */
+data class RollSpec(
     val name: String,
-    val inputs: RollInputs,
-) {
-    /** The Competency entry Proficiencies would add to the Roll's bonus_penalty_list. */
-    val modifiers: List<Modifier>
-        get() = if (inputs.bonus != 0) listOf(Modifier("Competency", inputs.bonus)) else emptyList()
-
-    val target: TargetNumber get() = DiceRules.computeTn(modifiers)
-}
+    val diceCount: Int,
+    val tn: Int,
+    val startingValue: Int,
+    val baseTn: Int,
+    val bonusPenaltyList: List<Pair<String, Int>>,
+    val ranks: Int,
+)
 
 enum class RollVisibility(val label: String) {
-    /** Sent to the DM's Roll Log (once the app is connected to the server). */
+    /** Sent to the DM's Roll Log. */
     PUBLIC("Public roll"),
 
     /** Only shown on this device; never sent anywhere. */
@@ -23,48 +28,46 @@ enum class RollVisibility(val label: String) {
 }
 
 data class RollResult(
-    val request: RollRequest,
+    val spec: RollSpec,
     val visibility: RollVisibility,
-    val tn: Int,
-    val startingValue: Int,
     val dice: List<Int>,
     val dois: Int,
     val criticalCount: Int,
     val outcome: Outcome,
-    val at: Long = System.currentTimeMillis(),
-)
+) {
+    val tn: Int get() = spec.tn
+    val startingValue: Int get() = spec.startingValue
+
+    /** Body for the web's POST /dm/roll (the same fields the web compact roll sends). */
+    fun toRollLogJson(creatureId: Int, creatureName: String): JSONObject = JSONObject().apply {
+        put("creature_id", creatureId)
+        put("creature_name", creatureName)
+        put("roll_name", spec.name)
+        put("ranks", spec.ranks)
+        put("tn", spec.tn)
+        put("base_tn", spec.baseTn)
+        put("bonus_penalty_list", JSONArray().apply {
+            spec.bonusPenaltyList.forEach { (type, v) -> put(JSONArray().put(type).put(v)) }
+        })
+        put("dice_count", spec.diceCount)
+        put("starting_value", spec.startingValue)
+        put("dice", JSONArray().apply { dice.forEach { put(it) } })
+        put("dois", dois)
+        put("critical_count", criticalCount)
+    }
+}
 
 object Roller {
-    fun roll(request: RollRequest, visibility: RollVisibility, random: Random = Random.Default): RollResult {
-        val target = request.target
-        val dice = List(request.inputs.diceCap) { random.nextInt(1, DiceConfig.DIE_SIZE + 1) }
-        val dois = DiceRules.dois(dice, target.tn, target.startingValue)
+    fun roll(spec: RollSpec, visibility: RollVisibility, random: Random = Random.Default): RollResult {
+        val dice = List(spec.diceCount) { random.nextInt(1, DiceConfig.DIE_SIZE + 1) }
+        val dois = DiceRules.dois(dice, spec.tn, spec.startingValue)
         return RollResult(
-            request = request,
+            spec = spec,
             visibility = visibility,
-            tn = target.tn,
-            startingValue = target.startingValue,
             dice = dice,
             dois = dois,
             criticalCount = dice.count { it == DiceConfig.DIE_SIZE },
             outcome = DiceRules.outcome(dois),
         )
     }
-}
-
-/**
- * Where public rolls go. Offline for now: rolls are only kept in memory.
- * When the app is connected this becomes a POST to the server's /dm/roll
- * (the same endpoint the web sheet's compact roll uses).
- */
-object RollLog {
-    private val entries = mutableListOf<RollResult>()
-
-    val recent: List<RollResult> get() = entries.asReversed().toList()
-
-    fun record(result: RollResult) {
-        if (result.visibility == RollVisibility.PUBLIC) entries.add(result)
-    }
-
-    const val CONNECTED = false
 }
