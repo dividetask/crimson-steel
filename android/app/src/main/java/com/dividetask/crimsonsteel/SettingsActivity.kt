@@ -10,7 +10,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.dividetask.crimsonsteel.debug.DebugLog
-import com.dividetask.crimsonsteel.debug.LogProvider
+import com.dividetask.crimsonsteel.debug.LogSaver
 import com.dividetask.crimsonsteel.net.ServerLocator
 import com.dividetask.crimsonsteel.net.Session
 import com.dividetask.crimsonsteel.ui.Ui
@@ -18,7 +18,7 @@ import com.dividetask.crimsonsteel.ui.Ui
 /**
  * Settings, reached from the gear at the top of every screen (as in the
  * Sudoku Trainer): the app version, the connection, and the debug log —
- * which can be sent as a file from the share sheet.
+ * which can be saved as a file to the phone's Downloads folder.
  */
 class SettingsActivity : Activity() {
 
@@ -48,6 +48,7 @@ class SettingsActivity : Activity() {
             "Server" to (Session.serverAddress ?: "not connected"),
             "Device id" to (Session.deviceId ?: "not issued yet"),
             "Character" to (Session.sheet?.name ?: "—"),
+            "VPN" to (if (Session.vpnActive) "ON \u2014 the app talks to the server over Wi-Fi directly" else "off"),
             "This phone" to (ServerLocator.localNetworks().joinToString { "${it.address.hostAddress}/${it.prefix}" }.ifBlank { "no network" }),
         )), Ui.matchWidth())
         col.addView(button("Search for the server again") {
@@ -61,9 +62,9 @@ class SettingsActivity : Activity() {
         // --- Debug log -------------------------------------------------------------
         col.addView(Ui.sectionHeader(this, "Debug log"))
         col.addView(Ui.text(this,
-            "Records how the app searches for the server and talks to it. Send it when something goes wrong.",
+            "Records how the app searches for the server and talks to it. Save a copy to Downloads to send it when something goes wrong.",
             13f, Ui.TEXT_DIM), Ui.matchWidth())
-        col.addView(button("Share debug log", primary = true) { shareLog() }, Ui.matchWidth(Ui.dp(this, 8)))
+        col.addView(button("Save debug log", primary = true) { saveLog() }, Ui.matchWidth(Ui.dp(this, 8)))
         val row = Ui.horizontal(this)
         row.addView(button("View log") { toggleLog(col) }, Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 6) })
         row.addView(button("Clear log") { confirmClear() }, Ui.weighted())
@@ -92,26 +93,55 @@ class SettingsActivity : Activity() {
         setOnClickListener { onTap() }
     }
 
-    private fun shareLog() {
-        DebugLog.i("settings", "sharing debug log")
-        val header = buildString {
-            appendLine("Crimson Steel debug log")
-            appendLine(Session.appInfo(this@SettingsActivity))
-            appendLine("Server: ${Session.serverAddress ?: "not connected"}")
-            appendLine("Device id: ${Session.deviceId ?: "not issued"}")
-            appendLine("Character: ${Session.sheet?.name ?: "-"}")
-            ServerLocator.localNetworks().forEach {
-                appendLine("Network ${it.nic}: ${it.address.hostAddress}/${it.prefix} broadcast ${it.broadcast?.hostAddress}")
-            }
-            append("Shared: ${java.util.Date()}")
+    private fun logHeader(): String = buildString {
+        appendLine("Crimson Steel debug log")
+        appendLine(Session.appInfo(this@SettingsActivity))
+        appendLine("Server: ${Session.serverAddress ?: "not connected"}")
+        appendLine("Device id: ${Session.deviceId ?: "not issued"}")
+        appendLine("Character: ${Session.sheet?.name ?: "-"}")
+        appendLine("VPN: ${if (Session.vpnActive) "on" else "off"}")
+        ServerLocator.localNetworks().forEach {
+            appendLine("Network ${it.nic}: ${it.address.hostAddress}/${it.prefix} broadcast ${it.broadcast?.hostAddress}")
         }
-        runCatching {
-            startActivity(LogProvider.shareIntent(this, header, "Crimson Steel debug log (${Ui.versionName})"))
-        }.onFailure {
-            DebugLog.e("settings", "share failed", it)
-            android.widget.Toast.makeText(this, "No app available to share the log", android.widget.Toast.LENGTH_LONG).show()
+        append("Saved: ${java.util.Date()}")
+    }
+
+    /** Save a copy of the log to Downloads (Android 10+), or let the player pick where (older Android). */
+    private fun saveLog() {
+        DebugLog.i("settings", "saving debug log")
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            runCatching { LogSaver.saveToDownloads(this, logHeader()) }
+                .onSuccess { name ->
+                    DebugLog.i("settings", "saved Downloads/$name")
+                    toast("Saved to Downloads: $name")
+                }
+                .onFailure {
+                    DebugLog.e("settings", "save failed", it)
+                    toast("Could not save the log: ${it.message}")
+                }
+        } else {
+            val pick = android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT).apply {
+                addCategory(android.content.Intent.CATEGORY_OPENABLE)
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TITLE, LogSaver.fileName())
+            }
+            @Suppress("DEPRECATION")
+            startActivityForResult(pick, REQUEST_SAVE)
         }
     }
+
+    @Deprecated("Activity result for the Android 8–9 save picker")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_SAVE || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        runCatching { LogSaver.write(this, uri, logHeader()) }
+            .onSuccess { DebugLog.i("settings", "saved debug log"); toast("Debug log saved") }
+            .onFailure { DebugLog.e("settings", "save failed", it); toast("Could not save the log: ${it.message}") }
+    }
+
+    private fun toast(msg: String) = android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show()
 
     /** Show the newest part of the log inline (the full log is in the shared file). */
     private fun toggleLog(col: LinearLayout) {
@@ -139,5 +169,9 @@ class SettingsActivity : Activity() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private companion object {
+        const val REQUEST_SAVE = 41
     }
 }

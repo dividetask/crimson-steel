@@ -12,7 +12,9 @@ The app never asks for an IP address. It tries, in order:
 2. **Broadcast discovery.** The app broadcasts a UDP probe, `CRIMSON_STEEL_DISCOVER 1`, to port **47567** on every Wi-Fi subnet broadcast address and on `255.255.255.255`, three times. The server answers with JSON: `{"service":"crimson-steel","version":1,"http_port":4567,"name":"<campaign name>"}`. The reply's source address is the server's address. See `lib/lan_discovery.rb`.
 3. **Subnet scan.** If nothing answers (some routers and firewalls drop broadcast), the app tries a TCP connection to port **4567** on every address of its Wi-Fi subnet (subnets of /22 or smaller), nearest its own address first, and confirms each open one with `GET /api/hello`. This only needs the port the web pages already use.
 
-If all three fail the app shows *No server found* with **Search again**. If the connection drops later, it searches again by itself.
+If all three fail the app shows *No server found* with **Search again** (and, when the phone has a VPN on, a note that the VPN may be in the way). If the connection drops later, it searches again by itself.
+
+**VPNs.** With a VPN running, Android sends ordinary traffic into the VPN tunnel, which usually can't reach `192.168.x.x` addresses at home — broadcast discovery still works, but the web request that follows fails. So the app opens every connection to the server (and the subnet scan) on the **Wi-Fi network directly** (`LocalNetwork`, `ACCESS_NETWORK_STATE` permission). If the VPN forbids that, the app logs it and retries once on the phone's default route; if that fails too, the player has to turn the VPN off or allow local-network access in the VPN's settings.
 
 The server starts the UDP responder when run with `ruby app.rb`, and from `config.ru` when started with rackup or puma (set `CRIMSON_STEEL_HTTP_PORT` if you pass rackup a different `-p`). It uses Ruby's standard library only, and prints one line per probe it answers — `[discovery] probe from <phone address> — told it to use port 4567` — so the DM can see whether a phone's search arrives.
 
@@ -34,7 +36,7 @@ A request from the app is never the DM: it does not come from the server host's 
   - **Notes** — the Chronicle notes this Character can see, grouped by chapter. Tap a note to expand it.
   - **Scene** — the current chapter, the in-game time, and the Chronicle entries the DM has made active (scene notes and the characters present).
 
-The gear is also on the *Looking for the server*, *No server found* and *Waiting for the DM* screens, so the debug log can be sent when the app can't connect.
+The gear is also on the *Looking for the server*, *No server found* and *Waiting for the DM* screens, so the debug log can be saved when the app can't connect.
 
 The screen on display is refreshed from the server: Initiative every 2 seconds, Sheet / Items / Scene every 5, Notes every 10. A screen is only rebuilt when the server's answer changed.
 
@@ -126,8 +128,8 @@ Reached from the gear at the top of every screen. **Done** (or back) returns to 
 | Section | Contents |
 |---|---|
 | App | The version (`BuildConfig.VERSION_NAME`, e.g. `v0.006 a (1a2b)`). |
-| Connection | The server address, the device id (the first 8 characters, as in the DM's device table), the assigned Character, and this phone's network addresses. **Search for the server again** forgets the remembered server and searches from scratch. |
-| Debug log | **Share debug log** sends the log as a `.log` file through the Android share sheet (email, Messages, Drive…). **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
+| Connection | The server address, the device id (the first 8 characters, as in the DM's device table), the assigned Character, whether a VPN is on, and this phone's network addresses. **Search for the server again** forgets the remembered server and searches from scratch. |
+| Debug log | **Save debug log** saves a copy as `crimson-steel-debug-<date>-<time>.log` in the phone's **Downloads** folder (Android 10+: straight into Downloads, no permission; Android 8–9: the system "save as" picker). There is no share sheet. **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
 
 ## Debug log
 
@@ -137,13 +139,12 @@ What is logged:
 
 - `session` — app start (version, Android release, phone model), each search step and its result, the connection (server, campaign, device id, Character), forgetting the server.
 - `discovery` — the phone's network interfaces and broadcast addresses, every probe sent (or the error), every reply received, timeouts, the subnet scan and which hosts had the port open.
+- `network` — whether a Wi-Fi network was found and whether a VPN is on, each time a server is tried.
 - `http` — every request that fails or changes status, and every POST (turn requests, inventory actions, public rolls), with the status and time taken; the device id the first time the server issues it. Repeated polling GETs with an unchanged status are not repeated in the log.
 - `main` — which screen is showing (searching, no server, waiting, playing), losing the server, being unassigned.
 - `crash` — any uncaught exception, with its stack trace, before the app closes.
 
-The shared file starts with a header: the version, Android release and phone model, the server, device id and Character, the phone's network addresses, and the time it was shared. Nothing secret is logged; the device cookie only ever appears as its first 8 characters.
-
-The file is shared through `LogProvider`, a small read-only ContentProvider (`content://com.dividetask.crimsonsteel.logs/…`) standing in for AndroidX FileProvider, since the app uses no AndroidX libraries.
+The saved file starts with a header: the version, Android release and phone model, the server, device id and Character, whether a VPN is on, the phone's network addresses, and the time it was saved. Nothing secret is logged; the device cookie only ever appears as its first 8 characters.
 
 ## API
 

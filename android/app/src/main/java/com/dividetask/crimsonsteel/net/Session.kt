@@ -42,8 +42,17 @@ object Session {
             set(v) { prefs.edit().putString(KEY_COOKIE, v).apply() }
     }
 
+    private lateinit var appCtx: Context
+
+    /** An API client for [s] whose connections go over the Wi-Fi network directly (see LocalNetwork). */
+    private fun newApi(s: ServerInfo) = Api(s, cookieStore, LocalNetwork.opener(appCtx))
+
+    /** True when the phone has a VPN running (it can stop the app reaching the server). */
+    val vpnActive: Boolean get() = ::appCtx.isInitialized && LocalNetwork.vpnActive(appCtx)
+
     fun init(ctx: Context) {
         if (::prefs.isInitialized) return
+        appCtx = ctx.applicationContext
         prefs = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         DebugLog.init(ctx.applicationContext.filesDir)
         DebugLog.installCrashHandler()
@@ -79,7 +88,7 @@ object Session {
         val remembered = prefs.getString(KEY_HOST, null)?.let { ServerInfo(it, prefs.getInt(KEY_PORT, ServerLocator.DEFAULT_HTTP_PORT), "") }
         val fromMemory = remembered?.let { s ->
             DebugLog.i(TAG, "trying last server ${s.baseUrl}")
-            runCatching { adopt(Api(s, cookieStore)) }
+            runCatching { adopt(newApi(s)) }
                 .onFailure { DebugLog.i(TAG, "last server not reachable: ${DebugLog.describe(it)}") }
                 .getOrNull()
         }
@@ -88,7 +97,7 @@ object Session {
             val found = ServerLocator.discover()
             if (found != null) {
                 DebugLog.i(TAG, "found ${found.name.ifBlank { "server" }} at ${found.baseUrl} by broadcast")
-                adopt(Api(found, cookieStore))
+                adopt(newApi(found))
             } else {
                 DebugLog.i(TAG, "no broadcast reply; scanning the Wi-Fi subnet for TCP ${ServerLocator.DEFAULT_HTTP_PORT}")
                 scan() ?: throw java.io.IOException("No Crimson Steel server found on this network")
@@ -102,10 +111,11 @@ object Session {
 
     /** Subnet scan fallback: the first open host that answers /api/hello as a Crimson Steel server. */
     private fun scan(): Hello? {
-        for (host in ServerLocator.scanCandidates()) {
+        val wifiSockets = LocalNetwork.wifi(appCtx)?.socketFactory
+        for (host in ServerLocator.scanCandidates(socketFactory = wifiSockets)) {
             val s = ServerInfo(host, ServerLocator.DEFAULT_HTTP_PORT, "")
             val ok = runCatching {
-                val a = Api(s, cookieStore)
+                val a = newApi(s)
                 val j = a.get("/api/hello")
                 if (j.optString("service") != ServerLocator.SERVICE) error("not a Crimson Steel server")
                 a

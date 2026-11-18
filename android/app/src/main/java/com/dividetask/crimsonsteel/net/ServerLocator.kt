@@ -108,7 +108,11 @@ object ServerLocator {
      * subnets of /22 or smaller (at most 1022 hosts) are scanned. The phone's
      * own address is skipped unless [includeSelf] (for tests on one machine).
      */
-    fun scanCandidates(port: Int = DEFAULT_HTTP_PORT, timeoutMs: Int = 400, includeSelf: Boolean = false): List<String> {
+    fun scanCandidates(
+        port: Int = DEFAULT_HTTP_PORT, timeoutMs: Int = 400, includeSelf: Boolean = false,
+        /** Opens the probe sockets on a specific network (the Wi-Fi, past a VPN); null: default route. */
+        socketFactory: javax.net.SocketFactory? = null,
+    ): List<String> {
         val hosts = localNetworks().filter { it.prefix in 22..30 }.flatMap { net ->
             val ip = net.address.address.fold(0L) { acc, b -> (acc shl 8) or (b.toLong() and 0xFF) }
             val mask = (0xFFFFFFFFL shl (32 - net.prefix)) and 0xFFFFFFFFL
@@ -126,7 +130,8 @@ object ServerLocator {
         val open = java.util.Collections.synchronizedList(mutableListOf<String>())
         val pool = Executors.newFixedThreadPool(48)
         for (h in hosts) pool.execute {
-            runCatching { Socket().use { it.connect(InetSocketAddress(h, port), timeoutMs) } }.onSuccess { open += h }
+            runCatching { (socketFactory?.createSocket() ?: Socket()).use { it.connect(InetSocketAddress(h, port), timeoutMs) } }
+                .onSuccess { open += h }
         }
         pool.shutdown()
         pool.awaitTermination(30, TimeUnit.SECONDS)

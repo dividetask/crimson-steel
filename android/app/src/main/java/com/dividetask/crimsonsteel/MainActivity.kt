@@ -102,9 +102,13 @@ class MainActivity : Activity() {
             searching = false
             r.onSuccess { onHello(it) }
              .onFailure {
+                 val vpnHint = if (Session.vpnActive) {
+                     "\n\nThis phone has a VPN turned on. A VPN can stop the app reaching computers on your " +
+                         "Wi-Fi: turn the VPN off, or allow local network access in its settings, then try again."
+                 } else ""
                  showMessage("No server found",
-                     "Couldn't find a Crimson Steel server on this Wi-Fi network. Check the server is running " +
-                         "and the phone is on the same network, then try again.",
+                     "Couldn't reach a Crimson Steel server on this Wi-Fi network. Check the server is running " +
+                         "and the phone is on the same network, then try again." + vpnHint,
                      action = "Search again") { search() }
              }
         }
@@ -161,7 +165,7 @@ class MainActivity : Activity() {
                 })
         }
         if (action == "Search again") {
-            col.addView(Ui.text(this, "Settings (\u2699\uFE0E) \u2192 Share debug log sends what the app tried.", 12f, Ui.TEXT_FAINT).apply {
+            col.addView(Ui.text(this, "Settings (\u2699\uFE0E) \u2192 Save debug log saves what the app tried to Downloads.", 12f, Ui.TEXT_FAINT).apply {
                 gravity = Gravity.CENTER
             }, Ui.matchWidth(Ui.dp(this, 16)))
         }
