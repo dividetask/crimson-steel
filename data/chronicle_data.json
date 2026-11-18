@@ -1860,7 +1860,24 @@
       ],
       "owner_id": null,
       "active": true
+    },
+    {
+      "id": 108,
+      "entry_type": "note",
+      "chapter": 5,
+      "notes_position": 108,
+      "scene_position": 93,
+      "title": "Stumpy Dream - Name-taker",
+      "public_description": "",
+      "dm_description": "He wants memories. He lets the party pass for a memory from each of them, or for one name that covers everyone. The players are not warned of the cost. Giving a memory loses ranks in a skill related to it, and a will save decides how many. Giving a name makes that character forget who they are, and a will save decides how much they remember. Anyone who refuses has to fight him. ",
+      "image": "/uploads/dde995868fd4b4c5.jpeg",
+      "shared": true,
+      "hidden_from": [
+
+      ],
+      "owner_id": null,
+      "active": false
     }
   ],
-  "next_id": 108
+  "next_id": 109
 }
