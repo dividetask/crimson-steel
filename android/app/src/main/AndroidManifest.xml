@@ -20,5 +20,17 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Settings" />
+
+        <!-- Serves the shareable debug log file to the share sheet (Settings → Share debug log). -->
+        <provider
+            android:name=".debug.LogProvider"
+            android:authorities="${applicationId}.logs"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
     </application>
 </manifest>

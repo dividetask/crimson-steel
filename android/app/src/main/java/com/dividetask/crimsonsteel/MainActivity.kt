@@ -12,6 +12,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.dividetask.crimsonsteel.data.Hello
+import com.dividetask.crimsonsteel.debug.DebugLog
 import com.dividetask.crimsonsteel.net.ApiException
 import com.dividetask.crimsonsteel.net.Session
 import com.dividetask.crimsonsteel.ui.InitiativeScreen
@@ -50,6 +51,7 @@ class MainActivity : Activity() {
     private var playing = false
     private var resumed = false
     private var searching = false
+    private var lastMessage: String? = null
 
     private val poll = object : Runnable {
         override fun run() {
@@ -132,19 +134,23 @@ class MainActivity : Activity() {
     private fun onApiError(e: Throwable) {
         if (!resumed) return
         when {
-            e is ApiException && e.error == "unassigned" -> checkAssignment()
+            e is ApiException && e.error == "unassigned" -> { DebugLog.i(TAG, "device is no longer assigned"); checkAssignment() }
             e is ApiException -> android.widget.Toast.makeText(this, "Server error: ${e.error}", android.widget.Toast.LENGTH_SHORT).show()
-            else -> search()   // network gone: find the server again
+            else -> { DebugLog.e(TAG, "lost the server; searching again", e); search() }   // network gone: find the server again
         }
     }
 
     private fun showMessage(title: String, body: String, action: String? = null, onAction: (() -> Unit)? = null) {
         playing = false
         screen = null
+        if (title != lastMessage) DebugLog.i(TAG, "screen: $title")
+        lastMessage = title
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        page.addView(Ui.topBar(this, "Crimson Steel", ::openSettings).first, Ui.matchWidth())
         val col = Ui.vertical(this, 28).apply { gravity = Gravity.CENTER }
-        col.addView(Ui.text(this, "Crimson Steel", 28f, Ui.TEXT, bold = true).apply { gravity = Gravity.CENTER })
+        page.addView(col, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         col.addView(Ui.text(this, title, 18f, Ui.GOLD, bold = true).apply { gravity = Gravity.CENTER },
-            Ui.matchWidth(Ui.dp(this, 24)))
+            Ui.matchWidth())
         col.addView(Ui.text(this, body, 15f, Ui.TEXT_DIM).apply { gravity = Gravity.CENTER },
             Ui.matchWidth(Ui.dp(this, 10)))
         if (action != null && onAction != null) {
@@ -154,8 +160,13 @@ class MainActivity : Activity() {
                     topMargin = Ui.dp(this@MainActivity, 20)
                 })
         }
+        if (action == "Search again") {
+            col.addView(Ui.text(this, "Settings (\u2699\uFE0E) \u2192 Share debug log sends what the app tried.", 12f, Ui.TEXT_FAINT).apply {
+                gravity = Gravity.CENTER
+            }, Ui.matchWidth(Ui.dp(this, 16)))
+        }
         root.removeAllViews()
-        root.addView(col, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        root.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         tabViews.clear()
         headerName = null
         content = null
@@ -167,12 +178,10 @@ class MainActivity : Activity() {
         playing = true
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 
-        val header = Ui.vertical(this).apply {
-            setBackgroundColor(Ui.CRIMSON_DARK)
-            setPadding(Ui.dp(context, 16), Ui.dp(context, 14), Ui.dp(context, 16), Ui.dp(context, 12))
-        }
-        headerName = Ui.text(this, characterName, 26f, Ui.TEXT, bold = true)
-        header.addView(headerName)
+        DebugLog.i(TAG, "screen: playing as $characterName")
+        lastMessage = null
+        val (header, nameView) = Ui.topBar(this, characterName, ::openSettings)
+        headerName = nameView
         col.addView(header, Ui.matchWidth())
 
         val tabs = Ui.horizontal(this).apply { setBackgroundColor(Ui.SURFACE) }
@@ -221,7 +230,12 @@ class MainActivity : Activity() {
         handler.postDelayed(poll, tab.pollMs)
     }
 
+    private fun openSettings() {
+        startActivity(android.content.Intent(this, SettingsActivity::class.java))
+    }
+
     private companion object {
         const val KEY_TAB = "tab"
+        const val TAG = "main"
     }
 }

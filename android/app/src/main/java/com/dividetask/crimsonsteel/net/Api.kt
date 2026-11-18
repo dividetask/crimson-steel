@@ -1,5 +1,6 @@
 package com.dividetask.crimsonsteel.net
 
+import com.dividetask.crimsonsteel.debug.DebugLog
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -23,6 +24,13 @@ interface CookieStore {
  */
 class Api(val server: ServerInfo, private val cookies: CookieStore) {
 
+    /**
+     * Polling repeats the same GETs every few seconds; by default a successful
+     * GET is logged only when its status changes, so the log stays readable.
+     */
+    var logEvery = false
+    private val lastStatus = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
     fun get(path: String): JSONObject = request("GET", path, null, null)
 
     fun postJson(path: String, body: JSONObject = JSONObject()): JSONObject =
@@ -36,12 +44,17 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
         val body = fields.entries.joinToString("&") {
             URLEncoder.encode(it.key, "UTF-8") + "=" + URLEncoder.encode(it.value, "UTF-8")
         }
+        val started = System.currentTimeMillis()
         val conn = open("POST", path, "application/x-www-form-urlencoded")
         try {
             conn.outputStream.use { it.write(body.toByteArray()) }
             val status = conn.responseCode
             saveCookie(conn)
+            DebugLog.i(TAG, "POST $path (form) -> $status in ${System.currentTimeMillis() - started}ms")
             if (status >= 400) throw ApiException(status, "request failed")
+        } catch (e: java.io.IOException) {
+            if (e !is ApiException) DebugLog.e(TAG, "POST $path (form) to ${server.baseUrl} failed", e)
+            throw e
         } finally {
             conn.disconnect()
         }
@@ -63,6 +76,7 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
     }
 
     private fun request(method: String, path: String, body: String?, contentType: String?): JSONObject {
+        val started = System.currentTimeMillis()
         val conn = open(method, path, contentType)
         try {
             if (body != null) conn.outputStream.use { it.write(body.toByteArray()) }
@@ -71,10 +85,19 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
             val stream = if (status >= 400) conn.errorStream else conn.inputStream
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             val json = runCatching { JSONObject(text) }.getOrNull()
+            val ms = System.currentTimeMillis() - started
             if (status >= 400 || json == null) {
-                throw ApiException(status, json?.optString("error")?.takeIf { it.isNotEmpty() } ?: "HTTP $status")
+                val err = json?.optString("error")?.takeIf { it.isNotEmpty() } ?: "HTTP $status"
+                DebugLog.i(TAG, "$method $path -> $status ($err) in ${ms}ms" +
+                    if (json == null) "; body starts: ${text.take(120).replace('\n', ' ')}" else "")
+                throw ApiException(status, err)
             }
+            if (logEvery || method != "GET" || status != lastStatus[path]) DebugLog.i(TAG, "$method $path -> $status in ${ms}ms")
+            lastStatus[path] = status
             return json
+        } catch (e: java.io.IOException) {
+            if (e !is ApiException) DebugLog.e(TAG, "$method $path to ${server.baseUrl} failed", e)
+            throw e
         } finally {
             conn.disconnect()
         }
@@ -83,11 +106,15 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
     private fun saveCookie(conn: HttpURLConnection) {
         val headers = conn.headerFields?.entries?.filter { it.key.equals("Set-Cookie", ignoreCase = true) }
             ?.flatMap { it.value } ?: return
-        for (h in headers) parseDeviceCookie(h)?.let { cookies.deviceCookie = it }
+        for (h in headers) parseDeviceCookie(h)?.let {
+            if (it != cookies.deviceCookie) DebugLog.i(TAG, "server issued device id ${it.take(8)}")
+            cookies.deviceCookie = it
+        }
     }
 
     companion object {
         const val COOKIE = "crimson_device_id"
+        private const val TAG = "http"
 
         /** The device id from a Set-Cookie header, or null if it is some other cookie. */
         fun parseDeviceCookie(header: String): String? {

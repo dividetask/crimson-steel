@@ -11,8 +11,23 @@ android {
         applicationId "com.dividetask.crimsonsteel"
         minSdk 26
         targetSdk 35
-        versionCode 3
-        versionName "0.005"
+        // versionCode: timestamp-based, always increasing across branches.
+        // versionName: predicted APK filename (vMAJOR.MINOR.apk = newest committed
+        // APK minor + 1), a per-commit letter (a, b, c… for each commit pushed
+        // before a new APK lands; resets to 'a' once a new APK is built), and the
+        // 4-char hash of the commit Gradle built from. The first two are set by
+        // hand; the hash is added at build time because a commit can't contain
+        // its own hash. (Rules: CLAUDE.md → Android build versioning.)
+        versionCode((int) (System.currentTimeMillis() / 60000))
+        def versionBase = "v0.006 a"
+        def commitHash = "unknown"
+        try {
+            def process = ["git", "rev-parse", "--short=4", "HEAD"].execute()
+            process.waitFor()
+            def out = process.text.trim()
+            if (out) commitHash = out
+        } catch (ignored) { }
+        versionName "${versionBase} (${commitHash})"
     }
 
     buildTypes {
@@ -24,6 +39,10 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     kotlinOptions {

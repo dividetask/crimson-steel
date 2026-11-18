@@ -6,13 +6,17 @@ The Gradle project lives in `android/` and is built by `build_branches.sh` (see 
 
 ## Connecting
 
-The app never asks for an IP address.
+The app never asks for an IP address. It tries, in order:
 
-1. **Discovery.** The app broadcasts a UDP probe, `CRIMSON_STEEL_DISCOVER 1`, to port **47567** on every Wi-Fi subnet broadcast address and on `255.255.255.255`. The server answers with JSON: `{"service":"crimson-steel","version":1,"http_port":4567,"name":"<campaign name>"}`. The reply's source address is the server's address. See `lib/lan_discovery.rb`.
-2. The server starts the responder when run with `ruby app.rb`, and from `config.ru` when started with rackup or puma (set `CRIMSON_STEEL_HTTP_PORT` if you pass rackup a different `-p`). It uses Ruby's standard library only.
-3. The app remembers the last server and tries it first on the next launch, then falls back to discovery. If the connection is lost it searches again.
+1. **The last server** it used (remembered on the phone).
+2. **Broadcast discovery.** The app broadcasts a UDP probe, `CRIMSON_STEEL_DISCOVER 1`, to port **47567** on every Wi-Fi subnet broadcast address and on `255.255.255.255`, three times. The server answers with JSON: `{"service":"crimson-steel","version":1,"http_port":4567,"name":"<campaign name>"}`. The reply's source address is the server's address. See `lib/lan_discovery.rb`.
+3. **Subnet scan.** If nothing answers (some routers and firewalls drop broadcast), the app tries a TCP connection to port **4567** on every address of its Wi-Fi subnet (subnets of /22 or smaller), nearest its own address first, and confirms each open one with `GET /api/hello`. This only needs the port the web pages already use.
 
-The server and the phone must be on the same network, and the network must pass UDP broadcast between devices. Most home Wi-Fi does. Guest networks with "client isolation" do not.
+If all three fail the app shows *No server found* with **Search again**. If the connection drops later, it searches again by itself.
+
+The server starts the UDP responder when run with `ruby app.rb`, and from `config.ru` when started with rackup or puma (set `CRIMSON_STEEL_HTTP_PORT` if you pass rackup a different `-p`). It uses Ruby's standard library only, and prints one line per probe it answers — `[discovery] probe from <phone address> — told it to use port 4567` — so the DM can see whether a phone's search arrives.
+
+The server and the phone must be on the same network. Guest networks with "client isolation" block both methods. A firewall on the server must allow TCP 4567, and UDP 47567 for broadcast discovery.
 
 ## Which Character the app shows
 
@@ -22,13 +26,15 @@ A request from the app is never the DM: it does not come from the server host's 
 
 ## Layout
 
-- The **character name** is always shown at the top of the screen.
+- A bar at the top of every screen, as in the Sudoku Trainer: the **character name** on the left (or *Crimson Steel* before a Character is assigned), the app version small and grey so screenshots show which build they came from, and a **gear** button that opens Settings.
 - A tab row under it selects one of five screens:
   - **Sheet** — the character sheet.
   - **Initiative** — the Combat Pool, the turn order, and on the player's turn their action options (see *Initiative screen*).
   - **Items** — the inventory (see *Inventory screen*).
   - **Notes** — the Chronicle notes this Character can see, grouped by chapter. Tap a note to expand it.
   - **Scene** — the current chapter, the in-game time, and the Chronicle entries the DM has made active (scene notes and the characters present).
+
+The gear is also on the *Looking for the server*, *No server found* and *Waiting for the DM* screens, so the debug log can be sent when the app can't connect.
 
 The screen on display is refreshed from the server: Initiative every 2 seconds, Sheet / Items / Scene every 5, Notes every 10. A screen is only rebuilt when the server's answer changed.
 
@@ -112,6 +118,32 @@ The same three sections and actions as the web sheet's inventory stub ([equipmen
 | Sell Pile | **Claim**, asking how many (`/inventory/claim`); **Equip** to claim one and equip it (`/inventory/claim_equip`) |
 
 The Sell Pile's **Delete** stays DM-only, as on the web.
+
+## Settings
+
+Reached from the gear at the top of every screen. **Done** (or back) returns to where the player was.
+
+| Section | Contents |
+|---|---|
+| App | The version (`BuildConfig.VERSION_NAME`, e.g. `v0.006 a (1a2b)`). |
+| Connection | The server address, the device id (the first 8 characters, as in the DM's device table), the assigned Character, and this phone's network addresses. **Search for the server again** forgets the remembered server and searches from scratch. |
+| Debug log | **Share debug log** sends the log as a `.log` file through the Android share sheet (email, Messages, Drive…). **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
+
+## Debug log
+
+A plain-text file in the app's private storage (`debug.log`), one line per event: `yyyy-MM-dd HH:mm:ss.SSS [tag] message`. It is capped at 512 KB; past that the oldest half is dropped. Lines are also written to logcat.
+
+What is logged:
+
+- `session` — app start (version, Android release, phone model), each search step and its result, the connection (server, campaign, device id, Character), forgetting the server.
+- `discovery` — the phone's network interfaces and broadcast addresses, every probe sent (or the error), every reply received, timeouts, the subnet scan and which hosts had the port open.
+- `http` — every request that fails or changes status, and every POST (turn requests, inventory actions, public rolls), with the status and time taken; the device id the first time the server issues it. Repeated polling GETs with an unchanged status are not repeated in the log.
+- `main` — which screen is showing (searching, no server, waiting, playing), losing the server, being unassigned.
+- `crash` — any uncaught exception, with its stack trace, before the app closes.
+
+The shared file starts with a header: the version, Android release and phone model, the server, device id and Character, the phone's network addresses, and the time it was shared. Nothing secret is logged; the device cookie only ever appears as its first 8 characters.
+
+The file is shared through `LogProvider`, a small read-only ContentProvider (`content://com.dividetask.crimsonsteel.logs/…`) standing in for AndroidX FileProvider, since the app uses no AndroidX libraries.
 
 ## API
 

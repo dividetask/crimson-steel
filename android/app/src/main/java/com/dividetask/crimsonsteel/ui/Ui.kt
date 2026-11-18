@@ -93,4 +93,38 @@ object Ui {
     }
 
     fun signed(n: Int): String = if (n >= 0) "+$n" else "−${-n}"
+
+    /** The app version, as built (BuildConfig.VERSION_NAME, e.g. "v0.006 a (1a2b)"). */
+    val versionName: String
+        get() = runCatching { com.dividetask.crimsonsteel.BuildConfig.VERSION_NAME }.getOrDefault("?")
+
+    /**
+     * The bar at the top of every screen: [title] on the left, the app version
+     * small and grey (so screenshots show which build they came from), and a
+     * gear button that opens Settings when [onSettings] is given.
+     */
+    fun topBar(ctx: Context, title: String, onSettings: (() -> Unit)?): Pair<LinearLayout, TextView> {
+        val bar = horizontal(ctx).apply {
+            setBackgroundColor(CRIMSON_DARK)
+            setPadding(dp(ctx, 16), dp(ctx, 10), dp(ctx, 4), dp(ctx, 10))
+        }
+        val titleView = text(ctx, title, 24f, TEXT, bold = true).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        bar.addView(titleView, weighted())
+        bar.addView(text(ctx, versionName, 11f, 0xFF9E9E9E.toInt()).apply {
+            setPadding(dp(ctx, 8), 0, dp(ctx, 4), 0)
+        })
+        if (onSettings != null) {
+            val gear = text(ctx, "\u2699\uFE0E", 26f, TEXT).apply {
+                gravity = Gravity.CENTER
+                contentDescription = "Settings"
+                setPadding(dp(ctx, 10), 0, dp(ctx, 10), 0)
+            }
+            makeTappable(gear, ctx, onSettings)
+            bar.addView(gear, LinearLayout.LayoutParams(dp(ctx, 48), dp(ctx, 48)))
+        }
+        return Pair(bar, titleView)
+    }
 }

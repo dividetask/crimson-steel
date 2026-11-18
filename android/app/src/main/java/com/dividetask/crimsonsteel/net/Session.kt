@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import com.dividetask.crimsonsteel.data.Hello
+import com.dividetask.crimsonsteel.debug.DebugLog
 import com.dividetask.crimsonsteel.data.Initiative
 import com.dividetask.crimsonsteel.data.Inventory
 import com.dividetask.crimsonsteel.data.Notes
@@ -23,6 +24,7 @@ object Session {
     private const val KEY_COOKIE = "device_cookie"
     private const val KEY_HOST = "last_host"
     private const val KEY_PORT = "last_port"
+    private const val TAG = "session"
 
     private lateinit var prefs: SharedPreferences
     private val io = Executors.newSingleThreadExecutor()
@@ -41,7 +43,18 @@ object Session {
     }
 
     fun init(ctx: Context) {
-        if (!::prefs.isInitialized) prefs = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (::prefs.isInitialized) return
+        prefs = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        DebugLog.init(ctx.applicationContext.filesDir)
+        DebugLog.installCrashHandler()
+        DebugLog.i(TAG, "app started: ${appInfo(ctx)}")
+    }
+
+    /** Version, Android release and device model — the header of a shared log, and its first line each launch. */
+    fun appInfo(ctx: Context): String {
+        val version = runCatching { com.dividetask.crimsonsteel.BuildConfig.VERSION_NAME }.getOrDefault("?")
+        return "Crimson Steel $version; Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT}); " +
+            "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
     }
 
     private fun <T> background(work: () -> T, done: (Result<T>) -> Unit) {
@@ -58,22 +71,72 @@ object Session {
 
     /**
      * Find the server: try the one used last time, then broadcast on the
-     * Wi-Fi network. Succeeds with the server's /api/hello answer.
+     * Wi-Fi network, then scan the Wi-Fi subnet for the web port. Succeeds
+     * with the server's /api/hello answer. Each step goes to the debug log.
      */
     fun connect(done: (Result<Hello>) -> Unit) = background({
-        val remembered = prefs.getString(KEY_HOST, null)?.let { ServerInfo(it, prefs.getInt(KEY_PORT, 4567), "") }
-        val hello = remembered?.let { s -> runCatching { hello(Api(s, cookieStore)) }.getOrNull() }
-        hello ?: run {
-            val found = ServerLocator.discover() ?: throw java.io.IOException("No Crimson Steel server found on this network")
-            hello(Api(found, cookieStore))
+        DebugLog.i(TAG, "searching for the server")
+        val remembered = prefs.getString(KEY_HOST, null)?.let { ServerInfo(it, prefs.getInt(KEY_PORT, ServerLocator.DEFAULT_HTTP_PORT), "") }
+        val fromMemory = remembered?.let { s ->
+            DebugLog.i(TAG, "trying last server ${s.baseUrl}")
+            runCatching { adopt(Api(s, cookieStore)) }
+                .onFailure { DebugLog.i(TAG, "last server not reachable: ${DebugLog.describe(it)}") }
+                .getOrNull()
         }
-    }, done)
+        fromMemory ?: run {
+            DebugLog.i(TAG, "broadcasting a discovery probe on UDP ${ServerLocator.PORT}")
+            val found = ServerLocator.discover()
+            if (found != null) {
+                DebugLog.i(TAG, "found ${found.name.ifBlank { "server" }} at ${found.baseUrl} by broadcast")
+                adopt(Api(found, cookieStore))
+            } else {
+                DebugLog.i(TAG, "no broadcast reply; scanning the Wi-Fi subnet for TCP ${ServerLocator.DEFAULT_HTTP_PORT}")
+                scan() ?: throw java.io.IOException("No Crimson Steel server found on this network")
+            }
+        }
+    }, { r ->
+        r.onSuccess { DebugLog.i(TAG, "connected to ${api?.server?.baseUrl}; campaign \"${it.campaign}\", device ${it.device}, character ${it.character?.name ?: "(not assigned)"}") }
+         .onFailure { DebugLog.e(TAG, "search failed", it) }
+        done(r)
+    })
 
-    private fun hello(a: Api): Hello {
+    /** Subnet scan fallback: the first open host that answers /api/hello as a Crimson Steel server. */
+    private fun scan(): Hello? {
+        for (host in ServerLocator.scanCandidates()) {
+            val s = ServerInfo(host, ServerLocator.DEFAULT_HTTP_PORT, "")
+            val ok = runCatching {
+                val a = Api(s, cookieStore)
+                val j = a.get("/api/hello")
+                if (j.optString("service") != ServerLocator.SERVICE) error("not a Crimson Steel server")
+                a
+            }
+            ok.onFailure { DebugLog.i(TAG, "$host:${s.port} is not the server: ${DebugLog.describe(it)}") }
+            ok.getOrNull()?.let { a ->
+                DebugLog.i(TAG, "found the server at ${s.baseUrl} by subnet scan (UDP discovery did not answer)")
+                return adopt(a)
+            }
+        }
+        return null
+    }
+
+    /** Confirm [a] answers /api/hello, then make it the current server and remember it. */
+    private fun adopt(a: Api): Hello {
         val h = Hello.from(a.get("/api/hello"))
         api = a
         prefs.edit().putString(KEY_HOST, a.server.host).putInt(KEY_PORT, a.server.port).apply()
         return h
+    }
+
+    /** Server details for the Settings screen. */
+    val serverAddress: String? get() = api?.server?.baseUrl ?: prefs.getString(KEY_HOST, null)?.let { "http://$it:${prefs.getInt(KEY_PORT, 4567)}" }
+    val deviceId: String? get() = if (::prefs.isInitialized) prefs.getString(KEY_COOKIE, null)?.take(8) else null
+
+    /** Drop the remembered server so the next search starts from discovery. Keeps the device id. */
+    fun forgetServer() {
+        DebugLog.i(TAG, "forgetting server ${serverAddress ?: "(none)"}")
+        api = null
+        sheet = null
+        prefs.edit().remove(KEY_HOST).remove(KEY_PORT).apply()
     }
 
     fun hello(done: (Result<Hello>) -> Unit) = withApi({ Hello.from(it.get("/api/hello")) }, done)

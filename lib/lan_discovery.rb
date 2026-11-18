@@ -41,7 +41,11 @@ module LanDiscovery
         message, from = socket.recvfrom(512)
         current = name.respond_to?(:call) ? (name.call rescue nil) : name
         reply = reply_for(message, http_port: http_port, name: current)
-        socket.send(reply, 0, from[3], from[1]) if reply
+        if reply
+          socket.send(reply, 0, from[3], from[1])
+          # One line per probe, so the DM can see whether a phone's search arrives.
+          logger&.puts("[discovery] probe from #{from[3]} — told it to use port #{http_port}")
+        end
       rescue IOError, SystemCallError => e
         logger&.puts("[discovery] stopped: #{e.message}")
         break
