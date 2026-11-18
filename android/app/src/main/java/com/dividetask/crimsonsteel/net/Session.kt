@@ -80,7 +80,7 @@ object Session {
 
     /**
      * Find the server: try the one used last time, then broadcast on the
-     * Wi-Fi network, then scan the Wi-Fi subnet for the web port. Succeeds
+     * Wi-Fi network. Succeeds
      * with the server's /api/hello answer. Each step goes to the debug log.
      */
     fun connect(done: (Result<Hello>) -> Unit) = background({
@@ -99,8 +99,7 @@ object Session {
                 DebugLog.i(TAG, "found ${found.name.ifBlank { "server" }} at ${found.baseUrl} by broadcast")
                 adopt(newApi(found))
             } else {
-                DebugLog.i(TAG, "no broadcast reply; scanning the Wi-Fi subnet for TCP ${ServerLocator.DEFAULT_HTTP_PORT}")
-                scan() ?: throw java.io.IOException("No Crimson Steel server found on this network")
+                throw java.io.IOException("No reply to the discovery broadcast")
             }
         }
     }, { r ->
@@ -108,25 +107,6 @@ object Session {
          .onFailure { DebugLog.e(TAG, "search failed", it) }
         done(r)
     })
-
-    /** Subnet scan fallback: the first open host that answers /api/hello as a Crimson Steel server. */
-    private fun scan(): Hello? {
-        for (host in ServerLocator.scanCandidates()) {
-            val s = ServerInfo(host, ServerLocator.DEFAULT_HTTP_PORT, "")
-            val ok = runCatching {
-                val a = newApi(s)
-                val j = a.get("/api/hello")
-                if (j.optString("service") != ServerLocator.SERVICE) error("not a Crimson Steel server")
-                a
-            }
-            ok.onFailure { DebugLog.i(TAG, "$host:${s.port} is not the server: ${DebugLog.describe(it)}") }
-            ok.getOrNull()?.let { a ->
-                DebugLog.i(TAG, "found the server at ${s.baseUrl} by subnet scan (UDP discovery did not answer)")
-                return adopt(a)
-            }
-        }
-        return null
-    }
 
     /** Confirm [a] answers /api/hello, then make it the current server and remember it. */
     private fun adopt(a: Api): Hello {

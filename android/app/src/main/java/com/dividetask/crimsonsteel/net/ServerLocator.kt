@@ -6,12 +6,8 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.NetworkInterface
-import java.net.Socket
 import java.net.SocketTimeoutException
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /** A Crimson Steel server found on the network. */
 data class ServerInfo(val host: String, val port: Int, val name: String) {
@@ -22,13 +18,10 @@ data class ServerInfo(val host: String, val port: Int, val name: String) {
  * Finds the Crimson Steel server on the same Wi-Fi network without asking for
  * an IP address.
  *
- *  1. [discover]: broadcast a UDP probe and take the first valid reply
- *     (lib/lan_discovery.rb on the server). The reply's source address is the
- *     server's address; the reply body carries its HTTP port.
- *  2. [scanCandidates]: if nothing answers (some routers and firewalls drop
- *     broadcast), list every address on the phone's Wi-Fi subnet that accepts
- *     a TCP connection on the default HTTP port. The caller confirms each with
- *     GET /api/hello.
+ * [discover] broadcasts a UDP probe and takes the first valid reply
+ * (lib/lan_discovery.rb on the server). The reply's source address is the
+ * server's address; the reply body carries its HTTP port. There is no
+ * fallback that probes other devices on the network.
  *
  * Every step is written to the debug log.
  */
@@ -48,7 +41,7 @@ object ServerLocator {
         ServerInfo(fromHost, port, j.optString("name"))
     }.getOrNull()
 
-    /** This phone's IPv4 addresses with their prefix length and broadcast address, for the log and the scan. */
+    /** This phone's IPv4 addresses with their prefix length and broadcast address (for the log and Settings). */
     data class LocalNet(val nic: String, val address: Inet4Address, val prefix: Int, val broadcast: InetAddress?)
 
     fun localNetworks(): List<LocalNet> = runCatching {
@@ -100,37 +93,5 @@ object ServerLocator {
             DebugLog.e(TAG, "UDP discovery failed", e)
         }
         return null
-    }
-
-    /**
-     * Blocking. Addresses on this phone's Wi-Fi subnet(s) that accept a TCP
-     * connection on [port], nearest the phone's own address first. Only
-     * subnets of /22 or smaller (at most 1022 hosts) are scanned. The phone's
-     * own address is skipped unless [includeSelf] (for tests on one machine).
-     */
-    fun scanCandidates(port: Int = DEFAULT_HTTP_PORT, timeoutMs: Int = 400, includeSelf: Boolean = false): List<String> {
-        val hosts = localNetworks().filter { it.prefix in 22..30 }.flatMap { net ->
-            val ip = net.address.address.fold(0L) { acc, b -> (acc shl 8) or (b.toLong() and 0xFF) }
-            val mask = (0xFFFFFFFFL shl (32 - net.prefix)) and 0xFFFFFFFFL
-            val base = ip and mask
-            val count = (1L shl (32 - net.prefix)) - 2
-            DebugLog.i(TAG, "scanning ${count} addresses on ${net.nic} (${net.address.hostAddress}/${net.prefix}) for TCP $port")
-            (1..count).map { base + it }.filter { includeSelf || it != ip }.sortedBy { kotlin.math.abs(it - ip) }.map { n ->
-                "${(n shr 24) and 0xFF}.${(n shr 16) and 0xFF}.${(n shr 8) and 0xFF}.${n and 0xFF}"
-            }
-        }.distinct()
-        if (hosts.isEmpty()) {
-            DebugLog.i(TAG, "no Wi-Fi subnet to scan")
-            return emptyList()
-        }
-        val open = java.util.Collections.synchronizedList(mutableListOf<String>())
-        val pool = Executors.newFixedThreadPool(48)
-        for (h in hosts) pool.execute {
-            runCatching { Socket().use { it.connect(InetSocketAddress(h, port), timeoutMs) } }.onSuccess { open += h }
-        }
-        pool.shutdown()
-        pool.awaitTermination(30, TimeUnit.SECONDS)
-        DebugLog.i(TAG, "scan finished: TCP $port open on ${if (open.isEmpty()) "no hosts" else open.joinToString()}")
-        return hosts.filter { it in open }
     }
 }
