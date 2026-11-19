@@ -71,6 +71,7 @@ require_relative 'lib/action_flow'
 require_relative 'lib/dice_colors'
 require_relative 'lib/change_feed'
 require_relative 'lib/action_sounds'
+require_relative 'lib/data_migrations'
 
 %w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation api action_flows live_events].each do |name|
   require_relative "lib/routes/#{name}"
@@ -80,5 +81,7 @@ end
 # server without typing an IP address (lib/lan_discovery.rb). Only when this
 # file is run as the server (`ruby app.rb`), never under rspec / rack-test.
 if Sinatra::Application.run?
+  # One-time changes to the campaign data in data/ (lib/data_migrations.rb).
+  DataMigrations.run!
   LanDiscovery.start(http_port: settings.port, name: -> { Chronicle.store.campaign_name })
 end
