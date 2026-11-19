@@ -151,6 +151,35 @@ After every push:
 - Never force-push a `claude/*` branch: the build commits and APKs live on
   it. Always pull before pushing.
 
+### Tell me what to update: server, APK, or both
+
+After every push (and in the final message of any task that changed code),
+state plainly what I need to do to get the change, using one of:
+
+- **APK only** — grab the newest APK; the server can keep running as is.
+  The change touches only `android/`.
+- **Server update** — pull the branch and restart the server (`ruby app.rb`).
+  The change touches anything the running server loads: `app.rb`,
+  `config.ru`, `lib/`, `views/`, `public/`, `Gemfile`/`Gemfile.lock` (also run
+  `bundle install`), or the shape of the `data/` files. Say whether the
+  **old APK still works** with the new server, or whether I must also
+  install the new APK.
+- **Both** — server update and the new APK, e.g. when the app calls a new or
+  changed `/api` route. Say which to do first if the order matters
+  (normally: server first, then APK).
+- **Nothing to update** — docs, specs, or `CLAUDE.md` only.
+
+Notes:
+
+- Changes under `public/` (JS/CSS) only need a browser refresh, not a
+  restart, but say "Server update" anyway so I pull them; mention that a
+  refresh is enough.
+- Server state held in memory (e.g. actions in progress) is lost on
+  restart; warn me if a restart would drop something I'm likely mid-way
+  through.
+- Put the same line at the end of the commit message body, e.g.
+  `Update: APK only` or `Update: server + APK`.
+
 ### Configuration file architecture
 
 | File | Purpose | Scope |
