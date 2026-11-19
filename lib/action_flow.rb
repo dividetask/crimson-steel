@@ -89,6 +89,32 @@ class ActionFlow
 
   def summary = stage_tasks('declare').first['summary']
 
+  # Whether this action holds up the actor's other actions while it is in
+  # progress: it waits on other players or on dice. An Attack always does; a
+  # Spell / Item does when it rolls a check; a Special when it has a builder
+  # (a channeled Performance check). A buff, a Reservoir pour or Rage does not
+  # — the player may Rage and then attack.
+  def blocking?
+    case @kind
+    when 'attack' then true
+    when 'special' then !@blob.nil?
+    else
+      spell = raw_options('spell').find { |o| o[:value].to_s == @declare.to_h['spell'].to_s }
+      !!(spell && spell[:cast] && spell[:cast][:roll])
+    end
+  end
+
+  # Every Roll of the roll stage, for the roll prompt: who rolls what, with
+  # how many dice and at what TN (and where each one stands).
+  def roll_overview
+    stage_tasks('roll').map do |t|
+      r = t['roll']
+      { task_id: t['id'], owner: t['owner_name'], name: r['name'], dice_count: r['dice_count'], tn: r['tn'],
+        starting_value: r['starting_value'], positive_reroll: r['positive_reroll'], negative_reroll: r['negative_reroll'],
+        status: t['status'], summary: t['summary'] }
+    end
+  end
+
   def task(task_id) = @tasks.find { |t| t['id'] == task_id.to_s }
   def stage_tasks(stage = @stage) = @tasks.select { |t| t['stage'] == stage }
   def open_tasks = @tasks.select { |t| t['status'] != 'approved' && t['stage'] == @stage }

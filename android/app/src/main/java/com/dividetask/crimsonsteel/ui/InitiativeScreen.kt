@@ -163,6 +163,15 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
         flowsSection(col, d)
 
+        // One action at a time while it waits on other players or dice: the
+        // rest come back when the DM finishes (or cancels) it.
+        if (d.busy) {
+            col.addView(Ui.card(ctx).apply {
+                addView(Ui.text(ctx, "Your other actions are hidden until this one is finished.", 14f, Ui.TEXT_DIM))
+            }, Ui.matchWidth(Ui.dp(ctx, 8)))
+            return
+        }
+
         for (category in ActionCategory.entries) {
             val inCategory = d.options.filter { it.category == category }
             if (inCategory.isEmpty()) continue     // empty categories are skipped, as on the web
@@ -418,10 +427,24 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
         val roll = p.roll
         if (p.kind == "roll" && roll != null) {
-            card.addView(Ui.text(ctx, RollFlow.paramsLine(roll.diceCount, roll.tn, roll.startingValue), 13f, Ui.TEXT_DIM),
-                Ui.matchWidth(Ui.dp(ctx, 6)))
+            // Everyone's roll in this action: who, what, how many dice, and their TN.
+            if (p.allRolls.isNotEmpty()) {
+                card.addView(Ui.text(ctx, "Rolls", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 8)))
+                for (r in p.allRolls) {
+                    val mine = r.taskId == p.taskId
+                    val state = when (r.status) {
+                        "waiting" -> if (mine) "your roll" else "waiting"
+                        "submitted" -> "${r.summary ?: "rolled"} (waiting for the DM)"
+                        else -> r.summary ?: "done"
+                    }
+                    card.addView(Ui.text(ctx, "\u2022 ${r.owner}: ${r.name} \u2014 ${RollFlow.paramsLine(r.diceCount, r.tn, r.startingValue)}" +
+                        luckText(r.positiveReroll, r.negativeReroll) + " \u00b7 $state",
+                        13f, if (mine) Ui.GOLD else Ui.TEXT, bold = mine), Ui.matchWidth(Ui.dp(ctx, 2)))
+                }
+            }
             card.addView(Button(ctx).apply {
-                text = "Roll ${roll.name}"
+                text = "Roll ${roll.name}: ${RollFlow.paramsLine(roll.diceCount, roll.tn, roll.startingValue)}" +
+                    luckText(roll.positiveReroll, roll.negativeReroll)
                 isEnabled = !busy
                 setOnClickListener {
                     RollFlow.promptRoll(ctx, roll.name, roll) { dice, rerolled, final, done ->
@@ -470,6 +493,12 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }, Ui.matchWidth(Ui.dp(ctx, 10)))
         return card
     }
+
+    /** ", reroll +1 / −2" for Luck on a roll, or "". */
+    private fun luckText(positive: Int, negative: Int): String = buildList {
+        if (positive > 0) add("+$positive")
+        if (negative > 0) add("\u2212$negative")
+    }.let { if (it.isEmpty()) "" else ", Luck reroll ${it.joinToString(" / ")}" }
 
     private fun choiceChip(label: String, on: Boolean, enabled: Boolean, onTap: () -> Unit): View =
         Ui.text(ctx, label, 14f, if (enabled) Ui.TEXT else Ui.TEXT_FAINT, bold = on).apply {

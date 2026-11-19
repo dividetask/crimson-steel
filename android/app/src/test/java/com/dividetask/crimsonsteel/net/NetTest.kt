@@ -94,7 +94,12 @@ class NetTest {
                             "group_label":"Dodge","dice":2,"disabled":false}]},
                {"flow_id":"f1","task_id":"t2","kind":"roll","step":"roll:defender","title":"Roll Dodge","body":"",
                 "status":"submitted","summary":"9 7 → 2 successes",
-                "roll":{"name":"Dodge","dice_count":2,"tn":7,"starting_value":0,"positive_reroll":1,"negative_reroll":0}}],
+                "roll":{"name":"Dodge","dice_count":2,"tn":7,"starting_value":0,"positive_reroll":1,"negative_reroll":0},
+                "all_rolls":[{"task_id":"t9","owner":"Ash","name":"Attack","dice_count":10,"tn":9,"starting_value":-1,
+                              "positive_reroll":0,"negative_reroll":0,"status":"waiting","summary":null},
+                             {"task_id":"t2","owner":"Garroth","name":"Dodge","dice_count":2,"tn":7,"starting_value":0,
+                              "positive_reroll":1,"negative_reroll":0,"status":"submitted","summary":"9 7 → 2 successes"}]}],
+             "busy":true,
              "flows":[{"flow_id":"f2","stage":"respond","summary":"Rapier — 4 dice at Wolf","pool_cost":6,
                        "tasks":[{"step":"defense","owner":"Wolf","status":"waiting","summary":null}]}]}
         """.trimIndent())
@@ -108,6 +113,9 @@ class NetTest {
         assertEquals(false, roll.waiting)
         assertEquals(1, roll.roll!!.positiveReroll)
         assertEquals(6, i.flows.single().poolCost)
+        assertTrue(i.busy)
+        assertEquals(listOf("Ash", "Garroth"), roll.allRolls.map { it.owner })
+        assertEquals(-1, roll.allRolls[0].startingValue)
     }
 
     @Test fun spellOptionsSayWhatTheyTarget() {

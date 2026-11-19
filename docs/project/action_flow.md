@@ -11,7 +11,8 @@ How an action a player starts from the Android app ([android_app.md](android_app
 - **The DM can act for anyone.** Whenever a step is waiting on a player, the DM can answer it for them (**Decide for …**, **Roll for …**). That approves it at once and removes the prompt from the player's phone.
 - **Enemies, NPCs, and players without the app** are answered by the DM on the web page.
 - **There is no time limit.**
-- **Nothing is spent until the DM commits** the attack in the normal Attack builder.
+- **Nothing is spent until the DM commits** the action in the normal builder.
+- **One action at a time while it waits.** While one of a player's actions waits on other players or on dice — an Attack, a Spell or Item that rolls a check, a channeled Ability — their other actions are hidden on the phone (End Turn included), and the server refuses new requests, until the DM commits or cancels it. An action that waits on nothing (Rage, a buff, a Reservoir pour) does not hold anything up: a player may Rage and then attack.
 
 ## Stages
 
@@ -45,6 +46,7 @@ The phone throws the dice, shows them tumbling, then — when Luck applies — r
 
 - **Attack:** choosing an Attack on the Initiative screen asks for a **Target** (enemies first), then the dice. The confirm button reads *Attack \<target\> with \<weapon\>*.
 - **Spell / Item:** a Spell aimed at a creature asks for a **Target** too — enemies, allies, and the player themselves last (e.g. a heal); the button reads *Cast \<spell\> on \<target\>* (or *on yourself*). A self, object or area Spell says so instead of asking. An area Spell is placed on the map by the DM.
+- **Roll prompts** list every Roll of the action — who rolls what, with how many dice, at what TN (and any Starting Value and Luck rerolls), and where each stands — and the **Roll** button names the player's own dice and TN, e.g. *Roll Dodge: 2 dice @ TN 4, Luck reroll +1*.
 - **Your move:** steps waiting on the player appear at the top of the Initiative screen, on anyone's turn: the title (*Choose your defense*, *Shield \<ally\>?*, *Use your Luck?*, *Roll \<roll\>*), who is attacking whom, and the choices — grouped like the builder's, with the same dice picker as actions. Once sent, the step reads *Sent — waiting for the DM to approve* until the DM approves it.
 - **From any tab:** when a step is waiting, the Initiative tab shows a badge (●) and the phone says *Your move: …* once.
 - **Your attack:** the attacker sees each step of their attack and where it stands. Its Combat Pool and Main Action count against what the player has left until the DM commits it.

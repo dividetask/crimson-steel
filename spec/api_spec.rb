@@ -415,6 +415,40 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(Encounter.state.acting_combatant_id).not_to eq(mine[:id])
     end
 
+    it 'holds up other actions while an attack is in progress, but not after a Rage-like no-roll action' do
+      flow = attack_other_pc!
+      ini = api_get('/api/initiative')
+      expect(ini['busy']).to be true
+      expect(ini['flows'].first['blocking']).to be true
+      api_post('/api/turn/requests', key: 'move')
+      expect(last_response.status).to eq(409)
+      expect(JSON.parse(last_response.body)['error']).to include('finish your current action')
+      dm_post("/encounter/flows/#{flow.id}/cancel")
+      expect(api_get('/api/initiative')['busy']).to be false
+    end
+
+    it 'does not hold up actions for a spell that rolls nothing' do
+      start_combat_on_my_turn!
+      me_id = api_get('/api/initiative')['me']['combatant_id']
+      _, heal = request_option(->(o) { o['kind'] == 'cast' && o['name'] == 'Healing Word' && !o['disabled'] }, target_id: me_id)
+      expect(heal.blocking?).to be false
+      expect(api_get('/api/initiative')['busy']).to be false
+    end
+
+    it 'shows every roll of the action, with dice and TNs, on a roll prompt' do
+      flow = attack_other_pc!
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
+      t = flow.open_tasks.find { |x| x['step'] == 'defense' }
+      dodge = flow.options_for(t).find { |o| o[:value].start_with?('dodge|') && !o[:disabled] }
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{t['id']}/decide", value: (dodge || { value: 'none' })[:value])
+      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: flow.options_for(x).first[:value]) } if flow.stage == 'luck'
+      roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
+      all = roll['all_rolls']
+      expect(all.length).to eq(flow.stage_tasks('roll').length)
+      expect(all.first.keys).to include('owner', 'name', 'dice_count', 'tn', 'status')
+      expect(all.map { |r| r['owner'] }).to include(flow.actor_name)
+    end
+
     it 'keeps the DM actions DM-only' do
       flow = attack_other_pc!
       post "/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve", {}, player_env

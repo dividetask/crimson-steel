@@ -35,6 +35,8 @@ helpers do
     if t['kind'] == 'roll'
       view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
       view[:result] = t['value'] if t['value']
+      # Everyone's roll in this action, so the player sees the whole picture.
+      view[:all_rolls] = flow.roll_overview
     else
       view[:options] = flow.options_for(t)
     end
@@ -43,7 +45,7 @@ helpers do
 
   # One line per stage task for the attacker's own status view.
   def flow_status_view(flow)
-    { flow_id: flow.id, kind: flow.kind, stage: flow.stage, summary: flow.summary,
+    { flow_id: flow.id, kind: flow.kind, stage: flow.stage, summary: flow.summary, blocking: flow.blocking?,
       pool_cost: flow.declared_pool_cost,
       tasks: flow.stage_tasks.map { |t| { step: t['step'], owner: t['owner_name'], status: t['status'], summary: t['summary'] } } }
   end
@@ -146,6 +148,12 @@ helpers do
                           turn_key: PlayerRequests.turn_key(encounter_state, combatant[:id]), blob: blob,
                           declare: declare, summary: summary, pool_cost: cost, ability: name, names: flow_names)
     [action_flows.add(flow), nil]
+  end
+
+  # The player's own action in progress that holds up their other actions
+  # (it waits on other players or dice), or nil.
+  def blocking_flow(combatant)
+    action_flows.active.find { |f| f.actor_id == combatant[:id] && f.blocking? }
   end
 
   # How each kind reads in a sentence ("Ash casts at you: …").

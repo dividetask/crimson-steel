@@ -288,6 +288,9 @@ get '/api/initiative' do
         is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }
     end,
     options: my_turn ? api_turn_options(mine) : [],
+    # True while one of the player's actions waits on other players or dice:
+    # the app hides the action list until it is finished.
+    busy: !!(mine && blocking_flow(mine)),
     # Who an attack can target (enemies first), when it is this player's turn.
     targets: (my_turn ? api_targets(mine) : []),
     # Steps waiting on this player in any attack (their turn or not).
@@ -307,6 +310,10 @@ post '/api/turn/requests' do
   body = (JSON.parse(request.body.read) rescue nil)
   api_error(400, 'invalid payload') unless body.is_a?(Hash)
 
+  # One action at a time while it waits on other players or dice.
+  if (busy = blocking_flow(mine))
+    api_error(409, "finish your current action first (#{busy.summary})")
+  end
   opt = api_turn_options(mine).find { |o| o[:key] == body['key'].to_s }
   api_error(422, 'unknown option') unless opt
   api_error(422, opt[:disabled_reason]) if opt[:disabled]

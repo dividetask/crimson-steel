@@ -230,6 +230,12 @@ data class PromptRoll(
     val positiveReroll: Int, val negativeReroll: Int,
 )
 
+/** One Roll of an action, for the overview on a roll prompt: who rolls what, how many dice, at what TN. */
+data class RollLine(
+    val taskId: String, val owner: String, val name: String, val diceCount: Int, val tn: Int,
+    val startingValue: Int, val positiveReroll: Int, val negativeReroll: Int, val status: String, val summary: String?,
+)
+
 /**
  * A step of an attack waiting on this player (docs/project/action_flow.md):
  * choose a defense, shield an ally, use Luck, or roll. [status] is "waiting"
@@ -239,6 +245,8 @@ data class Prompt(
     val flowId: String, val taskId: String, val kind: String, val step: String,
     val title: String, val body: String, val status: String, val summary: String?,
     val options: List<PromptOption>, val roll: PromptRoll?,
+    /** Every Roll of the action (roll prompts only), the player's own included. */
+    val allRolls: List<RollLine> = emptyList(),
 ) {
     val waiting: Boolean get() = status == "waiting"
 
@@ -255,6 +263,11 @@ data class Prompt(
                 roll = p.optJSONObject("roll")?.let {
                     PromptRoll(it.optString("name"), it.optInt("dice_count"), it.optInt("tn"), it.optInt("starting_value"),
                         it.optInt("positive_reroll"), it.optInt("negative_reroll"))
+                },
+                allRolls = p.optJSONArray("all_rolls").mapObjects {
+                    RollLine(it.optString("task_id"), it.optString("owner"), it.optString("name"), it.optInt("dice_count"),
+                        it.optInt("tn"), it.optInt("starting_value"), it.optInt("positive_reroll"), it.optInt("negative_reroll"),
+                        it.optString("status"), it.optStringOrNull("summary"))
                 },
             )
         }
@@ -283,6 +296,8 @@ data class Initiative(
     val targets: List<TargetChoice> = emptyList(),
     val prompts: List<Prompt> = emptyList(),
     val flows: List<FlowStatus> = emptyList(),
+    /** One of the player's actions waits on other players or dice: hide the action list until it is finished. */
+    val busy: Boolean = false,
 ) {
     companion object {
         fun from(j: JSONObject): Initiative {
@@ -326,6 +341,7 @@ data class Initiative(
                     TargetChoice(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("enemy"), it.optBoolean("dying"), it.optBoolean("self"))
                 },
                 prompts = Prompt.list(j.optJSONArray("prompts")),
+                busy = j.optBoolean("busy"),
                 flows = j.optJSONArray("flows").mapObjects { f ->
                     FlowStatus(f.optString("flow_id"), f.optString("stage"), f.optString("summary"), f.optInt("pool_cost"),
                         f.optJSONArray("tasks").mapObjects {
