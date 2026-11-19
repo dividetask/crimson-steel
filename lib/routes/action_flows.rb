@@ -99,6 +99,19 @@ helpers do
     end
   end
 
+  # Every action with Rolls on the table, for every phone in combat — the
+  # ones in progress in a builder and the ones confirmed in the last
+  # minutes — so a player sees the action even when they roll nothing in it
+  # (and can watch its dice again). Only what the viewer may see.
+  def action_views(acc)
+    mine = my_combatant_ids(acc)
+    flows = action_flows.active.select { |f| f.stage == 'builder' && f.roll_tasks.any? } + action_flows.recent_shared
+    flows.uniq(&:id).map do |f|
+      { flow_id: f.id, action_line: f.title_line(mine), headline: f.headline(mine),
+        rolls: f.public_roll_overview(mine).map { |r| r.except(:claimed, :by).merge(color: roll_color(r[:owner_id])) } }
+    end
+  end
+
   # Actions whose Rolls the DM shared (Confirm) in the last minutes: every
   # phone in combat throws their dice once, as if just rolled.
   def shared_actions(acc)

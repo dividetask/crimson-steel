@@ -155,7 +155,12 @@ function lrRow(g) {
   if (!row) {
     row = document.createElement('tr');
     row.className = 'lr-row';
-    row.innerHTML = '<td colspan="20" class="lr-cell"></td>';
+    // Exactly the table's own columns: a wider colspan adds phantom columns
+    // that (with the table's fixed layout) squeeze the dice column.
+    const table = g.closest('table');
+    const cols = (table && (table.querySelectorAll('colgroup col').length ||
+                  (table.querySelector('thead tr') || { children: [] }).children.length)) || 7;
+    row.innerHTML = '<td colspan="' + cols + '" class="lr-cell"></td>';
     g.appendChild(row);
   }
   return row.querySelector('.lr-cell');

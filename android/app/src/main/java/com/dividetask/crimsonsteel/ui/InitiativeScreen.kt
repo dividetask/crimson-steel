@@ -65,6 +65,13 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         val col = Ui.vertical(ctx, 12)
         // Steps of an action waiting on this player — on anyone's turn.
         if (d.prompts.isNotEmpty()) promptsSection(col, d)
+        // Every other action with dice on the table: everyone sees it, rolling or not.
+        val asked = d.prompts.map { it.flowId }.toSet()
+        val watching = d.actions.filter { it.flowId !in asked }
+        if (watching.isNotEmpty()) {
+            col.addView(Ui.sectionHeader(ctx, "In play"))
+            for (a in watching) col.addView(rollCard(viewOf(a)), Ui.matchWidth(Ui.dp(ctx, 6)))
+        }
         if (!d.combatActive) {
             col.addView(Ui.text(ctx, "No combat right now.", 18f, Ui.TEXT, bold = true))
             col.addView(Ui.text(ctx, "This screen fills in when the DM starts combat.", 14f, Ui.TEXT_DIM),
@@ -595,6 +602,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     // --- Rolls ----------------------------------------------------------------------
 
+    /** Not-yet-rolled dice under an action: plain light grey. */
+    private val CARD_BLANK = 0xFFE5E7EB.toInt()
+
     /** Rolls whose dice have already been shown rolling (task ids). */
     private val shownRolling = mutableSetOf<String>()
     /** The dice table's parts of the screen for an action: one per Roll, the player's own first. */
@@ -618,6 +628,13 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
      * sits under their dice. Every Roll's dice roll on screen when its result
      * arrives (the player's own the moment they press Roll), then stay showing.
      */
+    /** An action this player watches (rolls nothing in it), shown as a read-only roll card. */
+    private fun viewOf(a: com.dividetask.crimsonsteel.data.SharedAction) = com.dividetask.crimsonsteel.data.Prompt(
+        flowId = a.flowId, taskId = "", kind = "view", step = "", title = a.actionLine, body = "", status = "approved",
+        summary = null, options = emptyList(), roll = null, allRolls = a.rolls, headline = a.headline ?: a.actionLine,
+        actionLine = a.actionLine,
+    )
+
     private fun rollCard(p: com.dividetask.crimsonsteel.data.Prompt): View {
         val card = Ui.vertical(ctx, 12).apply {
             background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), if (p.waiting) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 2))
@@ -634,7 +651,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             card.addView(Ui.text(ctx, label, 16f, if (mine) Ui.TEXT else Ui.TEXT_DIM, bold = true), Ui.matchWidth(Ui.dp(ctx, 12)))
             card.addView(Ui.text(ctx, RollFlow.paramsLine(line.diceCount, line.tn, line.startingValue) +
                 luckText(line.positiveReroll, line.negativeReroll), 12f, Ui.TEXT_FAINT))
-            val dice = DiceView(ctx).apply { perRow = 8; bodyColor = diceColorOf(p, line, p.allRolls.indexOf(line)) }
+            // Under the action the dice read by result (Success green, Critical blue,
+            // a 1 red); the roller's own colour is for dice rolled on the dice table.
+            val dice = DiceView(ctx).apply { perRow = 8; bodyColor = CARD_BLANK; colorByResult = true }
             card.addView(dice, Ui.matchWidth(Ui.dp(ctx, 4)))
             val result = Ui.text(ctx, "", 13f, Ui.TEXT_DIM)
             card.addView(result, Ui.matchWidth())
@@ -648,7 +667,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                     shownRolling += line.taskId
                     (ctx as? android.app.Activity)?.let { act ->
                         RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, line.dice ?: final, line.rerolled,
-                            final, line.tn, line.startingValue)
+                            final, line.tn, line.startingValue, title = p.actionLine ?: p.headline)
                     }
                 }
             } else {
@@ -671,7 +690,26 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         if (p.status == "submitted") {
             card.addView(Ui.text(ctx, "Sent \u2014 waiting for the DM to approve.", 12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 8)))
         }
+        // Watch the dice again: the same results, a fresh throw.
+        if (lines.any { it.final != null }) {
+            card.addView(Button(ctx).apply {
+                text = "Repeat"
+                setOnClickListener { repeatThrow(p, lines) }
+            }, Ui.matchWidth(Ui.dp(ctx, 10)))
+        }
         return card
+    }
+
+    /** Throw every Roll of the action that has its dice again, on a fresh dice table. */
+    private fun repeatThrow(p: com.dividetask.crimsonsteel.data.Prompt, lines: List<com.dividetask.crimsonsteel.data.RollLine>) {
+        val act = ctx as? android.app.Activity ?: return
+        RollTable.clear()
+        val zones = zonesFor(p)
+        for (line in lines) {
+            val final = line.final ?: continue
+            RollTable.throwDice(act, p.flowId, zones, line.taskId, line.dice ?: final, line.rerolled, final,
+                line.tn, line.startingValue, title = p.actionLine ?: p.headline)
+        }
     }
 
     private fun resultText(line: com.dividetask.crimsonsteel.data.RollLine, final: List<Int>): String {
@@ -698,7 +736,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         shownRolling += line.taskId
         result.text = "Rolling\u2026"
         val act = ctx as? android.app.Activity ?: return
-        RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, initial, rerolled, final, line.tn, line.startingValue) {
+        RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, initial, rerolled, final, line.tn, line.startingValue,
+            title = p.actionLine ?: p.headline) {
             view.show(final, line.tn, com.dividetask.crimsonsteel.dice.DiceRules.marksOf(initial, rerolled, final))
             result.text = resultText(line, final) + " \u2014 sending to the DM\u2026"
             Session.submitRoll(p.flowId, p.taskId, initial, rerolled, final) { r ->

@@ -49,9 +49,21 @@ class DiceView(context: Context) : View(context) {
     private var animator: ValueAnimator? = null
     private val random = Random.Default
 
-    /** The roller's dice colour (docs/project/dice_colors.md). */
+    /** The roller's dice colour (docs/project/dice_colors.md), for dice being rolled. */
     var bodyColor: Int = Ui.DICE_DEFAULT
         set(v) { field = v; invalidate() }
+
+    /**
+     * Dice shown as a result (under an action): each settled die coloured by
+     * what it counts for — Success green, Critical blue, a 1 red, no effect
+     * grey — instead of the roller's colour, for easier reading.
+     */
+    var colorByResult = false
+        set(v) { field = v; invalidate() }
+
+    /** 0 → 1 a second after the dice settle: their tilt eases away, so they read upright. */
+    private var upright = 0f
+    private var uprightAnim: ValueAnimator? = null
 
     /** Dice per row; the dice are sized to fit. */
     var perRow = 5
@@ -135,6 +147,16 @@ class DiceView(context: Context) : View(context) {
                 override fun onAnimationEnd(animation: android.animation.Animator) {
                     progress = 1f
                     invalidate()
+                    // A second after they settle, the dice turn upright.
+                    upright = 0f
+                    postDelayed({
+                        uprightAnim?.cancel()
+                        uprightAnim = ValueAnimator.ofFloat(0f, 1f).apply {
+                            duration = 450
+                            addUpdateListener { upright = it.animatedValue as Float; invalidate() }
+                            start()
+                        }
+                    }, 1000)
                     onSettled?.invoke()
                 }
             })
@@ -144,6 +166,7 @@ class DiceView(context: Context) : View(context) {
 
     override fun onDetachedFromWindow() {
         animator?.cancel()
+        uprightAnim?.cancel()
         super.onDetachedFromWindow()
     }
 
@@ -183,7 +206,7 @@ class DiceView(context: Context) : View(context) {
             val baseY = if (d.still) restY else d.startY * height + (restY - d.startY * height) * ease
             val bounce = abs(sin(local * PI * 3).toFloat()) * exp(-4f * local) * cell * 0.6f
             val y = baseY - bounce
-            val angle = d.restAngle + d.spin * (1f - ease)
+            val angle = d.restAngle * (if (settled) 1f - upright else 1f) + d.spin * (1f - ease)
             val scale = 1f + 0.25f * (1f - ease)
 
             // Flicker through random faces while tumbling, slowing as it settles.
@@ -228,7 +251,7 @@ class DiceView(context: Context) : View(context) {
         D10Shape.build(r, outline, face, edges)
 
         val blank = value == 0
-        val base = bodyColor
+        val base = if (colorByResult && settled && !blank) resultColor(value) else bodyColor
         bodyPaint.color = shade(base, 0.82f)
         canvas.drawPath(outline, bodyPaint)
         bodyPaint.color = base
@@ -252,6 +275,14 @@ class DiceView(context: Context) : View(context) {
             canvas.drawRect(-u, textY + r * 0.06f, u, textY + r * 0.1f, numberPaint)
         }
         canvas.restore()
+    }
+
+    /** Soft result colours for dice shown under an action (the number keeps its own colour). */
+    private fun resultColor(value: Int): Int = when (DiceRules.dieState(value, tn)) {
+        DieState.SUCCESS -> 0xFF86EFAC.toInt()
+        DieState.CRITICAL -> 0xFF93C5FD.toInt()
+        DieState.FAILURE -> 0xFFFCA5A5.toInt()
+        DieState.NEUTRAL -> 0xFFE5E7EB.toInt()
     }
 
     private fun shade(color: Int, f: Float): Int = Color.rgb(

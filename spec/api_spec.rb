@@ -463,6 +463,10 @@ RSpec.describe 'Android app JSON API', type: :request do
       res = dm_sync(kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s, action: 'Claws|2' },
                     target_id: mine[:id], rolls: rolls)
       expect(api_get('/api/initiative')['shared']).to eq([])
+      # Every phone sees the action in play, rolling in it or not (its dice once shared).
+      watching = api_get('/api/initiative')['actions'].find { |a| a['flow_id'] == res['flow_id'] }
+      expect(watching['action_line']).to end_with('Attacks You with Claws')
+      expect(watching['rolls'].first['final']).to be_nil
       dm_json("/encounter/live/#{res['flow_id']}/share", rolls: { attacker: { dice: [3, 9], final: [3, 9] } })
       shared = api_get('/api/initiative')['shared']
       expect(shared.first["action_line"]).to eq("#{ActionFlows.instance.find(res["flow_id"]).actor_name} Attacks You with Claws")

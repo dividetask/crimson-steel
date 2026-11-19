@@ -55,6 +55,15 @@ object RollTable {
 
     fun colorFor(index: Int) = COLORS[index.mod(COLORS.size)]
 
+    /** How long a stopped die stays as it fell before turning upright. */
+    private const val UPRIGHT_AFTER_MS = 1000L
+
+    /** Close the dice table if it is open (e.g. to throw an action's dice again from the start). */
+    fun clear() {
+        table?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        table = null
+    }
+
     private var table: TableView? = null
 
     /**
@@ -89,7 +98,12 @@ object RollTable {
         var travelled: Float = 0f, var moving: Boolean = true,
         /** Shown on the die once it has changed after the first throw: '↻' rerolled, '±' nudged. */
         var mark: Char? = null,
-    )
+        /** When it last came to rest (0 while moving): a second later it turns upright. */
+        var restSince: Long = 0,
+    ) {
+        val uprightAngle: Float get() = kotlin.math.round(angle / 360f) * 360f
+        val upright: Boolean get() = abs(angle - uprightAngle) < 0.5f
+    }
 
     /** A band's throw in progress: its dice and what happens when they stop. */
     private class Throw(
@@ -190,7 +204,7 @@ object RollTable {
                 lastFrame = now
                 step(dt)
                 invalidate()
-                val busy = throws.values.any { !it.done }
+                val busy = throws.values.any { t -> !t.done || t.dice.any { !it.upright } }
                 if (busy) {
                     postOnAnimation(this)
                 } else {
@@ -236,6 +250,15 @@ object RollTable {
             }
             // Dice from every throw share the screen, so they knock each other too.
             collide(throws.values.flatMap { it.dice }, rad)
+            // A second after a die comes to rest it turns upright, so it is easy to read.
+            val now = System.currentTimeMillis()
+            for (t in throws.values) for (d in t.dice) {
+                if (d.moving) { d.restSince = 0; continue }
+                if (d.restSince == 0L) { d.restSince = now; continue }
+                if (now - d.restSince < UPRIGHT_AFTER_MS || d.upright) continue
+                val diff = d.uprightAngle - d.angle
+                d.angle = if (abs(diff) < 0.5f) d.uprightAngle else d.angle + diff * min(1f, dt * 5f)
+            }
         }
 
         /** Dice in a band knock each other apart (equal mass, a little energy lost). */

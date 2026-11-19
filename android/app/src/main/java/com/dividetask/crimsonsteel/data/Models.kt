@@ -282,7 +282,8 @@ fun rollLine(it: JSONObject) = RollLine(it.optString("task_id"), it.optString("o
  * An action whose Rolls the DM just shared (Confirm): every phone in combat
  * throws them once. [version] goes up each time the DM shares again.
  */
-data class SharedAction(val flowId: String, val version: Int, val actionLine: String, val rolls: List<RollLine>)
+data class SharedAction(val flowId: String, val version: Int, val actionLine: String, val rolls: List<RollLine>,
+                        val headline: String? = null)
 
 /**
  * A step of an attack waiting on this player (docs/project/action_flow.md):
@@ -371,6 +372,8 @@ data class Initiative(
     val busy: Boolean = false,
     /** Actions the DM just shared the Rolls of: thrown on the dice table once each. */
     val shared: List<SharedAction> = emptyList(),
+    /** Every action with Rolls on the table, whether or not this player rolls in it. */
+    val actions: List<SharedAction> = emptyList(),
 ) {
     companion object {
         fun from(j: JSONObject): Initiative {
@@ -420,6 +423,10 @@ data class Initiative(
                 },
                 prompts = Prompt.list(j.optJSONArray("prompts")),
                 busy = j.optBoolean("busy"),
+                actions = j.optJSONArray("actions").mapObjects { a ->
+                    SharedAction(a.optString("flow_id"), 0, a.optString("action_line"),
+                        a.optJSONArray("rolls").mapObjects { rollLine(it) }, a.optStringOrNull("headline"))
+                },
                 shared = j.optJSONArray("shared").mapObjects { a ->
                     SharedAction(a.optString("flow_id"), a.optInt("version"), a.optString("action_line"),
                         a.optJSONArray("rolls").mapObjects { rollLine(it) })
