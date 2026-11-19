@@ -33,6 +33,17 @@ RSpec.describe ChangeFeed do
     expect(out.join).to include(': ping')
   end
 
+  it 'ends every stream at once when the server is stopping (Ctrl-C)' do
+    feed = described_class.new
+    t = Thread.new { feed.stream([], max: 30, heartbeat: 20) }
+    sleep 0.1
+    started = Time.now
+    feed.close!
+    t.join(3)
+    expect(t.alive?).to be false
+    expect(Time.now - started).to be < 2
+  end
+
   describe 'routes' do
     include Rack::Test::Methods
     def app = Sinatra::Application

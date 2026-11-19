@@ -5,7 +5,16 @@ set :port, 4567
 set :bind, '0.0.0.0'
 # Enough web-server threads for a full table: each phone and the DM's page
 # holds one live-updates connection (lib/change_feed.rb).
-set :server_settings, { Threads: "0:32" } # ChangeFeed::THREADS
+# On Ctrl-C, Puma waits for open requests to finish — and a live-updates
+# connection stays open for minutes. Give them a second, then stop anyway.
+# ChangeFeed::THREADS; once Puma is up, Ctrl-C first closes those connections.
+puma_events = begin
+  require 'puma/events'
+  Puma::Events.new.tap { |ev| ev.after_booted { ChangeFeed.close_on_signals! } }
+rescue LoadError, NoMethodError
+  nil
+end
+set :server_settings, { Threads: "0:32", force_shutdown_after: 1 }.merge(puma_events ? { events: puma_events } : {})
 set :views, File.join(__dir__, 'views')
 set :public_folder, File.join(__dir__, 'public')
 set :static_cache_control, [:no_cache]

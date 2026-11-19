@@ -29,11 +29,33 @@ class ChangeFeed
 
   attr_reader :version
 
+  # Ctrl-C (or TERM) on the server: close every live connection at once, so
+  # the web server's graceful stop has nothing left to wait for. Wraps the
+  # web server's own handler; call once it has set it (after boot).
+  def self.close_on_signals!
+    %w[INT TERM].each do |sig|
+      previous = Signal.trap(sig) do
+        instance.close!
+        previous.call if previous.respond_to?(:call)
+      end
+    end
+  end
+
   def initialize
     @version = 0
+    @closing = false
     @lock = Monitor.new
     @moved = @lock.new_cond
   end
+
+  # The server is stopping: end every stream now. Safe from a signal
+  # handler (no lock is taken there; the listeners notice within a moment).
+  def close!
+    @closing = true
+    Thread.new { @lock.synchronize { @moved.broadcast } }
+  end
+
+  def closing? = @closing
 
   # Something changed: wake every listener.
   def bump!
@@ -48,10 +70,10 @@ class ChangeFeed
   def wait_past(seen, timeout)
     @lock.synchronize do
       deadline = Time.now + timeout
-      while @version <= seen
+      while @version <= seen && !@closing
         left = deadline - Time.now
         break if left <= 0
-        @moved.wait(left)
+        @moved.wait([left, 0.5].min) # never long, so a stop is noticed quickly
       end
       @version
     end
@@ -65,8 +87,9 @@ class ChangeFeed
     out << "retry: 3000\n"
     out << "event: changed\ndata: {\"v\":#{seen}}\n\n" # connected: fetch once
     started = Time.now
-    while Time.now - started < max
+    while Time.now - started < max && !@closing
       now = wait_past(seen, [heartbeat, max - (Time.now - started)].min)
+      break if @closing
       if now > seen
         sleep 0.15 # gather a burst of changes into one notice
         seen = version

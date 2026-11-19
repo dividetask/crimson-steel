@@ -10,6 +10,8 @@ The Android app ([android_app.md](android_app.md)) and the DM's Encounter page a
 - **Fallback.** Every listener still refreshes by itself every 30 seconds, in case a connection dropped. A dropped connection is reopened by itself (the app waits 1, 2, 4 … up to 15 seconds between tries; the browser after 3 seconds) and refreshes when it reconnects. While the app has no live connection (e.g. an older server), it polls at its old pace: Initiative every 2 seconds, Sheet / Items / Scene every 5, Notes every 10.
 - **Keeping connections healthy.** The server writes a heartbeat every 20 seconds and closes each connection after 10 minutes (the listener reconnects at once), so a phone that vanished does not hold a thread for long. The app closes its connection when it leaves the screen.
 
+- **Stopping the server.** Ctrl-C closes every live connection first, so the server stops at once instead of waiting minutes for them (`ChangeFeed.close_on_signals!`, installed after the web server boots; the web server also gives open requests at most a second). The phones and the DM's page reconnect by themselves when the server is back.
+
 ## Capacity
 
 Each open connection holds one web-server thread. The table is planned for **8 players and the DM** (9 connections), plus the ordinary requests they make when they fetch; the server runs with up to **32 threads** (`set :server_settings` in `app.rb` for `ruby app.rb`; `config/puma.rb` for `puma` / `rackup`).
