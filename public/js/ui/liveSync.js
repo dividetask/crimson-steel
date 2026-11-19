@@ -33,6 +33,9 @@ const FALLBACK_MS = 30000;
 const PANES = { '.ta-attack': 'attack', '.ta-cast': 'cast', '.ta-item': 'item', '.ta-special': 'special' };
 const ANY_PANE = Object.keys(PANES).join(', ');
 
+// Fudge a phone's roll (lib/action_flow.rb FUDGES).
+const FUDGES = [['none', 'No fudge'], ['success', 'Success'], ['failure', 'Failure'], ['crit', 'Critical'], ['fumble', 'Fumble']];
+
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 function stripTags(s) { return String(s == null ? '' : s).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').trim(); }
 function textOnly(el) {
@@ -212,7 +215,14 @@ function applyRolls(root, flowId, rolls) {
       (r.status === 'submitted'
         ? ' <button type="button" class="af-btn af-primary lr-approve" data-flow-id="' + esc(flowId) + '" data-task-id="' + esc(r.task_id) + '">Approve</button>'
         : '');
-    lrRow(g).innerHTML = '<span class="lr-phone">📱</span> <span class="lr-status">' + status + '</span> ' + buttons;
+    // Fudge (DM only, never shown to the players): until the player has rolled.
+    const canFudge = r.status === 'waiting' || (r.status === 'submitted' && r.by === 'dm');
+    const fudge = canFudge
+      ? ' <select class="lr-fudge" data-flow-id="' + esc(flowId) + '" data-task-id="' + esc(r.task_id) + '" title="Fudge the player’s roll (they never see it)">' +
+        FUDGES.map(([k, label]) => '<option value="' + k + '"' + (r.fudge === k ? ' selected' : '') + '>' + label + '</option>').join('') +
+        '</select>'
+      : '';
+    lrRow(g).innerHTML = '<span class="lr-phone">📱</span> <span class="lr-status">' + status + '</span> ' + buttons + fudge;
   });
 }
 
@@ -293,6 +303,17 @@ document.addEventListener('click', (e) => {
       const root = b.closest('.action-builder');
       if (res && res.ok !== false && root) applyRolls(root, res.flow_id, res.rolls);
       else b.disabled = false;
+    });
+});
+
+document.addEventListener('change', (e) => {
+  const s = e.target.closest && e.target.closest('.lr-fudge');
+  if (!s) return;
+  post('/encounter/live/' + encodeURIComponent(s.dataset.flowId) + '/rolls/' + encodeURIComponent(s.dataset.taskId) + '/fudge',
+       { fudge: s.value })
+    .then((res) => {
+      const root = s.closest('.action-builder');
+      if (res && res.ok !== false && root) applyRolls(root, res.flow_id, res.rolls);
     });
 });
 

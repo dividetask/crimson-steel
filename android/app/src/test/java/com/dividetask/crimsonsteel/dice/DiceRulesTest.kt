@@ -62,4 +62,43 @@ class DiceRulesTest {
         assertEquals(listOf(4, 5), final)
         assertEquals(listOf<Int?>(null, null), rerolled)
     }
+
+    private fun dois(d: List<Int>, tn: Int, sv: Int) = sv + d.sumOf { DiceRules.contribution(it, tn) }
+
+    @Test fun fudgeLandsEveryBandChangingFewDice() {
+        val rnd = kotlin.random.Random(7)
+        repeat(400) {
+            val n = 2 + rnd.nextInt(9)
+            val tn = 3 + rnd.nextInt(7)
+            val sv = rnd.nextInt(-1, 2)
+            val dice = List(n) { rnd.nextInt(1, 11) }
+            for (f in listOf("success", "failure", "crit", "fumble")) {
+                val out = DiceRules.fudge(dice, tn, sv, f, rnd)
+                assertEquals(n, out.size)
+                assert(out.all { it in 1..10 })
+                // Reachable at all? (e.g. 2 dice with a Starting Value of -1 top out at +3: no Critical.)
+                val reachable = when (f) {
+                    "success" -> sv + 2 * n >= 2
+                    "crit" -> sv + 2 * n >= 4
+                    "fumble" -> sv - n <= -2
+                    else -> sv - n <= 1 && sv + 2 * n >= -1
+                }
+                if (reachable) assert(DiceRules.fudgeFits(f, dois(out, tn, sv), out.count { it == 10 })) { "$f: $dice -> $out (tn $tn, sv $sv)" }
+                else assertEquals(dice, out)
+                if (DiceRules.fudgeFits(f, dois(dice, tn, sv), dice.count { it == 10 })) assertEquals(dice, out)
+            }
+        }
+    }
+
+    @Test fun fudgeChangesTheFewestDice() {
+        // TN 7, one success short of Success: one die changes, the rest stay.
+        val out = DiceRules.fudge(listOf(8, 3, 4), 7, 0, "success", kotlin.random.Random(1))
+        assertEquals(2, out.zip(listOf(8, 3, 4)).count { (a, b) -> a == b })
+        assert(dois(out, 7, 0) >= 2)
+    }
+
+    @Test fun noFudgeLeavesDiceAlone() {
+        assertEquals(listOf(1, 2, 3), DiceRules.fudge(listOf(1, 2, 3), 7, 0, null))
+        assertEquals(listOf(1, 2, 3), DiceRules.fudge(listOf(1, 2, 3), 7, 0, "none"))
+    }
 }

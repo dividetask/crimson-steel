@@ -35,6 +35,11 @@
           <span class="af-stage"><%= f.stage == 'declare' ? 'Request' : (f.live? ? 'In the builder' : 'Approved') %></span>
           <% if f.stage == 'declare' %>
             <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= declare['id'] %>/approve" class="af-inline">
+              <% if f.blocking? %>
+              <select name="fudge" class="af-fudge" title="Fudge the player's roll (they never see it)">
+                <% ActionFlow::FUDGES.each do |k| %><option value="<%= k %>"><%= ActionFlow::FUDGE_LABELS[k] %></option><% end %>
+              </select>
+            <% end %>
               <button type="submit" class="af-btn af-primary">Approve</button>
             </form>
           <% elsif !f.live? %>

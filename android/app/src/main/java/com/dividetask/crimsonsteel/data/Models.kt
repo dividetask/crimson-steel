@@ -248,6 +248,8 @@ data class PromptOption(
 data class PromptRoll(
     val name: String, val diceCount: Int, val tn: Int, val startingValue: Int,
     val positiveReroll: Int, val negativeReroll: Int,
+    /** The DM's fudge (never shown): the dice are landed in that band before Luck. */
+    val fudge: String? = null,
 )
 
 /** One Roll of an action, for the overview on a roll prompt: who rolls what, how many dice, at what TN. */
@@ -315,7 +317,7 @@ data class Prompt(
                 },
                 roll = p.optJSONObject("roll")?.let {
                     PromptRoll(it.optString("name"), it.optInt("dice_count"), it.optInt("tn"), it.optInt("starting_value"),
-                        it.optInt("positive_reroll"), it.optInt("negative_reroll"))
+                        it.optInt("positive_reroll"), it.optInt("negative_reroll"), it.optStringOrNull("fudge"))
                 },
                 allRolls = p.optJSONArray("all_rolls").mapObjects { rollLine(it) },
                 headline = p.optStringOrNull("headline"),

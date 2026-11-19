@@ -40,6 +40,25 @@ Either way, everything below happens in the builder.
 - **A prompt stays until it is answered** or the builder moves on — however long the player takes. (A phone's answer reaches the DM's page at once over its live-updates connection.)
 - A builder the DM closes by picking another action takes its prompts off the phones; an action the DM started is then dropped, and a player's request stays in the Player actions panel with **Open in … builder**. Leaving the Encounter page or reloading it does not drop anything (above).
 
+## Fudging
+
+The DM may fudge any Roll a player rolls on their phone. Nobody else ever sees it — not the players, not the builder after the fact.
+
+- **With the request:** a dropdown next to **Approve** (on the Player actions panel and the notice on every DM page) — *No fudge*, *Success*, *Failure*, *Critical*, *Fumble* — for the requesting player's own Roll.
+- **In the builder:** the same dropdown on every Roll that belongs to a phone (the target's Dodge, an ally's shield…), until that player has rolled.
+
+The phone rolls the dice as usual; then, **before any Luck reroll**, if the result is not in the chosen band, it changes the fewest dice it must, each to a random value of the kind needed, and shows those dice as rolled. The bands, by Degree of Success (Starting Value included; a 10 counts +2, a 1 −1):
+
+| Fudge | Degree of Success |
+|---|---|
+| No fudge | unchanged |
+| Success | 2 or more |
+| Failure | −1 to 1 |
+| Critical | 4 or more, with at least one 10 |
+| Fumble | −2 or less |
+
+Luck rerolls then apply as usual. If the band cannot be reached at all (e.g. a large Starting Value), the dice are left as rolled. The DM's own rolls (Roll for …, Roll All) are never fudged.
+
 ## On the phone
 
 - **Spell / Item:** a Spell aimed at a creature asks for a **Target** too — enemies, allies, and the player themselves last (e.g. a heal); the button reads *Cast \<spell\> on \<target\>* (or *on yourself*). A self, object or area Spell says so instead of asking. An area Spell is placed on the map by the DM. **Attack:** a **Target** (enemies first), then the dice; the button reads *Attack \<target\> with \<weapon\>*.
@@ -75,6 +94,7 @@ Each Roll of the action has its own part of the screen — two rolls, two halves
 ## Implementation
 
 - `lib/action_flow.rb` — the action: `declare` (a player's request) → `builder`. The builder's state mirrored onto the phones (`sync!`): choice tasks for player steps, roll tasks for every Roll (claimed when the owner has a phone), who sees which roll, Luck → rerolls, server-side scoring, and the request's choices for opening the builder.
+- `POST /encounter/live/:id/rolls/:task_id/fudge` — the builder's fudge dropdown; the request's goes with `POST /encounter/flows/:id/tasks/:task_id/approve` (`fudge`). The phone gets it as its roll prompt's `roll.fudge` (only on its own Roll) and lands the dice in `DiceRules.fudge`.
 - `GET /encounter/live/open` — the actions running in a builder, which the Encounter page reopens on load (replaying `GET /encounter/flows/:id/prefill`, which then holds every choice the builder had made). `POST /encounter/live/left` — sent as the page closes. `GET /dm/notices` and `views/_dm_notices.erb` / `public/js/ui/dmNotices.js` — the notice on every DM page, which also holds the page's live-updates connection.
 - `GET /api/initiative` → `shared`: the actions whose Rolls the DM shared in the last two minutes, from the viewer's side, with every Roll's first dice, rerolls and final dice. `POST /encounter/live/reset` — the Encounter page loaded: no builder is open, so the last page's prompts are dropped.
 - `public/js/ui/liveSync.js` — every builder on screen sends its state whenever it changes (`POST /encounter/live/sync`, which creates the action for a builder the DM opened), and fetches the phones' answers and Rolls when the server says something changed (`GET /encounter/live/:id`; [live_updates.md](live_updates.md)), picks a phone's answer, shows the phone Rolls' rows, and shares the Rolls on Confirm (`POST /encounter/live/:id/share`). `POST /encounter/live/:id/rolls/:task_id/{roll,approve}` — the DM's Roll for / Approve.

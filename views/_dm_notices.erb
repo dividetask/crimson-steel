@@ -23,6 +23,11 @@
         <div class="dm-notice">
           <span class="dm-notice-what"><strong><%= h f.actor_name %></strong>: <%= h d['summary'].to_s %></span>
           <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= d['id'] %>/approve?go=encounter" class="af-inline">
+            <% if f.blocking? %>
+              <select name="fudge" class="af-fudge" title="Fudge the player's roll (they never see it)">
+                <% ActionFlow::FUDGES.each do |k| %><option value="<%= k %>"><%= ActionFlow::FUDGE_LABELS[k] %></option><% end %>
+              </select>
+            <% end %>
             <button type="submit" class="af-btn af-primary"><%= f.kind == 'special' && f.blob.nil? ? 'Approve' : 'Approve (opens Encounter)' %></button>
           </form>
           <form method="post" action="/encounter/flows/<%= f.id %>/cancel" class="af-inline">

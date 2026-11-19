@@ -469,6 +469,31 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(shared.first['rolls'].first).to include('final' => [3, 9], 'successes' => 1)
     end
 
+    it 'fudges a player’s roll on their phone only, set with the request or in the builder' do
+      flow = attack_other_pc!
+      header 'Host', 'localhost'
+      get '/encounter/flows_panel', {}, dm_env
+      expect(last_response.body).to include('name="fudge"', '>Critical<')
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve", fudge: 'crit')
+      as_other_phone { other_get('/api/hello') }
+      dm_sync(flow_id: flow.id, kind: 'attack', actor_id: flow.actor_id, target_id: flow.target_id,
+              choices: { target: flow.target_id.to_s }, rolls: builder_rolls(3))
+      mine = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
+      expect(mine['roll']['fudge']).to eq('crit')
+      # Nobody else learns of it: not in anyone's list of rolls, nor the target's own prompt.
+      expect(mine['all_rolls'].map(&:keys).flatten).not_to include('fudge')
+      theirs = as_other_phone { other_get('/api/prompts')['prompts'].first }
+      expect(theirs['roll']).not_to have_key('fudge')
+      # The DM fudges the target's Dodge in the builder, until it is rolled.
+      dfn = flow.roll_tasks.find { |t| t['roll']['roll_id'] == 'defender' }
+      res = dm_json("/encounter/live/#{flow.id}/rolls/#{dfn['id']}/fudge", fudge: 'fumble')
+      expect(res['rolls']['defender']['fudge']).to eq('fumble')
+      expect(as_other_phone { other_get('/api/prompts')['prompts'].first['roll']['fudge'] }).to eq('fumble')
+      as_other_phone { other_post("/api/prompts/#{flow.id}/#{dfn['id']}", roll: { dice: [1, 1], final: [1, 1] }) }
+      dm_json("/encounter/live/#{flow.id}/rolls/#{dfn['id']}/fudge", fudge: 'success')
+      expect(last_response.status).to eq(422) # already rolled
+    end
+
     it 'keeps the live builder DM-only' do
       post '/encounter/live/sync', JSON.generate(kind: 'attack', actor_id: 1), player_env.merge('CONTENT_TYPE' => 'application/json')
       expect(last_response.status).to eq(403)

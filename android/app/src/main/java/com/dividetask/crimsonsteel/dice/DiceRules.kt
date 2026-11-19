@@ -156,4 +156,87 @@ object DiceRules {
         pick(positive, { it < tn }, highestFirst = false)
         return Pair(final, rerolled)
     }
+
+    // --- Fudging (docs/project/action_flow.md → Fudging) ------------------------
+
+    /**
+     * The DM's fudge for a roll (never shown to the player): "success" (a
+     * Degree of Success of at least 2), "failure" (−1 to 1), "crit" (at
+     * least 4, with at least one 10) or "fumble" (−2 or less), counting the
+     * Starting Value. Any other value (none, null) leaves the dice alone.
+     */
+    fun fudgeFits(fudge: String?, dois: Int, crits: Int): Boolean = when (fudge) {
+        "success" -> dois >= 2
+        "failure" -> dois in -1..1
+        "crit" -> dois >= 4 && crits >= 1
+        "fumble" -> dois <= -2
+        else -> true
+    }
+
+    /**
+     * The dice as rolled, made to fit [fudge] by changing as few dice as
+     * possible, each to a random value of the kind it needs (a 10, a
+     * Success, a plain miss, or a 1). Unchanged when they already fit, or
+     * when no change could make them fit. Applied before any Luck reroll.
+     */
+    fun fudge(dice: List<Int>, tn: Int, startingValue: Int, fudge: String?,
+              rnd: kotlin.random.Random = kotlin.random.Random.Default): List<Int> {
+        if (fudge !in setOf("success", "failure", "crit", "fumble")) return dice
+        val size = DiceConfig.DIE_SIZE
+        val contrib = dice.map { contribution(it, tn) }
+        if (fudgeFits(fudge, startingValue + contrib.sum(), dice.count { it == size })) return dice
+        // What each kind of die counts for, and the faces that give it.
+        val faces = mapOf(
+            DiceConfig.CRITICAL_MODIFIER to listOf(size),
+            1 to (tn until size).toList(),
+            0 to (2 until tn).toList(),
+            DiceConfig.FAILURE_MODIFIER to listOf(1),
+        ).filterValues { it.isNotEmpty() }
+        val kinds = faces.keys.toList()
+        val lo = when (fudge) { "success" -> 2; "failure" -> -1; "crit" -> 4; else -> Int.MIN_VALUE }
+        val hi = when (fudge) { "failure" -> 1; "fumble" -> -2; else -> Int.MAX_VALUE }
+        val maxK = kinds.max(); val minK = kinds.min()
+        val n = dice.size
+        for (k in 1..n) {
+            for (sub in combinations(n, k).shuffled(rnd)) {
+                val inSub = sub.toSet()
+                val base = startingValue + dice.indices.filter { it !in inSub }.sumOf { contrib[it] }
+                val baseCrits = dice.indices.count { it !in inSub && dice[it] == size }
+                if (base + k * maxK < lo || base + k * minK > hi) continue
+                val pick = IntArray(k)
+                fun go(i: Int, sum: Int, crits: Int): Boolean {
+                    if (i == k) return fudgeFits(fudge, base + sum, baseCrits + crits)
+                    val rest = k - i - 1
+                    for (c in kinds.filter { it != contrib[sub[i]] }.shuffled(rnd)) {
+                        val s = sum + c
+                        if (base + s + rest * maxK < lo || base + s + rest * minK > hi) continue
+                        pick[i] = c
+                        if (go(i + 1, s, crits + if (c == DiceConfig.CRITICAL_MODIFIER) 1 else 0)) return true
+                    }
+                    return false
+                }
+                if (go(0, 0, 0)) {
+                    val out = dice.toMutableList()
+                    sub.forEachIndexed { i, at -> out[at] = faces.getValue(pick[i]).random(rnd) }
+                    return out
+                }
+            }
+        }
+        return dice
+    }
+
+    /** Every way to choose [k] of [n] positions. */
+    private fun combinations(n: Int, k: Int): List<List<Int>> {
+        val out = mutableListOf<List<Int>>()
+        val cur = ArrayList<Int>(k)
+        fun rec(start: Int) {
+            if (cur.size == k) { out += cur.toList(); return }
+            for (i in start until n) {
+                if (n - i < k - cur.size) break
+                cur += i; rec(i + 1); cur.removeAt(cur.size - 1)
+            }
+        }
+        rec(0)
+        return out
+    }
 }

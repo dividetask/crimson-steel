@@ -38,6 +38,14 @@ class ActionFlow
   # actions panel offers "Open in … builder" again.
   STALE_SECONDS = 75
 
+  # The DM's fudge for a player's roll (docs/project/action_flow.md → Fudging):
+  # the phone rolls as usual, then — before any Luck reroll — changes the
+  # fewest dice it must, to random values, so the Degree of Success lands in
+  # the chosen band. Never shown to anyone; the DM's own rolls are untouched.
+  FUDGES = %w[none success failure crit fumble].freeze
+  FUDGE_LABELS = { 'none' => 'No fudge', 'success' => 'Success', 'failure' => 'Failure',
+                   'crit' => 'Critical', 'fumble' => 'Fumble' }.freeze
+
   # Steps the other players answer; every other step is the actor's own
   # choice, which the DM makes in the builder.
   PLAYER_STEPS = /\A(defense|ally_defense|luck:.+)\z/
@@ -277,6 +285,7 @@ class ActionFlow
       rolls: roll_tasks.to_h do |t|
         v = t['value'] || {}
         [t['roll']['roll_id'], { task_id: t['id'], claimed: !!t['claimed'], owner: t['owner_name'],
+                                 fudge: t['fudge'] || 'none',
                                  status: t['status'], by: t['by'], dice: v['dice'], rerolled: v['rerolled'],
                                  final: v['final'], successes: v['successes'], crits: v['crits'] }]
       end }
@@ -325,6 +334,23 @@ class ActionFlow
     t['status'] = 'submitted'
     t['by'] = by
     t
+  end
+
+  # The fudge for a roll still to be rolled on a phone. Raises when it is
+  # unknown or the roll is already in.
+  def set_fudge(task_id, fudge)
+    t = task(task_id) or raise ArgumentError, 'unknown task'
+    raise ArgumentError, 'not a roll' unless t['kind'] == 'roll'
+    raise ArgumentError, 'unknown fudge' unless FUDGES.include?(fudge.to_s)
+    raise ArgumentError, 'already rolled' if t['by'] == 'player' || t['status'] == 'approved'
+    t['fudge'] = fudge.to_s == 'none' ? nil : fudge.to_s
+    t
+  end
+
+  # The fudge chosen when the DM approved the request: for the requester's
+  # own roll once the builder brings it up.
+  def request_fudge=(fudge)
+    @request_fudge = FUDGES.include?(fudge.to_s) && fudge.to_s != 'none' ? fudge.to_s : nil
   end
 
   # DM approves: the player's request (opens the builder), or a roll (shares it).
@@ -472,6 +498,8 @@ class ActionFlow
     t.merge!('status' => 'waiting', 'value' => nil, 'summary' => nil, 'by' => nil) unless same && t['owner_id'] == owner
     t.merge!('roll' => spec, 'owner_id' => owner, 'owner_name' => owner ? name_of(owner) : r['creature_name'].to_s,
              'claimed' => !owner.nil? && claimed.call(owner))
+    # The fudge chosen with the request applies to the requester's own roll.
+    t['fudge'] ||= @request_fudge if @request_fudge && owner == @actor_id && %w[attacker caster performance].include?(rid)
     t
   end
 

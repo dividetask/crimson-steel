@@ -690,7 +690,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                          view: DiceView, result: android.widget.TextView) {
         val rng = kotlin.random.Random.Default
         val die = { rng.nextInt(1, com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE + 1) }
-        val initial = List(line.diceCount) { die() }
+        // Rolled as usual, then — before Luck — landed where the DM wants it, if anywhere.
+        val initial = com.dividetask.crimsonsteel.dice.DiceRules.fudge(
+            List(line.diceCount) { die() }, line.tn, line.startingValue, p.roll?.fudge)
         val (final, rerolled) = com.dividetask.crimsonsteel.dice.DiceRules.applyRerolls(
             initial, line.tn, line.positiveReroll, line.negativeReroll, die)
         shownRolling += line.taskId

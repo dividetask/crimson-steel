@@ -39,6 +39,8 @@ helpers do
              action_line: flow.title_line(viewer_ids), luck_remaining: t['luck_amount'] }
     if t['kind'] == 'roll'
       view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
+      # The DM's fudge, if any: the phone lands its dice in that band (never shown).
+      view[:roll]['fudge'] = t['fudge'] if t['fudge']
       view[:result] = t['value'] if t['value'] && visible
       # Everyone's roll in this action, so the player sees the whole picture
       # (and each phone can show the others' dice rolling as they arrive).
@@ -286,7 +288,10 @@ post '/encounter/flows/:id/tasks/:task_id/approve' do
   f = action_flows.find(params[:id])
   halt 404 unless f
   begin
-    action_flows.synchronize { f.approve(params[:task_id]) }
+    action_flows.synchronize do
+      f.request_fudge = params[:fudge] if params[:fudge]
+      f.approve(params[:task_id])
+    end
     if f.kind == 'special' && f.blob.nil?
       result = encounter_state.use_special_payload('combatant_id' => f.actor_id, 'ability' => f.ability.to_s)
       if result[:ok]
@@ -382,6 +387,18 @@ post '/encounter/live/:id/rolls/:task_id/roll' do
   f = live_flow!(params[:id])
   begin
     action_flows.synchronize { f.roll_for(params[:task_id]) }
+  rescue ArgumentError => e
+    halt 422, JSON.generate(ok: false, error: e.message)
+  end
+  JSON.generate(ok: true, **f.builder_view)
+end
+
+# DM fudges a phone's Roll before it is rolled. Body: { fudge: none|success|failure|crit|fumble }.
+post '/encounter/live/:id/rolls/:task_id/fudge' do
+  s = live_json!
+  f = live_flow!(params[:id])
+  begin
+    action_flows.synchronize { f.set_fudge(params[:task_id], s['fudge']) }
   rescue ArgumentError => e
     halt 422, JSON.generate(ok: false, error: e.message)
   end
