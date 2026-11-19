@@ -30,13 +30,27 @@ abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (T
 
     protected abstract fun build(d: T): View
 
+    /**
+     * While true (e.g. dice are rolling on screen), new data is kept but the
+     * screen is not rebuilt; call [releaseRender] when it is safe again.
+     */
+    protected open fun holdRender(): Boolean = false
+    private var renderPending = false
+
+    protected fun releaseRender() {
+        if (renderPending && !holdRender()) {
+            renderPending = false
+            render()
+        }
+    }
+
     fun refresh(force: Boolean = false) {
         fetch { r ->
             r.onSuccess { (d, json) ->
                 if (force || json != lastJson) {
                     lastJson = json
                     data = d
-                    render()
+                    if (holdRender()) renderPending = true else render()
                 }
             }.onFailure(onError)
         }

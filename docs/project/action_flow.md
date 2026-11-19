@@ -46,7 +46,13 @@ The phone throws the dice, shows them tumbling, then — when Luck applies — r
 
 - **Attack:** choosing an Attack on the Initiative screen asks for a **Target** (enemies first), then the dice. The confirm button reads *Attack \<target\> with \<weapon\>*.
 - **Spell / Item:** a Spell aimed at a creature asks for a **Target** too — enemies, allies, and the player themselves last (e.g. a heal); the button reads *Cast \<spell\> on \<target\>* (or *on yourself*). A self, object or area Spell says so instead of asking. An area Spell is placed on the map by the DM.
-- **Roll prompts** list every Roll of the action — who rolls what, with how many dice, at what TN (and any Starting Value and Luck rerolls), and where each stands — and the **Roll** button names the player's own dice and TN, e.g. *Roll Dodge: 2 dice @ TN 4, Luck reroll +1*.
+- **Roll card** — the action as a header from the player's side (*Casting Fire Dart at Wolf*; a target sees *Ash Windmere casting Fire Dart at you*), then every Roll of the action:
+  - a bold label: the player's own roll by skill and bonus (*Arcana +3*), the others by name, what they roll and their bonus (*Wolf Dodging +2*, *Garroth Vask Wisdom save +1*);
+  - its dice count and TN (and any Starting Value and Luck rerolls) in small print;
+  - one die image per die — blank until rolled;
+  - under the player's own dice, the **Roll** button.
+
+  Pressing **Roll** rolls the player's dice in place (then any Luck rerolls) and sends the result to the DM. Every other Roll's dice roll on the card as soon as that player's result reaches the server, then stay showing their values with the Successes. The card stays until the DM commits the action, so everyone sees every roll land.
 - **Your move:** steps waiting on the player appear at the top of the Initiative screen, on anyone's turn: the title (*Choose your defense*, *Shield \<ally\>?*, *Use your Luck?*, *Roll \<roll\>*), who is attacking whom, and the choices — grouped like the builder's, with the same dice picker as actions. Once sent, the step reads *Sent — waiting for the DM to approve* until the DM approves it.
 - **From any tab:** when a step is waiting, the Initiative tab shows a badge (●) and the phone says *Your move: …* once.
 - **Your attack:** the attacker sees each step of their attack and where it stands. Its Combat Pool and Main Action count against what the player has left until the DM commits it.

@@ -89,6 +89,33 @@ class ActionFlow
 
   def summary = stage_tasks('declare').first['summary']
 
+  # The action's own name, without dice or target: "Fire Dart", "+1 Rapier",
+  # "Bardic Inspiration".
+  def action_name
+    d = @declare.to_h
+    case @kind
+    when 'attack'
+      opt = raw_options('action').find { |o| o[:value].to_s == d['action'] }
+      clean(opt ? (opt[:summary] || opt[:label]) : d['action']).split(' — ').first
+    when 'special' then @ability.to_s
+    else
+      opt = raw_options('spell').find { |o| o[:value].to_s == d['spell'] }
+      opt ? clean(opt[:summary] || opt[:label]) : d['spell'].to_s
+    end
+  end
+
+  # The roll prompt's header, from the viewer's side: "Casting Fire Dart"
+  # for the actor, "Ash Windmere casting Fire Dart at you" for a target.
+  def headline(viewer_ids)
+    gerund = { 'attack' => 'Attacking with', 'cast' => 'Casting', 'item' => 'Using', 'special' => 'Using' }[@kind]
+    return "#{gerund} #{action_name}" + (target_id ? " at #{name_of(target_id)}" : '') if viewer_ids.include?(@actor_id)
+    at = if target_id.nil? then ''
+         elsif viewer_ids.include?(target_id) then ' at you'
+         else " at #{name_of(target_id)}"
+         end
+    "#{@actor_name} #{gerund.downcase} #{action_name}#{at}"
+  end
+
   # Whether this action holds up the actor's other actions while it is in
   # progress: it waits on other players or on dice. An Attack always does; a
   # Spell / Item does when it rolls a check; a Special when it has a builder
@@ -109,9 +136,14 @@ class ActionFlow
   def roll_overview
     stage_tasks('roll').map do |t|
       r = t['roll']
-      { task_id: t['id'], owner: t['owner_name'], name: r['name'], dice_count: r['dice_count'], tn: r['tn'],
+      v = t['value'] || {}
+      { task_id: t['id'], owner: t['owner_name'], owner_id: t['owner_id'], name: r['name'],
+        what: r['what'], bonus: r['bonus'].to_i, dice_count: r['dice_count'], tn: r['tn'],
         starting_value: r['starting_value'], positive_reroll: r['positive_reroll'], negative_reroll: r['negative_reroll'],
-        status: t['status'], summary: t['summary'] }
+        status: t['status'], summary: t['summary'],
+        # Once rolled: the dice as thrown, any Luck rerolls, and the final dice,
+        # so every phone in the action can show them rolling.
+        dice: v['dice'], rerolled: v['rerolled'], final: v['final'], successes: v['successes'] }
     end
   end
 
@@ -347,6 +379,42 @@ class ActionFlow
     out
   end
 
+  # What a Roll is, in words, for the roll prompt: the actor's skill
+  # ("Martial", "Arcana", "Perform (Dance)", the Ability), or the defense as
+  # a verb ("Dodging", "Blocking", "Parrying with Rapier", "Wisdom save"), or
+  # the ally's shield Spell.
+  def roll_what(r)
+    case r['id']
+    when 'attacker' then 'Martial'
+    when 'caster' then pretty_skill(@declare.to_h['dice'].to_s.split('|')[1].to_s)
+    when 'performance'
+      perf = @declare.to_h['performance']
+      perf ? pretty_skill(perf) : @ability.to_s
+    else
+      name = r['roll_name'].to_s
+      case name
+      when 'Dodge' then 'Dodging'
+      when 'Block' then 'Blocking'
+      when /\AParry with (.+)\z/ then "Parrying with #{Regexp.last_match(1)}"
+      when /\ARing of Parry/ then 'Parrying (Ring of Parry)'
+      else name
+      end
+    end
+  end
+
+  def pretty_skill(key)
+    return '' if key.empty?
+    family, *rest = key.split('_')
+    return "#{family.capitalize} (#{rest.map(&:capitalize).join(' ')})" if %w[perform craft profession game].include?(family) && rest.any?
+    key.split('_').map(&:capitalize).join(' ')
+  end
+
+  # The Roll's own Competency bonus (before anything crosses from the other side).
+  def competency_of(list)
+    entry = Array(list).find { |type, _| type.to_s == 'Competency' }
+    entry ? entry[1].to_i : 0
+  end
+
   def roll_label(roll, fallback)
     name = roll['creature_name'].to_s
     rn = roll['roll_name'].to_s
@@ -443,7 +511,10 @@ class ActionFlow
       roll = { 'roll_id' => r['id'], 'name' => r['roll_name'].to_s, 'creature_name' => r['creature_name'].to_s,
                'dice_count' => r['dice_count'].to_i, 'tn' => tn[:tn], 'starting_value' => tn[:starting_value],
                'positive_reroll' => luck[r['id']][:pos], 'negative_reroll' => luck[r['id']][:neg],
-               'speed' => r['speed'].to_i }
+               'speed' => r['speed'].to_i,
+               # For the roll prompt: what is rolled in words and its own bonus,
+               # e.g. "Arcana" +3, "Dodging" +2, "Wisdom save" +1.
+               'what' => roll_what(r), 'bonus' => competency_of(r['bonus_penalty_list']) }
       new_task('roll', "roll:#{r['id']}", owner, 'roll' => roll)
     end
     @stage = 'resolve' if stage_tasks('roll').empty?

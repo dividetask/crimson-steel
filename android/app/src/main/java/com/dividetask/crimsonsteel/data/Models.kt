@@ -234,7 +234,16 @@ data class PromptRoll(
 data class RollLine(
     val taskId: String, val owner: String, val name: String, val diceCount: Int, val tn: Int,
     val startingValue: Int, val positiveReroll: Int, val negativeReroll: Int, val status: String, val summary: String?,
-)
+    /** What is rolled in words ("Arcana", "Dodging", "Wisdom save") and its own bonus. */
+    val what: String = "", val bonus: Int = 0,
+    /** Once rolled: the dice as thrown, any Luck rerolls (null where unchanged), the final dice and Successes. */
+    val dice: List<Int>? = null, val rerolled: List<Int?>? = null, val final: List<Int>? = null, val successes: Int? = null,
+) {
+    val rolled: Boolean get() = final != null
+}
+
+private fun JSONArray?.ints(): List<Int>? = this?.let { a -> (0 until a.length()).map { a.optInt(it) } }
+private fun JSONArray?.intsOrNull(): List<Int?>? = this?.let { a -> (0 until a.length()).map { if (a.isNull(it)) null else a.optInt(it) } }
 
 /**
  * A step of an attack waiting on this player (docs/project/action_flow.md):
@@ -247,6 +256,8 @@ data class Prompt(
     val options: List<PromptOption>, val roll: PromptRoll?,
     /** Every Roll of the action (roll prompts only), the player's own included. */
     val allRolls: List<RollLine> = emptyList(),
+    /** Roll prompts: the action from this player's side, e.g. "Casting Fire Dart at Wolf". */
+    val headline: String? = null,
 ) {
     val waiting: Boolean get() = status == "waiting"
 
@@ -267,8 +278,12 @@ data class Prompt(
                 allRolls = p.optJSONArray("all_rolls").mapObjects {
                     RollLine(it.optString("task_id"), it.optString("owner"), it.optString("name"), it.optInt("dice_count"),
                         it.optInt("tn"), it.optInt("starting_value"), it.optInt("positive_reroll"), it.optInt("negative_reroll"),
-                        it.optString("status"), it.optStringOrNull("summary"))
+                        it.optString("status"), it.optStringOrNull("summary"),
+                        what = it.optString("what"), bonus = it.optInt("bonus"),
+                        dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
+                        final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"))
                 },
+                headline = p.optStringOrNull("headline"),
             )
         }
     }

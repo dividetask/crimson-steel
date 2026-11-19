@@ -47,7 +47,8 @@ class DiceView(context: Context) : View(context) {
     private var animator: ValueAnimator? = null
     private val random = Random.Default
 
-    private val perRow = 5
+    /** Dice per row; the dice are sized to fit. */
+    var perRow = 5
     private val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -72,6 +73,25 @@ class DiceView(context: Context) : View(context) {
 
     /** Total animation time in ms. */
     var durationMs = 1600L
+
+    /** Unrolled dice: [count] blank d10s, waiting to be rolled. */
+    fun showBlank(count: Int) {
+        animator?.cancel()
+        dice = List(count) { Die(0, 0f, 0f, 0f, 0f, 0f, 0, still = true) }
+        progress = 1f
+        requestLayout()
+        invalidate()
+    }
+
+    /** Dice already rolled, shown settled (no animation). */
+    fun show(values: List<Int>, tn: Int) {
+        animator?.cancel()
+        this.tn = tn
+        dice = values.map { Die(it, 0f, 0f, 0f, 0f, 0f, it, still = true) }
+        progress = 1f
+        requestLayout()
+        invalidate()
+    }
 
     /**
      * Start rolling [values] (already decided by the Roller) against [tn].
@@ -186,7 +206,8 @@ class DiceView(context: Context) : View(context) {
 
         D10Shape.build(r, outline, face, edges)
 
-        val base = if (settled) stateColor(value) else Ui.DIE_ROLLING
+        val blank = value == 0
+        val base = if (settled && !blank) stateColor(value) else Ui.DIE_ROLLING
         bodyPaint.color = shade(base, 0.82f)
         canvas.drawPath(outline, bodyPaint)
         bodyPaint.color = base
@@ -195,6 +216,10 @@ class DiceView(context: Context) : View(context) {
         canvas.drawPath(face, edgePaint)
         canvas.drawPath(outline, outlinePaint)
 
+        if (blank) {
+            canvas.restore()
+            return
+        }
         numberPaint.color = if (settled) textColorFor(value) else Color.BLACK
         val label = if (value == DiceConfig.DIE_SIZE) "10" else value.toString()
         val textY = r * 0.05f - (numberPaint.descent() + numberPaint.ascent()) / 2f

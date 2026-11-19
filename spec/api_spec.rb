@@ -445,8 +445,21 @@ RSpec.describe 'Android app JSON API', type: :request do
       roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
       all = roll['all_rolls']
       expect(all.length).to eq(flow.stage_tasks('roll').length)
-      expect(all.first.keys).to include('owner', 'name', 'dice_count', 'tn', 'status')
+      expect(all.first.keys).to include('owner', 'name', 'what', 'bonus', 'dice_count', 'tn', 'status', 'final')
       expect(all.map { |r| r['owner'] }).to include(flow.actor_name)
+      expect(all.find { |r| r['owner'] == flow.actor_name }['what']).to eq('Martial')
+      expect(roll['headline']).to start_with('Attacking with')
+
+      # Once a roll is in, everyone's prompt carries its dice.
+      d = [10] * roll['roll']['dice_count']
+      api_post("/api/prompts/#{flow.id}/#{roll['task_id']}", roll: { dice: d, final: d })
+      mine = flow.roll_overview.find { |r| r[:task_id] == roll['task_id'] }
+      expect(mine[:final]).to eq(d)
+      # Still on screen after the DM approves it, until the action is committed.
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{roll['task_id']}/approve")
+      still = api_get('/api/prompts')
+      expect(still['prompts'].map { |p| p['task_id'] }).to include(roll['task_id'])
+      expect(still['count']).to eq(0) # nothing waiting on this player, so no badge
     end
 
     it 'keeps the DM actions DM-only' do

@@ -415,6 +415,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     }
 
     private fun promptCard(p: com.dividetask.crimsonsteel.data.Prompt): View {
+        if (p.kind == "roll" && p.roll != null) return rollCard(p)
         val card = Ui.vertical(ctx, 12).apply {
             background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), if (p.waiting) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 2))
         }
@@ -423,38 +424,6 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         if (!p.waiting) {
             card.addView(Ui.text(ctx, "Sent: ${p.summary ?: ""} \u2014 waiting for the DM to approve.", 13f, Ui.TEXT_DIM),
                 Ui.matchWidth(Ui.dp(ctx, 8)))
-            return card
-        }
-        val roll = p.roll
-        if (p.kind == "roll" && roll != null) {
-            // Everyone's roll in this action: who, what, how many dice, and their TN.
-            if (p.allRolls.isNotEmpty()) {
-                card.addView(Ui.text(ctx, "Rolls", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 8)))
-                for (r in p.allRolls) {
-                    val mine = r.taskId == p.taskId
-                    val state = when (r.status) {
-                        "waiting" -> if (mine) "your roll" else "waiting"
-                        "submitted" -> "${r.summary ?: "rolled"} (waiting for the DM)"
-                        else -> r.summary ?: "done"
-                    }
-                    card.addView(Ui.text(ctx, "\u2022 ${r.owner}: ${r.name} \u2014 ${RollFlow.paramsLine(r.diceCount, r.tn, r.startingValue)}" +
-                        luckText(r.positiveReroll, r.negativeReroll) + " \u00b7 $state",
-                        13f, if (mine) Ui.GOLD else Ui.TEXT, bold = mine), Ui.matchWidth(Ui.dp(ctx, 2)))
-                }
-            }
-            card.addView(Button(ctx).apply {
-                text = "Roll ${roll.name}: ${RollFlow.paramsLine(roll.diceCount, roll.tn, roll.startingValue)}" +
-                    luckText(roll.positiveReroll, roll.negativeReroll)
-                isEnabled = !busy
-                setOnClickListener {
-                    RollFlow.promptRoll(ctx, roll.name, roll) { dice, rerolled, final, done ->
-                        Session.submitRoll(p.flowId, p.taskId, dice, rerolled, final) { r ->
-                            done(r.isSuccess)
-                            afterChange(r)
-                        }
-                    }
-                }
-            }, Ui.matchWidth(Ui.dp(ctx, 8)))
             return card
         }
 
@@ -492,6 +461,114 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             }
         }, Ui.matchWidth(Ui.dp(ctx, 10)))
         return card
+    }
+
+    // --- Rolls ----------------------------------------------------------------------
+
+    /** Rolls whose dice have already been shown rolling (task ids). */
+    private val shownRolling = mutableSetOf<String>()
+    /** Dice animations running now; the screen is not rebuilt while any run. */
+    private var animating = 0
+
+    override fun holdRender(): Boolean = animating > 0
+
+    /**
+     * The roll card: the action as a header ("Casting Fire Dart"), then each
+     * Roll — the player's own first label ("Arcana +3"), the others by name
+     * ("Wolf Dodging +2") — with one die per die. The player's Roll button
+     * sits under their dice. Every Roll's dice roll on screen when its result
+     * arrives (the player's own the moment they press Roll), then stay showing.
+     */
+    private fun rollCard(p: com.dividetask.crimsonsteel.data.Prompt): View {
+        val card = Ui.vertical(ctx, 12).apply {
+            background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), if (p.waiting) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 2))
+        }
+        card.addView(Ui.text(ctx, p.headline ?: p.title, 19f, Ui.GOLD, bold = true))
+        val lines = p.allRolls.ifEmpty {
+            val r = p.roll!!
+            listOf(com.dividetask.crimsonsteel.data.RollLine(p.taskId, "", r.name, r.diceCount, r.tn, r.startingValue,
+                r.positiveReroll, r.negativeReroll, p.status, p.summary, what = r.name))
+        }
+        for (line in lines) {
+            val mine = line.taskId == p.taskId
+            val label = (if (mine) "" else "${line.owner} ") + listOf(line.what.ifBlank { line.name }, Ui.signed(line.bonus)).joinToString(" ")
+            card.addView(Ui.text(ctx, label, 16f, if (mine) Ui.TEXT else Ui.TEXT_DIM, bold = true), Ui.matchWidth(Ui.dp(ctx, 12)))
+            card.addView(Ui.text(ctx, RollFlow.paramsLine(line.diceCount, line.tn, line.startingValue) +
+                luckText(line.positiveReroll, line.negativeReroll), 12f, Ui.TEXT_FAINT))
+            val dice = DiceView(ctx).apply { perRow = 8 }
+            card.addView(dice, Ui.matchWidth(Ui.dp(ctx, 4)))
+            val result = Ui.text(ctx, "", 13f, Ui.TEXT_DIM)
+            card.addView(result, Ui.matchWidth())
+
+            val final = line.final
+            if (final != null) {
+                if (line.taskId in shownRolling) {
+                    dice.show(final, line.tn)
+                    result.text = resultText(line, final)
+                } else {
+                    shownRolling += line.taskId
+                    animateRoll(dice, line.dice ?: final, line.rerolled, final, line.tn) { result.text = resultText(line, final) }
+                }
+            } else {
+                dice.showBlank(line.diceCount)
+                result.text = if (mine) "" else "waiting to roll"
+                if (mine && p.waiting) {
+                    card.addView(Button(ctx).apply {
+                        text = "Roll"
+                        isEnabled = !busy
+                        setOnClickListener { isEnabled = false; rollMine(p, line, dice, result) }
+                    }, Ui.matchWidth(Ui.dp(ctx, 6)))
+                }
+            }
+        }
+        if (p.status == "submitted") {
+            card.addView(Ui.text(ctx, "Sent \u2014 waiting for the DM to approve.", 12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 8)))
+        }
+        return card
+    }
+
+    private fun resultText(line: com.dividetask.crimsonsteel.data.RollLine, final: List<Int>): String {
+        val n = line.successes ?: com.dividetask.crimsonsteel.dice.DiceRules.dois(final, line.tn, line.startingValue)
+        val crits = final.count { it == com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE }
+        val waiting = if (line.status == "submitted") " (waiting for the DM)" else ""
+        return "$n ${if (kotlin.math.abs(n) == 1) "success" else "successes"}" +
+            (if (crits > 0) " \u00b7 $crits crit${if (crits == 1) "" else "s"}" else "") + waiting
+    }
+
+    /** Tumble [initial], then re-tumble the Luck-rerolled dice, settling on [final]. */
+    private fun animateRoll(view: DiceView, initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, done: () -> Unit) {
+        animating++
+        val again = rerolled.orEmpty().indices.filter { rerolled!![it] != null }.toSet()
+        val finish = {
+            animating--
+            done()
+            releaseRender()
+        }
+        view.onSettled = {
+            if (again.isEmpty()) finish() else {
+                view.onSettled = { finish() }
+                view.postDelayed({ view.roll(final, tn, only = again) }, 600)
+            }
+        }
+        view.roll(initial, tn)
+    }
+
+    /** The player rolls their own dice in place, then the result goes to the DM. */
+    private fun rollMine(p: com.dividetask.crimsonsteel.data.Prompt, line: com.dividetask.crimsonsteel.data.RollLine,
+                         view: DiceView, result: android.widget.TextView) {
+        val rng = kotlin.random.Random.Default
+        val die = { rng.nextInt(1, com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE + 1) }
+        val initial = List(line.diceCount) { die() }
+        val (final, rerolled) = com.dividetask.crimsonsteel.dice.DiceRules.applyRerolls(
+            initial, line.tn, line.positiveReroll, line.negativeReroll, die)
+        shownRolling += line.taskId
+        animateRoll(view, initial, rerolled, final, line.tn) {
+            result.text = resultText(line, final) + " \u2014 sending to the DM\u2026"
+            Session.submitRoll(p.flowId, p.taskId, initial, rerolled, final) { r ->
+                if (r.isFailure) shownRolling -= line.taskId // not sent: let them try again
+                afterChange(r)
+            }
+        }
     }
 
     /** ", reroll +1 / −2" for Luck on a roll, or "". */

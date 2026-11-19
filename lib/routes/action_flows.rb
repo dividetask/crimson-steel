@@ -20,7 +20,7 @@ helpers do
   end
 
   # A prompt for a phone: what is asked, the options (grouped), or the roll.
-  def flow_prompt_view(flow, t)
+  def flow_prompt_view(flow, t, viewer_ids = [t['owner_id']])
     what = "#{flow.actor_name} #{flow_verb(flow)}: #{flow.summary}."
     title, body =
       case t['step']
@@ -35,8 +35,10 @@ helpers do
     if t['kind'] == 'roll'
       view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
       view[:result] = t['value'] if t['value']
-      # Everyone's roll in this action, so the player sees the whole picture.
+      # Everyone's roll in this action, so the player sees the whole picture
+      # (and each phone can show the others' dice rolling as they arrive).
       view[:all_rolls] = flow.roll_overview
+      view[:headline] = flow.headline(viewer_ids)
     else
       view[:options] = flow.options_for(t)
     end
@@ -54,7 +56,13 @@ helpers do
   def my_prompts(acc)
     mine = my_combatant_ids(acc)
     action_flows.active.flat_map do |f|
-      f.open_tasks.select { |t| t['kind'] != 'declare' && mine.include?(t['owner_id']) }.map { |t| flow_prompt_view(f, t) }
+      tasks = f.open_tasks.select { |t| t['kind'] != 'declare' && mine.include?(t['owner_id']) }
+      # A player's roll stays on screen (read-only once approved) until the DM
+      # commits the action, so they see everyone else's dice land too.
+      if %w[roll resolve].include?(f.stage)
+        f.stage_tasks('roll').each { |t| tasks << t if mine.include?(t['owner_id']) && !tasks.include?(t) }
+      end
+      tasks.map { |t| flow_prompt_view(f, t, mine) }
     end
   end
 
