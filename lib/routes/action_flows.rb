@@ -63,7 +63,14 @@ helpers do
       pool_cost: flow.declared_pool_cost,
       tasks: flow.tasks.reject { |t| t['kind'] == 'declare' }.map do |t|
         shown = t['kind'] != 'roll' || flow.visible_to?(t, mine)
-        { step: t['step'], owner: t['owner_name'], status: shown ? t['status'] : 'waiting', summary: shown ? t['summary'] : nil }
+        view = { step: t['step'], owner: t['owner_name'], status: shown ? t['status'] : 'waiting', summary: shown ? t['summary'] : nil }
+        # A roll's dice, to draw them coloured by result.
+        if t['kind'] == 'roll' && shown && t['value']
+          v = t['value']
+          view.merge!(dice: v['dice'], rerolled: v['rerolled'], final: v['final'], successes: v['successes'],
+                      tn: t.dig('roll', 'tn'), starting_value: t.dig('roll', 'starting_value'))
+        end
+        view
       end }
   end
 

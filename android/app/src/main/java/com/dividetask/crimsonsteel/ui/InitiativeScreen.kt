@@ -512,6 +512,21 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                     "submitted" -> "${st.summary ?: "answered"} \u2014 waiting for the DM"
                     else -> st.summary ?: "done"
                 }
+                val fin = st.final
+                if (st.step.startsWith("roll:") && fin != null) {
+                    // Dice, coloured by what each counts for — never a list of numbers.
+                    val n = st.successes ?: com.dividetask.crimsonsteel.dice.DiceRules.dois(fin, st.tn, st.startingValue)
+                    val crits = fin.count { it == com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE }
+                    card.addView(Ui.text(ctx, "\u2022 $what: $n ${if (kotlin.math.abs(n) == 1) "success" else "successes"}" +
+                        (if (crits > 0) ", $crits crit${if (crits == 1) "" else "s"}" else "") +
+                        (if (st.status == "submitted") " \u2014 waiting for the DM" else ""), 13f, Ui.TEXT),
+                        Ui.matchWidth(Ui.dp(ctx, 4)))
+                    card.addView(DiceView(ctx).apply {
+                        perRow = 8; bodyColor = CARD_BLANK; colorByResult = true
+                        showHistory(st.dice ?: fin, st.rerolled, fin, st.tn)
+                    }, Ui.matchWidth(Ui.dp(ctx, 2)))
+                    continue
+                }
                 card.addView(Ui.text(ctx, "\u2022 $what: $state", 13f, if (st.status == "approved") Ui.TEXT_DIM else Ui.TEXT),
                     Ui.matchWidth(Ui.dp(ctx, 3)))
             }

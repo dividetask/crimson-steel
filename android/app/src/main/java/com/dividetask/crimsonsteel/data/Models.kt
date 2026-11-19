@@ -346,7 +346,12 @@ data class Prompt(
 
 /** One of this player's own attacks in progress, for the status lines. */
 data class FlowStatus(val flowId: String, val stage: String, val summary: String, val poolCost: Int, val steps: List<FlowStep>)
-data class FlowStep(val step: String, val owner: String, val status: String, val summary: String?)
+data class FlowStep(
+    val step: String, val owner: String, val status: String, val summary: String?,
+    /** A roll's dice once it is in (drawn coloured by result). */
+    val dice: List<Int>? = null, val rerolled: List<Int?>? = null, val final: List<Int>? = null,
+    val successes: Int? = null, val tn: Int = 0, val startingValue: Int = 0,
+)
 
 data class InitiativeEntry(
     val combatantId: Int, val name: String, val isPc: Boolean,
@@ -453,7 +458,10 @@ data class Initiative(
                 flows = j.optJSONArray("flows").mapObjects { f ->
                     FlowStatus(f.optString("flow_id"), f.optString("stage"), f.optString("summary"), f.optInt("pool_cost"),
                         f.optJSONArray("tasks").mapObjects {
-                            FlowStep(it.optString("step"), it.optString("owner"), it.optString("status"), it.optStringOrNull("summary"))
+                            FlowStep(it.optString("step"), it.optString("owner"), it.optString("status"), it.optStringOrNull("summary"),
+                                dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
+                                final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
+                                tn = it.optInt("tn"), startingValue = it.optInt("starting_value"))
                         })
                 },
             )
