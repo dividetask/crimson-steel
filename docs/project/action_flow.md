@@ -8,7 +8,8 @@ How an action a player starts from the Android app ([android_app.md](android_app
 
 - **Each player rolls on their own phone.** Results are sent to the DM for approval.
 - **Every player answer needs the DM's approval.** The DM can approve it or **Send back** to ask again.
-- **The DM can act for anyone.** Whenever a step is waiting on a player, the DM can answer it for them (**Decide for …**, **Roll for …**). That approves it at once and removes the prompt from the player's phone.
+- **The DM can act for anyone.** Whenever a step is waiting on a player, the DM can answer it for them (**Decide for …**, **Roll for …**). A choice is approved at once and removed from the player's phone.
+- **The DM's rolls are the DM's until approved.** A Roll the DM rolls — for an enemy or NPC, or **Roll for …** on a player's behalf — is shown only on the DM's panel, with its dice. The DM may **Roll again** as often as they like, then **Approve**. Until then, no phone shows anything of it: it looks exactly like a Roll nobody has rolled yet (a player the DM rolled for loses the prompt). Once approved, every phone throws its dice on the dice table as if just rolled. The players are never told whether the DM rolled more than once.
 - **Enemies, NPCs, and players without the app** are answered by the DM on the web page.
 - **There is no time limit.**
 - **Nothing is spent until the DM commits** the action in the normal builder.
@@ -40,7 +41,7 @@ A multi-target Spell takes one target from the phone; the DM can add more in the
 
 ### Rolling on the phone
 
-The phone throws the dice, shows them tumbling, then — when Luck applies — rerolls the chosen dice (a positive reroll the lowest non-Successes, a negative reroll the highest Successes, each die at most once; [dice_resolution_design.md](../common/dice_resolution/dice_resolution_design.md) → Reroll). The result is sent to the DM at once; like a public Skill roll, it cannot be rolled again. The server re-scores the dice itself (the phone's total is not trusted). When the DM rolls for a player, the server throws the dice the same way.
+The phone throws the dice, shows them tumbling, then — when Luck applies — rerolls the chosen dice (a positive reroll the lowest non-Successes, a negative reroll the highest Successes, each die at most once; [dice_resolution_design.md](../common/dice_resolution/dice_resolution_design.md) → Reroll). The result is sent to the DM at once; like a public Skill roll, it cannot be rolled again. The server re-scores the dice itself (the phone's total is not trusted). When the DM rolls, the server throws the dice the same way, and keeps them hidden until the DM approves (see *Rules*).
 
 ## On the phone
 
@@ -58,7 +59,7 @@ The phone throws the dice, shows them tumbling, then — when Luck applies — r
 
 The dice are thrown right over the screen — no backdrop, no box; only the screen's edges stop them, and the Initiative screen stays visible underneath. Each die flies in from a side of the screen, bounces off the edges and the other dice (everyone's), spins and slows down, flickers through faces while it tumbles, and stops on its real value (about a second and a half). Luck rerolls are thrown again once the first throw has stopped.
 
-Each Roll of the action has its own part of the screen — two rolls, two halves; three rolls, three thirds — the player's own first. Its dice are thrown into that part and gently pulled back if they wander; no line is drawn. Each Roll has its own dice colour (the player's own crimson; others blue, green, purple, orange, teal) and a label floating just above its dice (*You — Arcana +3*, *Wolf — Dodging +2*). When another player's result reaches the server, their dice are thrown into their part of the screen, whether or not the player's own dice are already there. A stopped die shows what it counts for: a Success is outlined white, a Critical Success gold, and a 1 is dimmed. Each label adds its Successes when its dice stop. **The dice stay on the screen until the player taps it.**
+Each Roll of the action has its own part of the screen — two rolls, two halves; three rolls, three thirds — the player's own first. Its dice are thrown into that part and gently pulled back if they wander; no line is drawn. Each Roll is in its roller's own dice colour, the same on every phone ([dice_colors.md](dice_colors.md)), with a label floating just above its dice (*You — Arcana +3*, *Wolf — Dodging +2*). When another player's result reaches the server, their dice are thrown into their part of the screen, whether or not the player's own dice are already there. A stopped die's number shows what it counts for: dark green for a Success, deep blue for a Critical Success, dark red for a 1, dark grey for no effect. Each label adds its Successes when its dice stop. **The dice stay on the screen until the player taps it.**
 
 - **Your move:** steps waiting on the player appear at the top of the Initiative screen, on anyone's turn: the title (*Choose your defense*, *Shield \<ally\>?*, *Use your Luck?*, *Roll \<roll\>*), who is attacking whom, and the choices — grouped like the builder's, with the same dice picker as actions. Once sent, the step reads *Sent — waiting for the DM to approve* until the DM approves it.
 - **From any tab:** when a step is waiting, the Initiative tab shows a badge (●) and the phone says *Your move: …* once.
@@ -66,7 +67,7 @@ Each Roll of the action has its own part of the screen — two rolls, two halves
 
 ## On the DM's Encounter page
 
-A **Player actions** panel above the Turn Action panel lists each action in progress: who does what to whom, the stage, and every step of the current stage with its owner and status (*waiting*, the submitted answer, or approved). Buttons: **Approve**, **Send back**, **Decide for …** (with the step's options), **Roll for …**, **Cancel** (drops the action; nothing was spent), and at the end **Open in Attack builder / Cast builder / Item builder / Ability** (when the actor is the acting Combatant). The panel refreshes itself every few seconds.
+A **Player actions** panel above the Turn Action panel lists each action in progress: who does what to whom, the stage, and every step of the current stage with its owner and status (*waiting*, the submitted answer, or approved). Buttons: **Approve**, **Send back**, **Decide for …** (with the step's options), **Roll for …** (then **Roll again** / **Approve**, with the dice shown only to the DM), **Cancel** (drops the action; nothing was spent), and at the end **Open in Attack builder / Cast builder / Item builder / Ability** (when the actor is the acting Combatant). The panel refreshes itself every few seconds.
 
 ## Implementation
 

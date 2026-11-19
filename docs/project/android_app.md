@@ -35,6 +35,8 @@ A request from the app is never the DM: it does not come from the server host's 
   - **Notes** — the Chronicle notes this Character can see, grouped by chapter. Tap a note to expand it.
   - **Scene** — the current chapter, the in-game time, and the Chronicle entries the DM has made active (scene notes and the characters present).
 
+Settings has the app version, the player's **Dice colour** ([dice_colors.md](dice_colors.md)), the connection, and the debug log.
+
 The gear is also on the *Looking for the server*, *No server found* and *Waiting for the DM* screens, so the debug log can be saved when the app can't connect.
 
 The screen on display is refreshed from the server: Initiative every 2 seconds, Sheet / Items / Scene every 5, Notes every 10. A screen is only rebuilt when the server's answer changed.

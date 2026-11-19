@@ -20,12 +20,28 @@ private fun JSONObject.optStringOrNull(key: String): String? =
 
 data class CharacterRef(val id: Int, val name: String)
 
-data class Hello(val campaign: String, val device: String, val character: CharacterRef?) {
+data class Hello(val campaign: String, val device: String, val character: CharacterRef?, val diceColor: Int? = null) {
     companion object {
         fun from(j: JSONObject) = Hello(
             campaign = j.optString("campaign"),
             device = j.optString("device"),
             character = j.optJSONObject("character")?.let { CharacterRef(it.optInt("id"), it.optString("name")) },
+            diceColor = com.dividetask.crimsonsteel.ui.Ui.parseHex(j.optStringOrNull("dice_color")),
+        )
+    }
+}
+
+/** A dice colour on offer in Settings; [takenBy] names whoever else has it. */
+data class DiceColorOption(val key: String, val name: String, val color: Int, val takenBy: String?)
+data class DiceColors(val mine: String, val options: List<DiceColorOption>) {
+    companion object {
+        fun from(j: JSONObject) = DiceColors(
+            mine = j.optString("color"),
+            options = j.optJSONArray("options").mapObjects {
+                DiceColorOption(it.optString("key"), it.optString("name"),
+                    com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optString("hex")) ?: com.dividetask.crimsonsteel.ui.Ui.DICE_DEFAULT,
+                    it.optStringOrNull("taken_by"))
+            },
         )
     }
 }
@@ -238,6 +254,8 @@ data class RollLine(
     val what: String = "", val bonus: Int = 0,
     /** Once rolled: the dice as thrown, any Luck rerolls (null where unchanged), the final dice and Successes. */
     val dice: List<Int>? = null, val rerolled: List<Int?>? = null, val final: List<Int>? = null, val successes: Int? = null,
+    /** The roller's dice colour, the same on every phone (null from an older server). */
+    val color: Int? = null,
 ) {
     val rolled: Boolean get() = final != null
 }
@@ -281,7 +299,8 @@ data class Prompt(
                         it.optString("status"), it.optStringOrNull("summary"),
                         what = it.optString("what"), bonus = it.optInt("bonus"),
                         dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
-                        final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"))
+                        final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
+                        color = com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")))
                 },
                 headline = p.optStringOrNull("headline"),
             )

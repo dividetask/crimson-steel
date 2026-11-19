@@ -75,7 +75,7 @@ object RollFlow {
         val paramsView = Ui.text(ctx, "", 14f, Ui.TEXT_DIM)
         root.addView(paramsView)
 
-        val diceView = DiceView(ctx)
+        val diceView = DiceView(ctx).apply { bodyColor = com.dividetask.crimsonsteel.net.Session.diceColor }
         root.addView(diceView, Ui.matchWidth(Ui.dp(ctx, 12)))
 
         val startingView = Ui.text(ctx, "", 13f, Ui.TEXT_DIM).apply { gravity = Gravity.CENTER }

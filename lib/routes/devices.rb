@@ -26,3 +26,16 @@ post '/devices/assign' do
 
   redirect(request.referer || '/status?view=devices')
 end
+
+# DM changes a dice colour on the Status page: their own ("dm") or a player
+# Character's (e.g. for a player without the app). A colour someone else
+# already has is refused (docs/project/dice_colors.md).
+post '/dice_colors' do
+  halt 403 unless dm_host?
+  begin
+    DiceColors.instance.set(params[:who].to_s, params[:color].to_s)
+  rescue ArgumentError => e
+    session[:dice_color_error] = e.message
+  end
+  redirect(request.referer || '/status')
+end

@@ -232,6 +232,15 @@ helpers do
     encounter_state.combatants.find { |c| c[:creature_id].to_s == acc.id.to_s }
   end
 
+  def dice_colors_view(character_id)
+    mine = DiceColors.instance.key_for(character_id)
+    names = ->(who) { who == DiceColors::DM ? 'the DM' : ((Creatures.get(who) || {})[:name] rescue nil) || 'another player' }
+    { ok: true, color: mine, hex: DiceColors.entry(mine)[:hex],
+      options: DiceColors.instance.options(character_id).map do |o|
+        { key: o[:key], name: o[:name], hex: o[:hex], taken_by: o[:taken_by] && names.call(o[:taken_by]) }
+      end }
+  end
+
   def api_request_view(r)
     r.slice('id', 'key', 'label', 'category', 'dice', 'pool_cost', 'mana_cost', 'at')
   end
@@ -245,7 +254,28 @@ get '/api/hello' do
   api_json(ok: true, service: LanDiscovery::SERVICE, version: LanDiscovery::VERSION,
            campaign: (Chronicle.store.campaign_name rescue nil),
            device: assignment_short_id(current_device_id),
-           character: info ? { id: cid, name: info[:name] } : nil)
+           character: info ? { id: cid, name: info[:name] } : nil,
+           dice_color: info ? DiceColors.instance.hex_for(cid) : nil)
+end
+
+# The player's dice colour and every colour on offer, with who has each
+# (docs/project/dice_colors.md). Names only, never another device's id.
+get '/api/dice_colors' do
+  acc = api_character!
+  api_json(dice_colors_view(acc.id))
+end
+
+# Body: { "color": "<key>" }. Refused (409) when someone else has it.
+post '/api/dice_color' do
+  acc = api_character!
+  body = (JSON.parse(request.body.read) rescue nil)
+  api_error(400, 'invalid payload') unless body.is_a?(Hash)
+  begin
+    DiceColors.instance.set(acc.id, body['color'].to_s)
+  rescue ArgumentError => e
+    api_error(409, e.message)
+  end
+  api_json(dice_colors_view(acc.id))
 end
 
 get '/api/sheet' do

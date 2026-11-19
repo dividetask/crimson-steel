@@ -33,6 +33,9 @@ object Session {
     var api: Api? = null
         private set
 
+    /** This player's dice colour (from /api/hello; changed in Settings). */
+    var diceColor: Int = com.dividetask.crimsonsteel.ui.Ui.DICE_DEFAULT
+
     /** Last sheet fetched — used for the character name and to label public rolls. */
     var sheet: Sheet? = null
 
@@ -111,6 +114,7 @@ object Session {
     /** Confirm [a] answers /api/hello, then make it the current server and remember it. */
     private fun adopt(a: Api): Hello {
         val h = Hello.from(a.get("/api/hello"))
+        h.diceColor?.let { diceColor = it }
         api = a
         prefs.edit().putString(KEY_HOST, a.server.host).putInt(KEY_PORT, a.server.port).apply()
         return h
@@ -128,7 +132,18 @@ object Session {
         prefs.edit().remove(KEY_HOST).remove(KEY_PORT).apply()
     }
 
-    fun hello(done: (Result<Hello>) -> Unit) = withApi({ Hello.from(it.get("/api/hello")) }, done)
+    fun hello(done: (Result<Hello>) -> Unit) = withApi({ Hello.from(it.get("/api/hello")).also { h -> h.diceColor?.let { c -> diceColor = c } } }, done)
+
+    /** This player's dice colour and every colour on offer (Settings). */
+    fun diceColors(done: (Result<com.dividetask.crimsonsteel.data.DiceColors>) -> Unit) =
+        withApi({ com.dividetask.crimsonsteel.data.DiceColors.from(it.get("/api/dice_colors")) }, done)
+
+    /** Change this player's dice colour; refused when someone else has it. */
+    fun setDiceColor(key: String, done: (Result<com.dividetask.crimsonsteel.data.DiceColors>) -> Unit) = withApi({
+        val d = com.dividetask.crimsonsteel.data.DiceColors.from(it.postJson("/api/dice_color", JSONObject().put("color", key)))
+        d.options.find { o -> o.key == d.mine }?.let { o -> diceColor = o.color }
+        d
+    }, done)
 
     fun sheet(done: (Result<Pair<Sheet, String>>) -> Unit) = withApi({
         val j = it.get("/api/sheet")

@@ -41,6 +41,27 @@ object Ui {
     const val DIE_NEUTRAL = 0xFFF3F4F6.toInt()
     const val DIE_ROLLING = 0xFFD6DCE0.toInt()
 
+    // Dice are light, soft colours (each roller's own, docs/project/dice_colors.md);
+    // the number printed on a stopped die shows what it counts for.
+    const val NUM_SUCCESS = 0xFF166534.toInt() // dark green
+    const val NUM_CRIT = 0xFF1E3A8A.toInt()    // deep blue
+    const val NUM_FAIL = 0xFF991B1B.toInt()    // dark red (a 1)
+    const val NUM_NEUTRAL = 0xFF374151.toInt() // dark grey (no effect, or still rolling)
+    /** Until the server says otherwise: the player's own dice (sky) and the DM's (light grey). */
+    const val DICE_DEFAULT = 0xFF93C5FD.toInt()
+    const val DICE_DM = 0xFFD4D4D8.toInt()
+
+    fun numberColor(value: Int, tn: Int): Int = when (com.dividetask.crimsonsteel.dice.DiceRules.dieState(value, tn)) {
+        com.dividetask.crimsonsteel.dice.DieState.CRITICAL -> NUM_CRIT
+        com.dividetask.crimsonsteel.dice.DieState.FAILURE -> NUM_FAIL
+        com.dividetask.crimsonsteel.dice.DieState.SUCCESS -> NUM_SUCCESS
+        com.dividetask.crimsonsteel.dice.DieState.NEUTRAL -> NUM_NEUTRAL
+    }
+
+    /** "#RRGGBB" from the server, or null. */
+    fun parseHex(s: String?): Int? =
+        if (s == null || !Regex("#[0-9a-fA-F]{6}").matches(s)) null else (0xFF000000 or s.substring(1).toLong(16)).toInt()
+
     fun dp(ctx: Context, v: Int): Int = (v * ctx.resources.displayMetrics.density).roundToInt()
     fun dpf(ctx: Context, v: Float): Float = v * ctx.resources.displayMetrics.density
 

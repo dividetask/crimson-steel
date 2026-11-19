@@ -22,9 +22,9 @@ import kotlin.random.Random
 
 /**
  * Draws a set of d10s and animates them tumbling onto the table before
- * settling on their final values. Settled dice are colored by state
- * (Failure red, Success green, Critical blue, Neutral plain), matching the
- * web sheet's dice colors.
+ * settling on their final values. Every die is the roller's own soft colour
+ * ([bodyColor]); once settled, its number shows what it counts for (Success
+ * dark green, Critical deep blue, a 1 dark red, no effect dark grey).
  */
 class DiceView(context: Context) : View(context) {
 
@@ -46,6 +46,10 @@ class DiceView(context: Context) : View(context) {
     private var progress = 1f
     private var animator: ValueAnimator? = null
     private val random = Random.Default
+
+    /** The roller's dice colour (docs/project/dice_colors.md). */
+    var bodyColor: Int = Ui.DICE_DEFAULT
+        set(v) { field = v; invalidate() }
 
     /** Dice per row; the dice are sized to fit. */
     var perRow = 5
@@ -207,7 +211,7 @@ class DiceView(context: Context) : View(context) {
         D10Shape.build(r, outline, face, edges)
 
         val blank = value == 0
-        val base = if (settled && !blank) stateColor(value) else Ui.DIE_ROLLING
+        val base = bodyColor
         bodyPaint.color = shade(base, 0.82f)
         canvas.drawPath(outline, bodyPaint)
         bodyPaint.color = base
@@ -220,7 +224,7 @@ class DiceView(context: Context) : View(context) {
             canvas.restore()
             return
         }
-        numberPaint.color = if (settled) textColorFor(value) else Color.BLACK
+        numberPaint.color = if (settled) Ui.numberColor(value, tn) else Ui.NUM_NEUTRAL
         val label = if (value == DiceConfig.DIE_SIZE) "10" else value.toString()
         val textY = r * 0.05f - (numberPaint.descent() + numberPaint.ascent()) / 2f
         if (label.length > 1) numberPaint.textScaleX = 0.8f else numberPaint.textScaleX = 1f
@@ -232,16 +236,6 @@ class DiceView(context: Context) : View(context) {
         }
         canvas.restore()
     }
-
-    private fun stateColor(value: Int): Int = when (DiceRules.dieState(value, tn)) {
-        DieState.FAILURE -> Ui.DIE_FAIL
-        DieState.SUCCESS -> Ui.DIE_SUCCESS
-        DieState.CRITICAL -> Ui.DIE_CRIT
-        DieState.NEUTRAL -> Ui.DIE_NEUTRAL
-    }
-
-    private fun textColorFor(value: Int): Int =
-        if (DiceRules.dieState(value, tn) == DieState.NEUTRAL) Color.BLACK else Color.WHITE
 
     private fun shade(color: Int, f: Float): Int = Color.rgb(
         (Color.red(color) * f).toInt(), (Color.green(color) * f).toInt(), (Color.blue(color) * f).toInt(),

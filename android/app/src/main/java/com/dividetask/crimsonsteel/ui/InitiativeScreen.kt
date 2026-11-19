@@ -467,15 +467,19 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     /** Rolls whose dice have already been shown rolling (task ids). */
     private val shownRolling = mutableSetOf<String>()
-    /** The dice table's bands for an action: one per Roll, the player's own first in its colour. */
+    /** The dice table's parts of the screen for an action: one per Roll, the player's own first. */
     private fun zonesFor(p: com.dividetask.crimsonsteel.data.Prompt): List<RollTable.Zone> {
         val mine = p.allRolls.filter { it.taskId == p.taskId }
         val others = p.allRolls.filter { it.taskId != p.taskId }
         return (mine + others).mapIndexed { i, r ->
             val who = if (r.taskId == p.taskId) "You" else r.owner
-            RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", RollTable.colorFor(i))
+            RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", diceColorOf(p, r, i))
         }
     }
+
+    /** Each roller's own dice colour, as the server sends it (the same on every phone). */
+    private fun diceColorOf(p: com.dividetask.crimsonsteel.data.Prompt, r: com.dividetask.crimsonsteel.data.RollLine, i: Int): Int =
+        r.color ?: if (r.taskId == p.taskId) com.dividetask.crimsonsteel.net.Session.diceColor else RollTable.colorFor(i)
 
     /**
      * The roll card: the action as a header ("Casting Fire Dart"), then each
@@ -500,7 +504,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             card.addView(Ui.text(ctx, label, 16f, if (mine) Ui.TEXT else Ui.TEXT_DIM, bold = true), Ui.matchWidth(Ui.dp(ctx, 12)))
             card.addView(Ui.text(ctx, RollFlow.paramsLine(line.diceCount, line.tn, line.startingValue) +
                 luckText(line.positiveReroll, line.negativeReroll), 12f, Ui.TEXT_FAINT))
-            val dice = DiceView(ctx).apply { perRow = 8 }
+            val dice = DiceView(ctx).apply { perRow = 8; bodyColor = diceColorOf(p, line, p.allRolls.indexOf(line)) }
             card.addView(dice, Ui.matchWidth(Ui.dp(ctx, 4)))
             val result = Ui.text(ctx, "", 13f, Ui.TEXT_DIM)
             card.addView(result, Ui.matchWidth())

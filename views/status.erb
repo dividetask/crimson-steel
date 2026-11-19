@@ -130,6 +130,28 @@
       <p class="lead">Every device that connects to the server is tracked here (identified by a per-device cookie, stored in <code>data/devices.json</code>). Assign a player Character to a device and that device opens the Character Sheets page on its own sheet by default &mdash; while still being able to page through the other player Characters.</p>
       <%= erb :_assignment_stub, locals: {
             devices: @devices, characters: @characters, current_id: current_device_id } %>
+
+      <h2 id="dice-colors">Dice colours</h2>
+      <p class="lead">Each roller's dice colour, the same on every phone. Players pick their own in the app's Settings; a colour someone already has can't be picked twice. Your dice (enemies, NPCs, and rolls for no Character) are light grey unless you change them.</p>
+      <% if (err = session.delete(:dice_color_error)) %><p class="flash error"><%= h err %></p><% end %>
+      <table class="dice-colors">
+        <% ([[DiceColors::DM, 'DM (you)']] + @characters.map { |c| [c[:id].to_s, c[:name]] }).each do |who, name| %>
+          <% mine = DiceColors.instance.key_for(who) %>
+          <tr>
+            <td><span class="dice-swatch" style="background: <%= DiceColors.entry(mine)[:hex] %>"></span> <%= h name %></td>
+            <td>
+              <form method="post" action="/dice_colors" class="af-inline">
+                <input type="hidden" name="who" value="<%= h who %>">
+                <select name="color" onchange="this.form.submit()">
+                  <% DiceColors.instance.options(who).each do |o| %>
+                    <option value="<%= o[:key] %>" <%= 'selected' if o[:key] == mine %> <%= 'disabled' if o[:taken_by] %>><%= o[:name] %><%= ' (taken)' if o[:taken_by] %></option>
+                  <% end %>
+                </select>
+              </form>
+            </td>
+          </tr>
+        <% end %>
+      </table>
     <% end %>
 
     <% if @tests_html %>

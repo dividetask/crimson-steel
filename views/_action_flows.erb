@@ -77,6 +77,10 @@
                     <span class="af-wait">waiting<%= t['owner_id'] ? '' : ' for the DM' %></span>
                   <% else %>
                     <%= Rack::Utils.escape_html(t['summary'].to_s) %><%= t['by'] == 'dm' ? ' — by DM' : '' %>
+                    <% if f.dm_pending?(t) %>
+                      <span class="af-dm-dice">Dice: <%= Array(t.dig('value', 'final')).join(', ') %><%= t.dig('value', 'rerolled') ? " (Luck rerolled from #{Array(t.dig('value', 'dice')).join(', ')})" : '' %></span>
+                      <span class="af-dm-hidden">Only you can see this roll. Roll again as often as you like; the players see it, rolling, once you approve.</span>
+                    <% end %>
                   <% end %>
                   <% if t['kind'] == 'roll' %>
                     <span class="af-roll-params"><%= t.dig('roll', 'dice_count') %> dice @ TN <%= t.dig('roll', 'tn') %><%= t.dig('roll', 'positive_reroll').to_i.positive? ? ", reroll +#{t.dig('roll', 'positive_reroll')}" : '' %><%= t.dig('roll', 'negative_reroll').to_i.positive? ? ", reroll −#{t.dig('roll', 'negative_reroll')}" : '' %></span>
@@ -87,7 +91,11 @@
                     <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/approve" class="af-inline">
                       <button type="submit" class="af-btn af-primary">Approve</button>
                     </form>
-                    <% unless t['kind'] == 'declare' %>
+                    <% if f.dm_pending?(t) %>
+                      <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/roll" class="af-inline">
+                        <button type="submit" class="af-btn">Roll again</button>
+                      </form>
+                    <% elsif t['kind'] != 'declare' %>
                       <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= t['id'] %>/reject" class="af-inline">
                         <button type="submit" class="af-btn">Send back</button>
                       </form>

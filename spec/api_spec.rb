@@ -19,6 +19,7 @@ RSpec.describe 'Android app JSON API', type: :request do
     header 'Host', '192.168.1.10:4567'
     DeviceRegistry.instance_variable_set(:@instance, DeviceRegistry.new(File.join(tmp, 'devices.json')))
     PlayerRequests.instance = PlayerRequests.new
+    DiceColors.instance_variable_set(:@instance, DiceColors.new(File.join(tmp, 'dice_colors.json')))
     ActionFlows.instance = ActionFlows.new
     cond = Hash.new { |h, id| h[id] = Conditions::Instance.new }
     Encounter.state = Encounter::State.new(
@@ -29,6 +30,7 @@ RSpec.describe 'Android app JSON API', type: :request do
 
   after do
     DeviceRegistry.reset!
+    DiceColors.reset!
     FileUtils.remove_entry(tmp) if File.exist?(tmp)
   end
 
@@ -462,11 +464,68 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(still['count']).to eq(0) # nothing waiting on this player, so no badge
     end
 
+    it "hides the DM's rolls from the players until the DM approves them" do
+      flow = attack_other_pc!
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
+      pick = lambda do |x|
+        opts = flow.options_for(x).reject { |o| o[:disabled] }
+        (x['step'] == 'defense' && opts.find { |o| o[:value].start_with?('dodge|') }) || opts.first
+      end
+      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: pick.call(x)[:value]) } until %w[roll resolve].include?(flow.stage)
+      roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
+      expect(roll['all_rolls'].map { |r| r['color'] }).to all(match(/\A#\h{6}\z/))
+      tid = roll['task_id']
+
+      # The DM rolls the player's roll for them, twice: the player sees nothing.
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{tid}/roll")
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{tid}/roll")
+      expect(flow.task(tid)).to include('status' => 'submitted', 'by' => 'dm')
+      expect(api_get('/api/prompts')['prompts'].map { |p| p['task_id'] }).not_to include(tid)
+      status = api_get('/api/initiative')['flows'].flat_map { |f| f['tasks'] }
+      expect(status.map { |x| x['summary'] }).not_to include(flow.task(tid)['summary'])
+      expect(status.map { |x| x['status'] }).not_to include('submitted')
+      api_post("/api/prompts/#{flow.id}/#{tid}", roll: { dice: [10, 10], final: [10, 10] })
+      expect(last_response.status).not_to eq(200)
+
+      # Approved: now on the phone, with the DM's dice, as if just thrown.
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{tid}/approve")
+      back = api_get('/api/prompts')['prompts'].find { |p| p['task_id'] == tid }
+      expect(back['all_rolls'].find { |r| r['task_id'] == tid }['final']).to eq(flow.task(tid)['value']['final'])
+    end
+
     it 'keeps the DM actions DM-only' do
       flow = attack_other_pc!
       post "/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve", {}, player_env
       expect(last_response.status).to eq(403)
       expect(flow.stage).to eq('declare')
+    end
+  end
+
+  describe 'dice colours' do
+    before { assign_device! }
+
+    it 'gives each player their own colour and lets them change it to a free one' do
+      j = api_get('/api/dice_colors')
+      expect(j['color']).not_to eq('silver')
+      expect(j['options'].length).to be >= 12
+      expect(api_get('/api/hello')['dice_color']).to eq(j['hex'])
+
+      DiceColors.instance.key_for(DiceColors::DM) # the DM holds light grey
+      taken = api_post('/api/dice_color', color: 'silver')
+      expect(last_response.status).to eq(409)
+      expect(taken['error']).to match(/already/)
+
+      free = api_get('/api/dice_colors')['options'].find { |o| o['taken_by'].nil? && o['key'] != j['color'] }
+      expect(api_post('/api/dice_color', color: free['key'])['color']).to eq(free['key'])
+      grey = api_get('/api/dice_colors')['options'].find { |o| o['key'] == 'silver' }
+      expect(grey['taken_by']).to eq('the DM')
+    end
+
+    it 'lets only the DM change colours on the web' do
+      post '/dice_colors', { who: 'dm', color: 'sky' }, player_env
+      expect(last_response.status).to eq(403)
+      post '/dice_colors', { who: 'dm', color: 'peach' }, 'REMOTE_ADDR' => '127.0.0.1'
+      expect(DiceColors.instance.key_for('dm')).to eq('peach')
     end
   end
 

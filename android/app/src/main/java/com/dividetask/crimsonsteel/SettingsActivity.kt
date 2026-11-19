@@ -17,8 +17,9 @@ import com.dividetask.crimsonsteel.ui.Ui
 
 /**
  * Settings, reached from the gear at the top of every screen (as in the
- * Sudoku Trainer): the app version, the connection, and the debug log —
- * which can be saved as a file to the phone's Downloads folder.
+ * Sudoku Trainer): the app version, the player's dice colour, the
+ * connection, and the debug log — which can be saved as a file to the
+ * phone's Downloads folder.
  */
 class SettingsActivity : Activity() {
 
@@ -41,6 +42,16 @@ class SettingsActivity : Activity() {
         // --- App ---------------------------------------------------------------
         col.addView(Ui.sectionHeader(this, "App"))
         col.addView(infoCard(listOf("Version" to Ui.versionName)), Ui.matchWidth())
+
+        // --- Dice colour -------------------------------------------------------------
+        col.addView(Ui.sectionHeader(this, "Dice colour"))
+        col.addView(Ui.text(this,
+            "Everyone sees your dice in this colour. A colour someone else has can't be picked.",
+            13f, Ui.TEXT_DIM), Ui.matchWidth())
+        val colors = Ui.vertical(this, 0)
+        colors.addView(Ui.text(this, if (Session.api == null) "Connect to the server to choose a colour." else "Loading\u2026", 13f, Ui.TEXT_FAINT))
+        col.addView(colors, Ui.matchWidth(Ui.dp(this, 6)))
+        if (Session.api != null) Session.diceColors { r -> showColors(colors, r) }
 
         // --- Connection ----------------------------------------------------------
         col.addView(Ui.sectionHeader(this, "Connection"))
@@ -75,6 +86,42 @@ class SettingsActivity : Activity() {
         root.addView(ScrollView(this).apply { addView(col) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(root)
+    }
+
+    /** One swatch per colour, four to a row: yours outlined gold, others' taken ones faded with who has them. */
+    private fun showColors(box: LinearLayout, r: Result<com.dividetask.crimsonsteel.data.DiceColors>) {
+        if (isFinishing) return
+        box.removeAllViews()
+        val d = r.getOrElse {
+            box.addView(Ui.text(this, "Could not load the colours: ${it.message}", 13f, Ui.TEXT_FAINT))
+            return
+        }
+        d.options.chunked(4).forEach { rowOpts ->
+            val row = Ui.horizontal(this)
+            rowOpts.forEach { o ->
+                val mine = o.key == d.mine
+                val taken = o.takenBy != null
+                val cell = Ui.vertical(this, 6).apply {
+                    gravity = android.view.Gravity.CENTER_HORIZONTAL
+                    alpha = if (taken) 0.35f else 1f
+                    background = Ui.rounded(Ui.SURFACE, Ui.dpf(context, 8f), if (mine) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(context, if (mine) 2 else 1))
+                }
+                cell.addView(View(this).apply { background = Ui.rounded(o.color, Ui.dpf(context, 6f)) },
+                    LinearLayout.LayoutParams(Ui.dp(this, 34), Ui.dp(this, 34)))
+                cell.addView(Ui.text(this, o.name, 12f, Ui.TEXT).apply { gravity = android.view.Gravity.CENTER })
+                if (taken) cell.addView(Ui.text(this, o.takenBy!!, 10f, Ui.TEXT_DIM).apply { gravity = android.view.Gravity.CENTER })
+                if (!mine && !taken) cell.setOnClickListener {
+                    Session.setDiceColor(o.key) { res ->
+                        res.onFailure { e -> toast(e.message ?: "Could not change the colour") }
+                        // Reload either way: someone may have just taken it.
+                        Session.diceColors { again -> showColors(box, again) }
+                    }
+                }
+                row.addView(cell, Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 4); bottomMargin = Ui.dp(this@SettingsActivity, 4) })
+            }
+            repeat(4 - rowOpts.size) { row.addView(View(this), Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 4) }) }
+            box.addView(row, Ui.matchWidth())
+        }
     }
 
     private fun infoCard(rows: List<Pair<String, String>>): View = Ui.card(this).apply {

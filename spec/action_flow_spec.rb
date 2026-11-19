@@ -146,8 +146,20 @@ RSpec.describe ActionFlow do
     f.decide(f.open_tasks.first['id'], 'none')
     t = f.open_tasks.first
     f.roll_for(t['id'], rng: Random.new(1))
+    # Kept for the DM until approved: hidden from the players, can be rolled again.
+    expect(f.task(t['id'])).to include('status' => 'submitted', 'by' => 'dm')
+    expect(f.dm_pending?(f.task(t['id']))).to be true
+    expect(f.stage).to eq('roll')
+    hidden = f.public_roll_overview.find { |r| r[:task_id] == t['id'] }
+    expect(hidden).to include(status: 'waiting', dice: nil, final: nil, successes: nil, summary: nil)
+    first = f.task(t['id'])['value']
+    f.roll_for(t['id'], rng: Random.new(2))
+    expect(f.task(t['id'])['value']).not_to eq(first)
+    expect { f.submit(t['id'], { 'dice' => [5, 5, 5] }) }.to raise_error(ArgumentError, /DM is rolling/)
+    f.approve(t['id'])
     expect(f.task(t['id'])).to include('status' => 'approved', 'by' => 'dm')
     expect(f.stage).to eq('resolve')
+    expect(f.public_roll_overview.find { |r| r[:task_id] == t['id'] }[:final]).to eq(f.task(t['id'])['value']['final'])
   end
 
   describe '.apply_rerolls' do

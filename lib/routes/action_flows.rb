@@ -34,10 +34,11 @@ helpers do
              status: t['status'], summary: t['summary'] }
     if t['kind'] == 'roll'
       view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
-      view[:result] = t['value'] if t['value']
+      view[:result] = t['value'] if t['value'] && !flow.dm_pending?(t)
       # Everyone's roll in this action, so the player sees the whole picture
       # (and each phone can show the others' dice rolling as they arrive).
-      view[:all_rolls] = flow.roll_overview
+      # A DM roll the DM has not approved yet is shown as not rolled.
+      view[:all_rolls] = flow.public_roll_overview.map { |r| r.merge(color: roll_color(r[:owner_id])) }
       view[:headline] = flow.headline(viewer_ids)
     else
       view[:options] = flow.options_for(t)
@@ -49,18 +50,31 @@ helpers do
   def flow_status_view(flow)
     { flow_id: flow.id, kind: flow.kind, stage: flow.stage, summary: flow.summary, blocking: flow.blocking?,
       pool_cost: flow.declared_pool_cost,
-      tasks: flow.stage_tasks.map { |t| { step: t['step'], owner: t['owner_name'], status: t['status'], summary: t['summary'] } } }
+      tasks: flow.stage_tasks.map do |t|
+        hidden = flow.dm_pending?(t)
+        { step: t['step'], owner: t['owner_name'], status: hidden ? 'waiting' : t['status'], summary: hidden ? nil : t['summary'] }
+      end }
+  end
+
+  # The dice colour of a Roll's owner: a player Character's own colour, or
+  # the DM's for everyone else (docs/project/dice_colors.md).
+  def roll_color(owner_id)
+    c = owner_id && encounter_state.combatants.find { |x| x[:id] == owner_id }
+    who = c && creature_is_pc?(c[:creature_id]) ? c[:creature_id] : DiceColors::DM
+    DiceColors.instance.hex_for(who)
   end
 
   # Prompts waiting on this device's Character (its turn or not).
   def my_prompts(acc)
     mine = my_combatant_ids(acc)
     action_flows.active.flat_map do |f|
-      tasks = f.open_tasks.select { |t| t['kind'] != 'declare' && mine.include?(t['owner_id']) }
+      # A roll the DM made for the player and has not approved yet is the
+      # DM's business: it is not on the player's phone at all until approved.
+      tasks = f.open_tasks.select { |t| t['kind'] != 'declare' && mine.include?(t['owner_id']) && !f.dm_pending?(t) }
       # A player's roll stays on screen (read-only once approved) until the DM
       # commits the action, so they see everyone else's dice land too.
       if %w[roll resolve].include?(f.stage)
-        f.stage_tasks('roll').each { |t| tasks << t if mine.include?(t['owner_id']) && !tasks.include?(t) }
+        f.stage_tasks('roll').each { |t| tasks << t if mine.include?(t['owner_id']) && !tasks.include?(t) && !f.dm_pending?(t) }
       end
       tasks.map { |t| flow_prompt_view(f, t, mine) }
     end

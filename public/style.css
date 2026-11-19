@@ -4978,6 +4978,10 @@ button.spell-school-badge { font-family: inherit; }
 .af-submitted .af-answer { font-weight: bold; }
 .af-approved { color: #4a7c3a; }
 .af-roll-params { display: block; color: #777; font-size: 0.85em; }
+.af-dm-dice { display: block; font-weight: 600; }
+.af-dm-hidden { display: block; color: #8a6d00; font-size: 0.85em; font-style: italic; }
+.dice-colors td { padding: 4px 12px 4px 0; vertical-align: middle; }
+.dice-swatch { display: inline-block; width: 16px; height: 16px; border-radius: 4px; border: 1px solid #0003; vertical-align: middle; margin-right: 6px; }
 .af-actions { text-align: right; white-space: nowrap; }
 .af-select { max-width: 260px; }
 .af-resolve { margin-top: 8px; display: flex; align-items: center; gap: 10px; }

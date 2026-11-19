@@ -175,6 +175,7 @@ class ActionFlow
   def submit(task_id, value, by: 'player')
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'that step is finished' if t['status'] == 'approved' || t['stage'] != @stage
+    raise ArgumentError, 'the DM is rolling that' if by == 'player' && dm_pending?(t)
     if t['kind'] == 'roll'
       t['value'] = score_roll(t, value)
       t['summary'] = roll_summary(t['value'])
@@ -214,14 +215,29 @@ class ActionFlow
     approve(task_id)
   end
 
-  # DM rolls a roll task on the owner's behalf (server-side dice).
+  # DM rolls a roll task on the owner's behalf (server-side dice). The roll
+  # is kept for the DM's eyes only (submitted, by the DM) so the DM can roll
+  # again as often as they like; the players see nothing of it — not even
+  # that it was rolled — until the DM approves it.
   def roll_for(task_id, rng: Random.new)
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'not a roll' unless t['kind'] == 'roll'
     r = t['roll']
     initial = Array.new(r['dice_count']) { rng.rand(1..die_size) }
     final, rerolled = ActionFlow.apply_rerolls(initial, r['tn'], r['positive_reroll'].to_i, r['negative_reroll'].to_i, rng)
-    decide(task_id, { 'dice' => initial, 'rerolled' => rerolled, 'final' => final })
+    submit(task_id, { 'dice' => initial, 'rerolled' => rerolled, 'final' => final }, by: 'dm')
+  end
+
+  # A DM roll the DM has not approved yet: hidden from every player.
+  def dm_pending?(t) = t['kind'] == 'roll' && t['status'] == 'submitted' && t['by'] == 'dm'
+
+  # Every Roll as the players may see it: a DM roll still waiting for the
+  # DM's approval looks exactly like one nobody has rolled.
+  def public_roll_overview
+    roll_overview.map do |r|
+      next r unless dm_pending?(task(r[:task_id]))
+      r.merge(status: 'waiting', summary: nil, dice: nil, rerolled: nil, final: nil, successes: nil)
+    end
   end
 
   def cancel! = @status = 'cancelled'

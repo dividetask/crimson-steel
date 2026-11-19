@@ -39,14 +39,18 @@ object RollTable {
     /** One band of the table: a Roll of the action. */
     data class Zone(val key: String, val label: String, val color: Int)
 
-    /** Dice colours: the player's own first, then one per other roller. */
+    /**
+     * Fallback dice colours, only used when the server sent none: each roller
+     * normally has their own colour, the same on every phone
+     * (docs/project/dice_colors.md).
+     */
     val COLORS = intArrayOf(
-        0xFFC62828.toInt(), // crimson — the player
-        0xFF1E88E5.toInt(), // blue
-        0xFF43A047.toInt(), // green
-        0xFF8E24AA.toInt(), // purple
-        0xFFEF6C00.toInt(), // orange
-        0xFF00897B.toInt(), // teal
+        Ui.DICE_DEFAULT,
+        0xFFC4B5FD.toInt(), // lavender
+        0xFFFDBA74.toInt(), // peach
+        0xFFFDE68A.toInt(), // butter
+        0xFF99F6E4.toInt(), // aqua
+        0xFFF0ABFC.toInt(), // orchid
     )
 
     fun colorFor(index: Int) = COLORS[index.mod(COLORS.size)]
@@ -294,7 +298,7 @@ object RollTable {
                     "  \u00b7  $n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) ", $crits crit${if (crits == 1) "" else "s"}" else ""
                 }
                 val textLine = z.label + result
-                label.color = Color.rgb(min(255, Color.red(z.color) + 90), min(255, Color.green(z.color) + 90), min(255, Color.blue(z.color) + 90))
+                label.color = Color.rgb(min(255, Color.red(z.color) + 30), min(255, Color.green(z.color) + 30), min(255, Color.blue(z.color) + 30))
                 val tw = label.measureText(textLine)
                 val x = (cx - tw / 2f).coerceIn(8 * density, max(8 * density, width - tw - 8 * density))
                 val y = top.coerceIn(20 * density, height - 8 * density)
@@ -314,25 +318,19 @@ object RollTable {
             canvas.translate(d.x, d.y)
             canvas.rotate(d.angle)
             D10Shape.build(r, outline, face, edges)
-            fill.color = shade(color, 0.7f)
+            fill.color = shade(color, 0.82f)
             canvas.drawPath(outline, fill)
             fill.color = color
             canvas.drawPath(face, fill)
-            stroke.color = 0x66000000; stroke.strokeWidth = r * 0.05f
+            stroke.color = 0x44000000; stroke.strokeWidth = r * 0.05f
             canvas.drawPath(edges, stroke)
             canvas.drawPath(face, stroke)
-            // A stopped die shows what it counts for: Success / Critical glow, a 1 dimmed.
-            if (still) {
-                when {
-                    d.face == DiceConfig.DIE_SIZE -> { stroke.color = Ui.GOLD; stroke.strokeWidth = r * 0.16f; canvas.drawPath(outline, stroke) }
-                    d.face >= tn -> { stroke.color = Color.WHITE; stroke.strokeWidth = r * 0.10f; canvas.drawPath(outline, stroke) }
-                    d.face == 1 -> { fill.color = 0x88000000.toInt(); canvas.drawPath(outline, fill) }
-                }
-            }
-            stroke.color = 0xAA000000.toInt(); stroke.strokeWidth = r * 0.06f
+            stroke.color = 0x88000000.toInt(); stroke.strokeWidth = r * 0.06f
             canvas.drawPath(outline, stroke)
             text.textSize = r * 0.72f
-            text.color = Color.WHITE
+            // A stopped die's number shows what it counts for (Success green,
+            // Critical deep blue, a 1 red, no effect grey); dark grey while rolling.
+            text.color = if (still) Ui.numberColor(d.face, tn) else Ui.NUM_NEUTRAL
             val ty = r * 0.05f - (text.descent() + text.ascent()) / 2f
             canvas.drawText(d.face.toString(), 0f, ty, text)
             canvas.restore()
