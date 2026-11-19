@@ -347,18 +347,13 @@ object RollTable {
                 val color = zones.find { it.key == key }?.color ?: COLORS[0]
                 for (d in t.dice) drawDie(canvas, d, rad, color, t.tn, t.done || !d.moving)
             }
-            // Each Roll's label — whose and what, with the result once its dice
-            // stop — fixed at the top left of its strip.
+            // Each Roll's label — the character's name and the TN (a Damage
+            // Rider: its kind) — fixed at the top left of its strip.
             for ((key, t) in throws) {
                 val z = zones.find { it.key == key } ?: continue
-                val result = if (!t.done) "" else {
-                    val n = DiceRules.dois(t.final, t.tn, t.startingValue, t.failureModifier)
-                    val crits = t.final.count { it == DiceConfig.DIE_SIZE }
-                    "  \u00b7  $n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) ", $crits crit${if (crits == 1) "" else "s"}" else ""
-                }
                 label.color = Color.rgb(min(255, Color.red(z.color) + 30), min(255, Color.green(z.color) + 30), min(255, Color.blue(z.color) + 30))
                 val r = zoneRect(t.zone)
-                canvas.drawText(z.label + result, 12 * density, r.top + labelSpace(t.zone) - 8 * density, label)
+                canvas.drawText(z.label, 12 * density, r.top + labelSpace(t.zone) - 8 * density, label)
             }
             title?.let {
                 label.textAlign = Paint.Align.CENTER

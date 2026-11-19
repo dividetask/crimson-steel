@@ -213,6 +213,7 @@ class ActionFlow
         what: r['what'], bonus: r['bonus'].to_i, dice_count: r['dice_count'], tn: r['tn'],
         starting_value: r['starting_value'], positive_reroll: r['positive_reroll'], negative_reroll: r['negative_reroll'],
         failure_modifier: r.fetch('failure_modifier', -1),
+        rider: r['roll_id'].to_s.start_with?('rider-'), # a weapon's Damage Rider (e.g. Vicious)
         status: t['status'], summary: t['summary'], claimed: !!t['claimed'], by: t['by'],
         dice: v['dice'], rerolled: v['rerolled'], final: v['final'], successes: v['successes'] }
     end

@@ -621,13 +621,11 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
      */
     private fun throwShared(d: Initiative) {
         val act = ctx as? android.app.Activity ?: return
-        val myName = Session.sheet?.name
         for (a in d.shared) {
             val fresh = a.rolls.filter { r -> r.final != null && "${r.taskId}:${r.final}" !in thrownShared && r.taskId !in shownRolling }
             if (fresh.isEmpty()) continue
             val zones = a.rolls.mapIndexed { i, r ->
-                val who = if (r.owner == myName) "You" else r.owner
-                RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", r.color ?: RollTable.colorFor(i))
+                RollTable.Zone(r.taskId, zoneLabel(r), r.color ?: RollTable.colorFor(i))
             }
             for (r in fresh) {
                 thrownShared += "${r.taskId}:${r.final}"
@@ -653,10 +651,17 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         val mine = p.allRolls.filter { it.taskId in myRollTasks || it.taskId == p.taskId }
         val others = p.allRolls.filter { it !in mine }
         return (mine + others).mapIndexed { i, r ->
-            val who = if (r in mine) "You" else r.owner
-            RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", diceColorOf(p, r, i))
+            RollTable.Zone(r.taskId, zoneLabel(r), diceColorOf(p, r, i))
         }
     }
+
+    /**
+     * A Roll's label on the dice table: the character's name and the Roll's
+     * TN — "Wolf (TN 9)" — or, for a Damage Rider, its kind — "Garroth Vask
+     * (Vicious Damage)".
+     */
+    private fun zoneLabel(r: com.dividetask.crimsonsteel.data.RollLine): String =
+        if (r.rider) "${r.owner} (${r.what.ifBlank { r.name }} Damage)" else "${r.owner} (TN ${r.tn})"
 
     /** Each roller's own dice colour, as the server sends it (the same on every phone). */
     private fun diceColorOf(p: com.dividetask.crimsonsteel.data.Prompt, r: com.dividetask.crimsonsteel.data.RollLine, i: Int): Int =

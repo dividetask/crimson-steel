@@ -266,6 +266,8 @@ data class RollLine(
     val color: Int? = null,
     /** What a 1 counts for: −1, or 0 for a Damage Rider. */
     val failureModifier: Int = -1,
+    /** A weapon's Damage Rider (e.g. Vicious), rolled after the attack lands. */
+    val rider: Boolean = false,
 ) {
     val rolled: Boolean get() = final != null
 }
@@ -281,7 +283,8 @@ fun rollLine(it: JSONObject) = RollLine(it.optString("task_id"), it.optString("o
     dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
     final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
     color = com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")),
-    failureModifier = if (it.has("failure_modifier") && !it.isNull("failure_modifier")) it.optInt("failure_modifier") else -1)
+    failureModifier = if (it.has("failure_modifier") && !it.isNull("failure_modifier")) it.optInt("failure_modifier") else -1,
+    rider = it.optBoolean("rider"))
 
 /** What a committed action did ("Garroth Vask hit Wolf…"); [yours] when this player took it. */
 data class NewsItem(val flowId: String, val text: String, val yours: Boolean) {
