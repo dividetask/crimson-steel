@@ -12,7 +12,7 @@ import android.view.View
  * dice every count includes — the action's minimum minus one) or a button
  * carrying its count. [lit] dice are part of the current selection.
  */
-class DieChip(context: Context, private val number: Int?) : View(context) {
+class DieChip(context: Context, private val number: Int?, private val speed: Boolean = false) : View(context) {
 
     var lit = false
         set(v) { field = v; invalidate() }
@@ -47,6 +47,8 @@ class DieChip(context: Context, private val number: Int?) : View(context) {
         canvas.translate(width / 2f, height / 2f)
         val base = when {
             !available -> Ui.SURFACE
+            // A die the weapon's Speed costs: amber, marked "S".
+            speed && lit -> 0xFF8A5A00.toInt()
             lit -> Ui.CRIMSON
             number != null -> Ui.SURFACE_HI
             else -> Ui.SURFACE_HI
@@ -61,6 +63,12 @@ class DieChip(context: Context, private val number: Int?) : View(context) {
         canvas.drawPath(edges, stroke)
         canvas.drawPath(face, stroke)
         canvas.drawPath(outline, stroke)
+        if (speed) {
+            text.textSize = r * 0.62f
+            text.color = if (lit) Ui.TEXT else Ui.TEXT_FAINT
+            val y = r * 0.05f - (text.descent() + text.ascent()) / 2f
+            canvas.drawText("S", 0f, y, text)
+        }
         if (number != null) {
             text.textSize = r * 0.8f
             text.color = if (available) Ui.TEXT else Ui.TEXT_FAINT

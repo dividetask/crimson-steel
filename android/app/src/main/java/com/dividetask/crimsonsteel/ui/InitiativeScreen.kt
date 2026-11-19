@@ -378,7 +378,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private fun diceStrip(d: Initiative, opt: TurnOption): View =
         Ui.diceStrip(ctx, opt.dice.map { c ->
             Triple(c.dice, affordable(d, c.poolCost, c.affordable)) { selectedDice = c.dice; render() }
-        }, selectedDice ?: 0)
+        }, selectedDice ?: 0, speed = opt.speed)
 
     private fun request(opt: TurnOption) {
         val send = {

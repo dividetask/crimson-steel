@@ -164,8 +164,12 @@ object Ui {
      * A dice-count picker: (lowest count − 1) plain dice, then one die button
      * per count. Every die up to [chosen] is lit. [choices]: (count, enabled, onTap).
      */
-    fun diceStrip(ctx: Context, choices: List<Triple<Int, Boolean, () -> Unit>>, chosen: Int): View {
+    fun diceStrip(ctx: Context, choices: List<Triple<Int, Boolean, () -> Unit>>, chosen: Int, speed: Int = 0,
+                  perRow: Int = 10): View {
         val chips = mutableListOf<View>()
+        // One die on the left for each die the action's Speed costs: lit with
+        // the count, so 5 dice at Speed 1 shows 6 dice lit (the count still says 5).
+        repeat(speed) { chips += DieChip(ctx, null, speed = true).apply { lit = chosen > 0; contentDescription = "Speed" } }
         val first = choices.minOfOrNull { it.first } ?: 1
         for (n in 1 until first) chips += DieChip(ctx, null).apply { lit = n <= chosen }
         for ((n, enabled, onTap) in choices.sortedBy { it.first }) {
@@ -176,7 +180,6 @@ object Ui {
                 if (enabled) makeTappable(this, ctx, onTap)
             }
         }
-        val perRow = 10
         val grid = vertical(ctx)
         chips.chunked(perRow).forEach { rowChips ->
             val row = horizontal(ctx)
