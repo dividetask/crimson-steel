@@ -60,6 +60,21 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
         }
     }
 
+    /**
+     * Open the live-updates stream (Server-Sent Events, GET /api/events). The
+     * server writes a heartbeat every 20 seconds, so a read that waits much
+     * longer than that means the connection is gone.
+     */
+    fun openEvents(): HttpURLConnection {
+        val conn = URI(server.baseUrl + "/api/events").toURL().openConnection() as HttpURLConnection
+        conn.requestMethod = "GET"
+        conn.connectTimeout = 4000
+        conn.readTimeout = 50_000
+        conn.setRequestProperty("Accept", "text/event-stream")
+        cookies.deviceCookie?.let { conn.setRequestProperty("Cookie", "$COOKIE=$it") }
+        return conn
+    }
+
     private fun open(method: String, path: String, contentType: String?): HttpURLConnection {
         val conn = URI(server.baseUrl + path).toURL().openConnection() as HttpURLConnection
         conn.requestMethod = method

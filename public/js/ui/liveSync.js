@@ -3,10 +3,15 @@ import { DiceRenderer } from './diceRenderer.js';
 
 // The DM's builders, live on the players' phones (docs/project/action_flow.md).
 //
-// About once a second, every Attack / Cast / Item / Ability builder on screen
+// Whenever an Attack / Cast / Item / Ability builder on screen changes, it
 // sends the server its state: the step it is on (with its options), its
 // choices, and once the dice are up, every Roll (POST /encounter/live/sync).
-// The server turns that into prompts on the phones:
+// The state is compared on the page a few times a second; nothing is sent
+// while it stays the same. When a phone answers or rolls, the server says so
+// over the page's live-updates connection (GET /encounter/events,
+// docs/project/live_updates.md) and the builder fetches it
+// (GET /encounter/live/:id). The server turns the builder's state into
+// prompts on the phones:
 //
 //  - A step that is a player's choice (the target's Defense, an ally's
 //    Shield, a Bard's Luck) appears on that player's phone. Their answer is
@@ -20,7 +25,11 @@ import { DiceRenderer } from './diceRenderer.js';
 //
 // A builder that is hidden (another action picked) tells the server once, so
 // its prompts leave the phones.
-const SYNC_MS = 1200;
+// How often the page compares each builder's state with what it last sent
+// (no request unless it changed), and the slow fallback fetch in case the
+// live-updates connection is down.
+const CHECK_MS = 500;
+const FALLBACK_MS = 30000;
 const PANES = { '.ta-attack': 'attack', '.ta-cast': 'cast', '.ta-item': 'item', '.ta-special': 'special' };
 const ANY_PANE = Object.keys(PANES).join(', ');
 
@@ -223,7 +232,16 @@ function stepNote(root, res) {
 
 // --- The loop -------------------------------------------------------------------
 
-function syncOne(root) {
+function apply(root, container, res) {
+  if (!res || res.ok === false) return;
+  if (res.flow_id) container.dataset.flowId = res.flow_id;
+  applyRolls(root, res.flow_id, res.rolls);
+  stepNote(root, res);
+  applyAnswer(root, res.answer);
+}
+
+// Send the builder's state if it changed since it was last sent (or +force+).
+function syncOne(root, force) {
   const container = containerOf(root);
   if (!container || root._lrBusy) return;
   const shown = visible(root);
@@ -231,6 +249,7 @@ function syncOne(root) {
     // Hidden: tell the server once, so its prompts leave the phones.
     if (container.dataset.flowId && !root._lrIdle) {
       root._lrIdle = true;
+      root._lrSent = null;
       post('/encounter/live/sync', { flow_id: container.dataset.flowId, idle: true }).then((res) => {
         if (res && res.status && res.status !== 'active') delete container.dataset.flowId;
       });
@@ -238,20 +257,30 @@ function syncOne(root) {
     return;
   }
   root._lrIdle = false;
+  const s = state(root, container);
+  const sig = JSON.stringify(s);
+  if (!force && sig === root._lrSent) return;
   root._lrBusy = true;
-  post('/encounter/live/sync', state(root, container)).then((res) => {
+  post('/encounter/live/sync', s).then((res) => {
     root._lrBusy = false;
-    if (!res || res.ok === false) return;
-    if (res.flow_id) container.dataset.flowId = res.flow_id;
-    applyRolls(root, res.flow_id, res.rolls);
-    stepNote(root, res);
-    applyAnswer(root, res.answer);
+    if (res && res.ok !== false) root._lrSent = JSON.stringify(Object.assign({}, s, { flow_id: res.flow_id || s.flow_id }));
+    apply(root, container, res);
   });
 }
 
-function tick() {
-  document.querySelectorAll('.turn-action .action-builder').forEach(syncOne);
+// Something changed on the server (a phone answered or rolled): fetch each
+// open builder's answers and Rolls.
+function fetchOne(root) {
+  const container = containerOf(root);
+  if (!container || !container.dataset.flowId || !visible(root) || root._lrBusy) return;
+  fetch('/encounter/live/' + encodeURIComponent(container.dataset.flowId), { headers: { Accept: 'application/json' } })
+    .then((r) => r.json()).catch(() => null)
+    .then((res) => apply(root, container, res));
 }
+
+function builders() { return document.querySelectorAll('.turn-action .action-builder'); }
+function tick() { builders().forEach((r) => syncOne(r, false)); }
+function refreshAll() { builders().forEach(fetchOne); }
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('.lr-roll, .lr-approve');
@@ -290,8 +319,23 @@ document.addEventListener('action:confirmed', (e) => {
 // A fresh page has no builder open yet: drop what the last page's builders
 // were asking the phones, then start syncing.
 post('/encounter/live/reset').then(() => {
-  setInterval(tick, SYNC_MS);
+  setInterval(tick, CHECK_MS);
+  setInterval(refreshAll, FALLBACK_MS);
   tick();
+  listen();
 });
+
+// The live-updates connection: "changed" whenever something changed on the
+// server. The browser reconnects by itself if it drops. Other parts of the
+// page (the Player actions panel) listen for `live:changed` too.
+function listen() {
+  if (!window.EventSource) return;
+  const es = new EventSource('/encounter/events');
+  es.addEventListener('changed', () => {
+    refreshAll();
+    document.dispatchEvent(new CustomEvent('live:changed'));
+  });
+}
+
 // Back from a background tab (where timers run slowly): catch up at once.
-document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); refreshAll(); } });

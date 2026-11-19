@@ -14,6 +14,7 @@ import android.widget.TextView
 import com.dividetask.crimsonsteel.data.Hello
 import com.dividetask.crimsonsteel.debug.DebugLog
 import com.dividetask.crimsonsteel.net.ApiException
+import com.dividetask.crimsonsteel.net.LiveEvents
 import com.dividetask.crimsonsteel.net.Session
 import com.dividetask.crimsonsteel.ui.InitiativeScreen
 import com.dividetask.crimsonsteel.ui.InventoryScreen
@@ -56,21 +57,47 @@ class MainActivity : Activity() {
     private var playingId: Int? = null
     private var lastAssignmentCheck = 0L
 
+    /**
+     * Live updates (docs/project/live_updates.md): the server says when
+     * something changed, and only then is the screen fetched again.
+     */
+    private val live = LiveEvents { onLiveChange() }
+
+    private fun onLiveChange() {
+        if (!resumed) return
+        if (playing) {
+            screen?.refresh()
+            checkAssignment()   // the DM may have moved this device to another Character
+            if (current != Tab.INITIATIVE) checkPrompts()
+        } else checkAssignment()
+    }
+
+    /**
+     * How long until the next refresh by itself: a slow fallback while the
+     * live-updates connection is open, the screen's own pace (as before live
+     * updates) while it is not — e.g. a server without them.
+     */
+    private fun pollDelay(): Long = when {
+        live.connected -> FALLBACK_MS
+        playing -> minOf(current.pollMs, 3000)
+        else -> 3000
+    }
+
     private val poll = object : Runnable {
         override fun run() {
             if (!resumed) return
             if (playing) {
                 screen?.refresh()
                 // The DM may move this device to another Character at any time:
-                // check every few seconds and switch without a restart.
+                // without live updates, check every few seconds.
                 val now = System.currentTimeMillis()
-                if (now - lastAssignmentCheck >= ASSIGNMENT_CHECK_MS) {
+                if (live.connected || now - lastAssignmentCheck >= ASSIGNMENT_CHECK_MS) {
                     lastAssignmentCheck = now
                     checkAssignment()
                 }
                 if (current != Tab.INITIATIVE) checkPrompts()
             } else checkAssignment()
-            handler.postDelayed(this, if (playing) minOf(current.pollMs, 3000) else 3000)
+            handler.postDelayed(this, pollDelay())
         }
     }
 
@@ -111,12 +138,14 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
+        live.start()
         if (Session.api == null) search() else checkAssignment()
     }
 
     override fun onPause() {
         super.onPause()
         resumed = false
+        live.stop()   // the connection is held only while the app is on screen
         handler.removeCallbacks(poll)
     }
 
@@ -176,7 +205,7 @@ class MainActivity : Activity() {
             headerName?.text = c.name
         }
         handler.removeCallbacks(poll)
-        handler.postDelayed(poll, if (playing) current.pollMs else 3000)
+        handler.postDelayed(poll, pollDelay())
     }
 
     /** A screen's request failed: lost the server, or the device was unassigned. */
@@ -277,7 +306,7 @@ class MainActivity : Activity() {
         // The sheet also feeds public rolls (character id + name), so make sure it is loaded once.
         if (tab != Tab.SHEET && Session.sheet == null) Session.sheet { }
         handler.removeCallbacks(poll)
-        handler.postDelayed(poll, tab.pollMs)
+        handler.postDelayed(poll, if (live.connected) FALLBACK_MS else tab.pollMs)
     }
 
     private fun openSettings() {
@@ -287,6 +316,8 @@ class MainActivity : Activity() {
     private companion object {
         const val KEY_TAB = "tab"
         const val ASSIGNMENT_CHECK_MS = 4000L
+        /** With live updates on: refresh by itself this rarely, just in case. */
+        const val FALLBACK_MS = 30_000L
         const val TAG = "main"
     }
 }

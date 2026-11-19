@@ -1,7 +1,7 @@
 // Player actions panel (views/_action_flows.erb, docs/project/action_flow.md).
 //
-//  - Refreshes itself every few seconds so players' answers appear without a
-//    page reload (skipped while the DM is using one of its menus).
+//  - Refreshes itself when the server says something changed, so players'
+//    requests appear without a page reload (skipped while the DM is using one of its menus).
 //  - When the DM approves a player's request (data-open-now), or presses
 //    "Open in … builder": opens the acting Combatant's Attack / Cast / Item
 //    pane (or presses the Ability's button) exactly as if the DM had pressed
@@ -10,7 +10,7 @@
 //    choices and dice coming from their phones (liveSync.js). The builder's
 //    payload carries the flow id so the commit closes the flow.
 const PANEL = '#action-flows';
-const REFRESH_MS = 3000;
+const REFRESH_MS = 30000;
 
 function refresh() {
   const panel = document.querySelector(PANEL);
@@ -141,6 +141,9 @@ document.addEventListener('click', (e) => {
 });
 
 if (document.querySelector(PANEL)) {
+  // Refreshed when the server says something changed (liveSync.js's
+  // live-updates connection), with a slow fallback.
+  document.addEventListener('live:changed', refresh);
   setInterval(refresh, REFRESH_MS);
   // After the page's own scripts (app.js) have bound the turn panel's buttons.
   if (document.readyState === 'complete') setTimeout(openApproved, 200);

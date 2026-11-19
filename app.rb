@@ -3,6 +3,9 @@ require 'sinatra'
 
 set :port, 4567
 set :bind, '0.0.0.0'
+# Enough web-server threads for a full table: each phone and the DM's page
+# holds one live-updates connection (lib/change_feed.rb).
+set :server_settings, { Threads: "0:32" } # ChangeFeed::THREADS
 set :views, File.join(__dir__, 'views')
 set :public_folder, File.join(__dir__, 'public')
 set :static_cache_control, [:no_cache]
@@ -57,8 +60,9 @@ require_relative 'lib/lan_discovery'
 require_relative 'lib/player_requests'
 require_relative 'lib/action_flow'
 require_relative 'lib/dice_colors'
+require_relative 'lib/change_feed'
 
-%w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation api action_flows].each do |name|
+%w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation api action_flows live_events].each do |name|
   require_relative "lib/routes/#{name}"
 end
 

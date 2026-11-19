@@ -33,9 +33,10 @@ require 'cgi'
 class ActionFlow
   STAGES = %w[declare builder].freeze
   KINDS = %w[attack cast item special].freeze
-  # A builder that has not synced for this long is closed or hidden: its
-  # prompts are not shown on the phones.
-  STALE_SECONDS = 25
+  # A builder not heard from for this long (no change sent, no fetch — the
+  # page fetches at least every 30 seconds) is treated as closed: the Player
+  # actions panel offers "Open in … builder" again.
+  STALE_SECONDS = 75
 
   # Steps the other players answer; every other step is the actor's own
   # choice, which the DM makes in the builder.
@@ -252,6 +253,9 @@ class ActionFlow
     end
     @tasks.replace(keep)
   end
+
+  # The builder is still open (it fetched where things stand).
+  def touch! = @last_sync = Time.now.to_f
 
   # What the builder needs back: a player's answer to the step it is on, and
   # where every Roll stands (claimed ones with their dice, for the DM only).

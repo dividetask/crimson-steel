@@ -326,6 +326,16 @@ post '/encounter/live/reset' do
   JSON.generate(ok: true)
 end
 
+# Where an open builder's action stands (a phone's answer, every Roll), fetched
+# when the page hears that something changed. Counts as the builder being open.
+get '/encounter/live/:id' do
+  halt 403, JSON.generate(ok: false, error: 'DM only') unless dm_view?
+  content_type :json
+  f = live_flow!(params[:id])
+  f.touch!
+  JSON.generate(ok: true, **f.builder_view)
+end
+
 # DM rolls a player's Roll for them (only the DM sees it until approved).
 post '/encounter/live/:id/rolls/:task_id/roll' do
   live_json!

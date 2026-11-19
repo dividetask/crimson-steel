@@ -21,7 +21,7 @@ The server and the phone must be on the same network. Guest networks with "clien
 
 ## Which Character the app shows
 
-The app is identified exactly like a browser, by the server-issued `crimson_device_id` cookie ([device_assignment.md](device_assignment.md)), which it saves and sends on every request. Until the DM assigns the device a Character on the web **Status** page, the app shows *Waiting for the DM to assign this device a character* with the device's short id. It re-checks every few seconds. While playing, it checks every 4 seconds too: when the DM assigns the device another Character, the app switches to them by itself (*You are now \<name\>*), on the same tab — no restart needed.
+The app is identified exactly like a browser, by the server-issued `crimson_device_id` cookie ([device_assignment.md](device_assignment.md)), which it saves and sends on every request. Until the DM assigns the device a Character on the web **Status** page, the app shows *Waiting for the DM to assign this device a character* with the device's short id. It re-checks every few seconds. While playing, it checks again whenever the server says something changed (every 4 seconds without live updates): when the DM assigns the device another Character, the app switches to them by itself (*You are now \<name\>*), on the same tab — no restart needed.
 
 A request from the app is never the DM: it does not come from the server host's loopback address.
 
@@ -39,7 +39,7 @@ Settings has the app version, the player's **Dice colour** ([dice_colors.md](dic
 
 The gear is also on the *Looking for the server*, *No server found* and *Waiting for the DM* screens, so the debug log can be saved when the app can't connect.
 
-The screen on display is refreshed from the server: Initiative every 2 seconds, Sheet / Items / Scene every 5, Notes every 10. A screen is only rebuilt when the server's answer changed.
+The screen on display is refreshed when the server says something changed ([live_updates.md](live_updates.md)), and every 30 seconds just in case. Without a live connection (e.g. an older server) it falls back to polling: Initiative every 2 seconds, Sheet / Items / Scene every 5, Notes every 10. A screen is only rebuilt when the server's answer changed.
 
 ## Player visibility
 
