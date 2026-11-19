@@ -52,7 +52,13 @@ The phone throws the dice, shows them tumbling, then — when Luck applies — r
   - one die image per die — blank until rolled;
   - under the player's own dice, the **Roll** button.
 
-  Pressing **Roll** rolls the player's dice in place (then any Luck rerolls) and sends the result to the DM. Every other Roll's dice roll on the card as soon as that player's result reaches the server, then stay showing their values with the Successes. The card stays until the DM commits the action, so everyone sees every roll land.
+  Pressing **Roll** throws the player's dice on the **dice table** (below); when they stop, the result is sent to the DM. The card then shows each Roll's dice and Successes, and stays until the DM commits the action.
+
+### The dice table
+
+A full-screen overlay the dice are thrown across. Each die flies in from a side of the screen, bounces off the edges and the other dice, spins and slows down, flickers through faces while it tumbles, and stops on its real value (about a second and a half). Luck rerolls are thrown again once the first throw has stopped.
+
+The screen is split into **one band per Roll of the action** — two rolls, two halves; three rolls, three bands — the player's own first. Each band has its own dice colour (the player's own crimson; others blue, green, purple, orange, teal) and a label (*You — Arcana +3*, *Wolf — Dodging +2*). When another player's result reaches the server, their dice are thrown into their band, whether or not the table is already open. A stopped die shows what it counts for: a Success is outlined white, a Critical Success gold, and a 1 is dimmed. Each band shows its Successes when its dice stop. A tap closes the table; it also closes by itself a few seconds after everything has stopped.
 - **Your move:** steps waiting on the player appear at the top of the Initiative screen, on anyone's turn: the title (*Choose your defense*, *Shield \<ally\>?*, *Use your Luck?*, *Roll \<roll\>*), who is attacking whom, and the choices — grouped like the builder's, with the same dice picker as actions. Once sent, the step reads *Sent — waiting for the DM to approve* until the DM approves it.
 - **From any tab:** when a step is waiting, the Initiative tab shows a badge (●) and the phone says *Your move: …* once.
 - **Your attack:** the attacker sees each step of their attack and where it stands. Its Combat Pool and Main Action count against what the player has left until the DM commits it.

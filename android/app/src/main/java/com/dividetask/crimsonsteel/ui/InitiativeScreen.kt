@@ -467,10 +467,15 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     /** Rolls whose dice have already been shown rolling (task ids). */
     private val shownRolling = mutableSetOf<String>()
-    /** Dice animations running now; the screen is not rebuilt while any run. */
-    private var animating = 0
-
-    override fun holdRender(): Boolean = animating > 0
+    /** The dice table's bands for an action: one per Roll, the player's own first in its colour. */
+    private fun zonesFor(p: com.dividetask.crimsonsteel.data.Prompt): List<RollTable.Zone> {
+        val mine = p.allRolls.filter { it.taskId == p.taskId }
+        val others = p.allRolls.filter { it.taskId != p.taskId }
+        return (mine + others).mapIndexed { i, r ->
+            val who = if (r.taskId == p.taskId) "You" else r.owner
+            RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", RollTable.colorFor(i))
+        }
+    }
 
     /**
      * The roll card: the action as a header ("Casting Fire Dart"), then each
@@ -502,17 +507,25 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
             val final = line.final
             if (final != null) {
-                if (line.taskId in shownRolling) {
-                    dice.show(final, line.tn)
-                    result.text = resultText(line, final)
-                } else {
+                dice.show(final, line.tn)
+                result.text = resultText(line, final)
+                // Someone else's dice just arrived: throw them on the dice table in their colour.
+                if (line.taskId !in shownRolling) {
                     shownRolling += line.taskId
-                    animateRoll(dice, line.dice ?: final, line.rerolled, final, line.tn) { result.text = resultText(line, final) }
+                    (ctx as? android.app.Activity)?.let { act ->
+                        RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, line.dice ?: final, line.rerolled,
+                            final, line.tn, line.startingValue)
+                    }
                 }
             } else {
                 dice.showBlank(line.diceCount)
-                result.text = if (mine) "" else "waiting to roll"
-                if (mine && p.waiting) {
+                val inFlight = mine && line.taskId in shownRolling
+                result.text = when {
+                    inFlight -> "Rolling\u2026"
+                    mine -> ""
+                    else -> "waiting to roll"
+                }
+                if (mine && p.waiting && !inFlight) {
                     card.addView(Button(ctx).apply {
                         text = "Roll"
                         isEnabled = !busy
@@ -535,25 +548,10 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             (if (crits > 0) " \u00b7 $crits crit${if (crits == 1) "" else "s"}" else "") + waiting
     }
 
-    /** Tumble [initial], then re-tumble the Luck-rerolled dice, settling on [final]. */
-    private fun animateRoll(view: DiceView, initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, done: () -> Unit) {
-        animating++
-        val again = rerolled.orEmpty().indices.filter { rerolled!![it] != null }.toSet()
-        val finish = {
-            animating--
-            done()
-            releaseRender()
-        }
-        view.onSettled = {
-            if (again.isEmpty()) finish() else {
-                view.onSettled = { finish() }
-                view.postDelayed({ view.roll(final, tn, only = again) }, 600)
-            }
-        }
-        view.roll(initial, tn)
-    }
-
-    /** The player rolls their own dice in place, then the result goes to the DM. */
+    /**
+     * The player throws their dice across the dice table (then any Luck
+     * rerolls); when they stop, the result goes to the DM.
+     */
     private fun rollMine(p: com.dividetask.crimsonsteel.data.Prompt, line: com.dividetask.crimsonsteel.data.RollLine,
                          view: DiceView, result: android.widget.TextView) {
         val rng = kotlin.random.Random.Default
@@ -562,7 +560,10 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         val (final, rerolled) = com.dividetask.crimsonsteel.dice.DiceRules.applyRerolls(
             initial, line.tn, line.positiveReroll, line.negativeReroll, die)
         shownRolling += line.taskId
-        animateRoll(view, initial, rerolled, final, line.tn) {
+        result.text = "Rolling\u2026"
+        val act = ctx as? android.app.Activity ?: return
+        RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, initial, rerolled, final, line.tn, line.startingValue) {
+            view.show(final, line.tn)
             result.text = resultText(line, final) + " \u2014 sending to the DM\u2026"
             Session.submitRoll(p.flowId, p.taskId, initial, rerolled, final) { r ->
                 if (r.isFailure) shownRolling -= line.taskId // not sent: let them try again

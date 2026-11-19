@@ -1,0 +1,352 @@
+package com.dividetask.crimsonsteel.ui
+
+import android.app.Activity
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Typeface
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import com.dividetask.crimsonsteel.dice.DiceConfig
+import com.dividetask.crimsonsteel.dice.DiceRules
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
+import kotlin.random.Random
+
+/**
+ * The dice table: a full-screen overlay the dice are thrown across. They fly
+ * in from a side, bounce off the edges and each other, spin and slow down,
+ * flicker through faces while they tumble, and stop on their real values.
+ *
+ * The screen is split into one band per Roll of the action (the player's own
+ * first), each with its own dice colour, so several people's rolls sit apart.
+ * Another player's dice are thrown into their band when their result arrives.
+ * Luck rerolls are thrown again after the first throw settles. When a band's
+ * dice have stopped its result shows; a tap (or a few idle seconds) closes it.
+ */
+object RollTable {
+
+    /** One band of the table: a Roll of the action. */
+    data class Zone(val key: String, val label: String, val color: Int)
+
+    /** Dice colours: the player's own first, then one per other roller. */
+    val COLORS = intArrayOf(
+        0xFFC62828.toInt(), // crimson — the player
+        0xFF1E88E5.toInt(), // blue
+        0xFF43A047.toInt(), // green
+        0xFF8E24AA.toInt(), // purple
+        0xFFEF6C00.toInt(), // orange
+        0xFF00897B.toInt(), // teal
+    )
+
+    fun colorFor(index: Int) = COLORS[index.mod(COLORS.size)]
+
+    private var table: TableView? = null
+
+    /**
+     * Throw dice for [key] onto the table for [flowId] (opening it, with one
+     * band per entry of [zones], if it is not open for that action). [onDone]
+     * runs when they — and any Luck rerolls — have stopped.
+     */
+    fun throwDice(
+        activity: Activity, flowId: String, zones: List<Zone>, key: String,
+        initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, startingValue: Int,
+        onDone: () -> Unit = {},
+    ) {
+        val t = table?.takeIf { it.flowId == flowId && it.isAttachedToWindow } ?: open(activity, flowId)
+        t.setZones(zones)
+        t.throwInto(key, initial, rerolled, final, tn, startingValue, onDone)
+    }
+
+    private fun open(activity: Activity, flowId: String): TableView {
+        table?.close()
+        val v = TableView(activity, flowId)
+        val root = activity.window.decorView as ViewGroup
+        root.addView(v, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        table = v
+        return v
+    }
+
+    private class Die(
+        var x: Float, var y: Float, var vx: Float, var vy: Float,
+        var angle: Float, var spin: Float,
+        var face: Int, var target: Int,
+        var travelled: Float = 0f, var moving: Boolean = true,
+    )
+
+    /** A band's throw in progress: its dice and what happens when they stop. */
+    private class Throw(
+        val zone: Int, val dice: MutableList<Die>, val tn: Int, val startingValue: Int,
+        val rerolled: List<Int?>?, val final: List<Int>, val onDone: () -> Unit,
+        var phase: Int = 0, var stoppedAt: Long = 0, var done: Boolean = false,
+    )
+
+    private class TableView(activity: Activity, val flowId: String) : View(activity) {
+        private val density = resources.displayMetrics.density
+        private val rnd = Random.Default
+        private var zones: List<Zone> = emptyList()
+        private val throws = mutableMapOf<String, Throw>()
+        private var lastFrame = 0L
+        private var idleSince = 0L
+        private var running = false
+
+        private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeJoin = Paint.Join.ROUND }
+        private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = 15f * density
+            color = Ui.TEXT
+        }
+        private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 12f * density; color = Ui.TEXT_DIM }
+        private val outline = Path()
+        private val face = Path()
+        private val edges = Path()
+
+        init {
+            isClickable = true
+            alpha = 0f
+            animate().alpha(1f).setDuration(150).start()
+        }
+
+        fun setZones(z: List<Zone>) {
+            if (z.map { it.key } != zones.map { it.key }) zones = z
+        }
+
+        private fun zoneRect(i: Int): RectF {
+            val n = max(1, zones.size)
+            val h = height / n.toFloat()
+            return RectF(0f, i * h, width.toFloat(), (i + 1) * h)
+        }
+
+        private fun dieRadius(): Float {
+            val bandH = height / max(1, zones.size).toFloat()
+            return min(min(bandH * 0.17f, width / 9f), 44f * density)
+        }
+
+        fun throwInto(key: String, initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, sv: Int, onDone: () -> Unit) {
+            val zone = zones.indexOfFirst { it.key == key }.coerceAtLeast(0)
+            val t = Throw(zone, mutableListOf(), tn, sv, rerolled, final, onDone)
+            throws[key] = t
+            post {
+                t.dice.addAll(initial.map { launch(zone, it) })
+                start()
+            }
+        }
+
+        /** A die flying in from the left or right edge of its band, aimed across it. */
+        private fun launch(zone: Int, target: Int): Die {
+            val r = zoneRect(zone)
+            val rad = dieRadius()
+            val fromLeft = rnd.nextBoolean()
+            val x = if (fromLeft) r.left + rad else r.right - rad
+            val y = r.top + rad + rnd.nextFloat() * (r.height() - 2 * rad)
+            val speed = (1100f + rnd.nextFloat() * 900f) * density
+            val dir = (if (fromLeft) 0.0 else Math.PI) + (rnd.nextDouble() - 0.5) * 1.1
+            return Die(x, y, (cos(dir) * speed).toFloat(), (sin(dir) * speed).toFloat(),
+                rnd.nextFloat() * 360f, (rnd.nextFloat() - 0.5f) * 1400f,
+                rnd.nextInt(1, DiceConfig.DIE_SIZE + 1), target)
+        }
+
+        private fun start() {
+            if (running) return
+            running = true
+            lastFrame = System.nanoTime()
+            postOnAnimation(frame)
+        }
+
+        private val frame = object : Runnable {
+            override fun run() {
+                if (!isAttachedToWindow) { running = false; return }
+                val now = System.nanoTime()
+                val dt = min((now - lastFrame) / 1e9f, 1f / 30f)
+                lastFrame = now
+                step(dt)
+                invalidate()
+                val busy = throws.values.any { !it.done }
+                if (busy) {
+                    idleSince = 0
+                    postOnAnimation(this)
+                } else {
+                    running = false
+                    idleSince = System.currentTimeMillis()
+                    // Close by itself a while after everything has settled.
+                    postDelayed({ if (!running && idleSince != 0L && System.currentTimeMillis() - idleSince >= AUTO_CLOSE_MS) close() }, AUTO_CLOSE_MS)
+                }
+            }
+        }
+
+        private fun step(dt: Float) {
+            val rad = dieRadius()
+            val friction = 1.6f            // velocity decay per second (exponential)
+            val drag = 260f * density      // constant rolling resistance, px/s²
+            val stopSpeed = 30f * density
+            for ((_, t) in throws) {
+                if (t.done) continue
+                val r = zoneRect(t.zone)
+                for (d in t.dice) {
+                    if (!d.moving) continue
+                    d.x += d.vx * dt
+                    d.y += d.vy * dt
+                    d.angle += d.spin * dt
+                    // Edges of the band: bounce, losing some speed.
+                    if (d.x < r.left + rad) { d.x = r.left + rad; d.vx = abs(d.vx) * 0.62f; d.spin *= -0.8f }
+                    if (d.x > r.right - rad) { d.x = r.right - rad; d.vx = -abs(d.vx) * 0.62f; d.spin *= -0.8f }
+                    if (d.y < r.top + rad) { d.y = r.top + rad; d.vy = abs(d.vy) * 0.62f; d.spin *= -0.8f }
+                    if (d.y > r.bottom - rad) { d.y = r.bottom - rad; d.vy = -abs(d.vy) * 0.62f; d.spin *= -0.8f }
+                    val speed = hypot(d.vx, d.vy)
+                    val decay = max(0f, 1f - friction * dt) * max(0f, 1f - drag * dt / max(speed, 1f))
+                    d.vx *= decay; d.vy *= decay; d.spin *= max(0f, 1f - 2.2f * dt)
+                    // Tumble: a new face every so often while rolling.
+                    d.travelled += speed * dt
+                    if (d.travelled > rad * 1.3f) { d.travelled = 0f; d.face = rnd.nextInt(1, DiceConfig.DIE_SIZE + 1) }
+                    if (speed < stopSpeed) { d.vx = 0f; d.vy = 0f; d.spin = 0f; d.moving = false; d.face = d.target }
+                }
+                collide(t.dice, rad)
+                if (t.dice.isNotEmpty() && t.dice.none { it.moving }) settled(t)
+            }
+        }
+
+        /** Dice in a band knock each other apart (equal mass, a little energy lost). */
+        private fun collide(dice: List<Die>, rad: Float) {
+            val minDist = rad * 1.85f
+            for (i in dice.indices) for (j in i + 1 until dice.size) {
+                val a = dice[i]; val b = dice[j]
+                val dx = b.x - a.x; val dy = b.y - a.y
+                val dist = hypot(dx, dy)
+                if (dist <= 0.01f || dist >= minDist) continue
+                val nx = dx / dist; val ny = dy / dist
+                val push = (minDist - dist) / 2f
+                a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push
+                val rel = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny
+                if (rel > 0) {
+                    val imp = rel * 0.9f
+                    a.vx -= imp * nx; a.vy -= imp * ny; b.vx += imp * nx; b.vy += imp * ny
+                    if (!a.moving && hypot(a.vx, a.vy) > 0f) a.moving = true
+                    if (!b.moving && hypot(b.vx, b.vy) > 0f) b.moving = true
+                    a.spin += rel * 0.3f; b.spin -= rel * 0.3f
+                }
+            }
+        }
+
+        /** A throw stopped: throw the Luck rerolls once, then it is done. */
+        private fun settled(t: Throw) {
+            val now = System.currentTimeMillis()
+            if (t.stoppedAt == 0L) { t.stoppedAt = now; return }
+            if (now - t.stoppedAt < 450) return
+            val again = t.rerolled.orEmpty().indices.filter { t.rerolled!![it] != null }
+            if (t.phase == 0 && again.isNotEmpty()) {
+                t.phase = 1
+                t.stoppedAt = 0
+                for (i in again) {
+                    val d = t.dice.getOrNull(i) ?: continue
+                    val speed = (900f + rnd.nextFloat() * 600f) * density
+                    val dir = rnd.nextDouble() * Math.PI * 2
+                    d.vx = (cos(dir) * speed).toFloat(); d.vy = (sin(dir) * speed).toFloat()
+                    d.spin = (rnd.nextFloat() - 0.5f) * 1200f
+                    d.target = t.final[i]
+                    d.moving = true
+                }
+                return
+            }
+            t.done = true
+            t.onDone()
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            canvas.drawColor(0xE6101216.toInt())
+            val rad = dieRadius()
+            zones.forEachIndexed { i, z ->
+                val r = zoneRect(i)
+                fill.color = Color.argb(34, Color.red(z.color), Color.green(z.color), Color.blue(z.color))
+                canvas.drawRect(r, fill)
+                if (i > 0) {
+                    stroke.color = 0x55FFFFFF; stroke.strokeWidth = density
+                    canvas.drawLine(r.left, r.top, r.right, r.top, stroke)
+                }
+                label.color = z.color.let { Color.rgb(min(255, Color.red(it) + 80), min(255, Color.green(it) + 80), min(255, Color.blue(it) + 80)) }
+                canvas.drawText(z.label, r.left + 14 * density, r.top + 24 * density, label)
+                val t = throws[z.key]
+                val line = when {
+                    t == null -> "waiting to roll…"
+                    !t.done -> "rolling…"
+                    else -> {
+                        val n = DiceRules.dois(t.final, t.tn, t.startingValue)
+                        val crits = t.final.count { it == DiceConfig.DIE_SIZE }
+                        "$n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) " · $crits crit${if (crits == 1) "" else "s"}" else ""
+                    }
+                }
+                canvas.drawText(line, r.left + 14 * density, r.top + 42 * density, small)
+            }
+            for ((key, t) in throws) {
+                val color = zones.find { it.key == key }?.color ?: COLORS[0]
+                for (d in t.dice) drawDie(canvas, d, rad, color, t.tn, t.done || !d.moving)
+            }
+            if (throws.isNotEmpty() && throws.values.all { it.done }) {
+                small.textAlign = Paint.Align.CENTER
+                canvas.drawText("Tap to close", width / 2f, height - 18 * density, small)
+                small.textAlign = Paint.Align.LEFT
+            }
+        }
+
+        private fun drawDie(canvas: Canvas, d: Die, r: Float, color: Int, tn: Int, still: Boolean) {
+            fill.color = 0x66000000
+            canvas.drawOval(d.x - r * 0.85f, d.y + r * 0.7f, d.x + r * 0.85f, d.y + r * 1.05f, fill)
+            canvas.save()
+            canvas.translate(d.x, d.y)
+            canvas.rotate(d.angle)
+            D10Shape.build(r, outline, face, edges)
+            fill.color = shade(color, 0.7f)
+            canvas.drawPath(outline, fill)
+            fill.color = color
+            canvas.drawPath(face, fill)
+            stroke.color = 0x66000000; stroke.strokeWidth = r * 0.05f
+            canvas.drawPath(edges, stroke)
+            canvas.drawPath(face, stroke)
+            // A stopped die shows what it counts for: Success / Critical glow, a 1 dimmed.
+            if (still) {
+                when {
+                    d.face == DiceConfig.DIE_SIZE -> { stroke.color = Ui.GOLD; stroke.strokeWidth = r * 0.16f; canvas.drawPath(outline, stroke) }
+                    d.face >= tn -> { stroke.color = Color.WHITE; stroke.strokeWidth = r * 0.10f; canvas.drawPath(outline, stroke) }
+                    d.face == 1 -> { fill.color = 0x88000000.toInt(); canvas.drawPath(outline, fill) }
+                }
+            }
+            stroke.color = 0xAA000000.toInt(); stroke.strokeWidth = r * 0.06f
+            canvas.drawPath(outline, stroke)
+            text.textSize = r * 0.72f
+            text.color = Color.WHITE
+            val ty = r * 0.05f - (text.descent() + text.ascent()) / 2f
+            canvas.drawText(d.face.toString(), 0f, ty, text)
+            canvas.restore()
+        }
+
+        private fun shade(c: Int, f: Float) =
+            Color.rgb((Color.red(c) * f).toInt(), (Color.green(c) * f).toInt(), (Color.blue(c) * f).toInt())
+
+        override fun onTouchEvent(event: MotionEvent): Boolean {
+            if (event.action == MotionEvent.ACTION_UP && throws.values.all { it.done }) close()
+            return true
+        }
+
+        fun close() {
+            if (table === this) table = null
+            animate().alpha(0f).setDuration(200).withEndAction { (parent as? ViewGroup)?.removeView(this) }.start()
+        }
+
+        companion object {
+            const val AUTO_CLOSE_MS = 5000L
+        }
+    }
+}
