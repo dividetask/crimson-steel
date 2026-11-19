@@ -41,10 +41,12 @@ class DiceView(context: Context) : View(context) {
         val still: Boolean = false,
         /** '↻' rerolled, '±' nudged: a small badge on the die. */
         val mark: Char? = null,
-        /** Placed by [showLayered]: its column, row, and how many dice share its row band. */
+        /** Placed by [showLayered] (kept for a layered layout): its column, row, and how many dice share its row band. */
         val col: Int = -1, val row: Int = -1, val bandSize: Int = 0,
         /** Drawn in this colour instead (yellow: a die that was replaced by a reroll or nudge). */
         val tint: Int? = null,
+        /** Its value before a Luck reroll (a small die at its top left) and before a nudge (top right). */
+        val original: Int? = null, val preNudge: Int? = null,
     )
 
     private var dice: List<Die> = emptyList()
@@ -122,35 +124,22 @@ class DiceView(context: Context) : View(context) {
     }
 
     /**
-     * A roll as it happened, under an action: the first throw on top; each die
-     * a Luck reroll replaced is yellow, with its new value right under it; a
-     * nudged die likewise, with the nudged value under that. Each die is
-     * coloured by what it counts for (see [colorByResult]).
+     * A roll as it happened, under an action, in one row: each die shows its
+     * final value; a die a Luck reroll changed has a small die at its top
+     * left with the value it was first thrown at, and a nudged die a small
+     * die at its top right with the value before the nudge — the same small
+     * dice as on the dice table.
      */
-    fun showLayered(initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int) {
+    fun showHistory(initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int) {
         animator?.cancel()
         this.tn = tn
-        val n = initial.size
-        val anyReroll = rerolled?.any { it != null } == true
-        val nudgedAt = (0 until n).filter { i -> i < final.size && final[i] != (rerolled?.getOrNull(i) ?: initial[i]) }
-        val layers = 1 + (if (anyReroll) 1 else 0) + (if (nudgedAt.isNotEmpty()) 1 else 0)
-        val out = mutableListOf<Die>()
-        for (i in 0 until n) {
-            val band = i / perRow
-            val size = minOf(perRow, n - band * perRow)
-            val col = i % perRow
-            val top = band * layers
+        dice = final.mapIndexed { i, v ->
             val re = rerolled?.getOrNull(i)
-            val nudged = i in nudgedAt
-            fun die(v: Int, row: Int, replaced: Boolean) =
-                Die(v, 0f, 0f, 0f, 0f, 0f, v, still = true, col = col, row = row, bandSize = size,
-                    tint = if (replaced) Ui.POOL_SELECTED else null)
-            // Yellow: replaced by a reroll (or, with no reroll, by a nudge).
-            out += die(initial[i], top, re != null || nudged)
-            if (re != null) out += die(re, top + 1, nudged)
-            if (nudged) out += die(final[i], top + layers - 1, false)
+            val beforeNudge = re ?: initial.getOrNull(i)
+            Die(v, 0f, 0f, 0f, 0f, 0f, v, still = true,
+                original = if (re != null) initial.getOrNull(i) else null,
+                preNudge = if (beforeNudge != null && beforeNudge != v) beforeNudge else null)
         }
-        dice = out
         progress = 1f
         requestLayout()
         invalidate()
@@ -263,6 +252,10 @@ class DiceView(context: Context) : View(context) {
             val value = if (settled) d.finalValue else d.face
             tintNow = d.tint
             drawDie(canvas, x, y, size * scale, angle, value, settled, lift = bounce / cell)
+            if (settled) {
+                d.original?.let { miniDie(canvas, it, x - size * 0.95f, y - size * 0.85f, size * 0.42f) }
+                d.preNudge?.let { miniDie(canvas, it, x + size * 0.95f, y - size * 0.85f, size * 0.42f) }
+            }
             if (settled) d.mark?.let { m ->
                 val br = size * 0.34f
                 val bx = x + size * 0.78f; val by = y - size * 0.78f
@@ -318,6 +311,26 @@ class DiceView(context: Context) : View(context) {
             val u = r * 0.18f
             canvas.drawRect(-u, textY + r * 0.06f, u, textY + r * 0.1f, numberPaint)
         }
+        canvas.restore()
+    }
+
+    /** A small upright die showing an earlier value (before a reroll or a nudge). */
+    private fun miniDie(canvas: Canvas, v: Int, cx: Float, cy: Float, r: Float) {
+        canvas.save()
+        canvas.translate(cx, cy)
+        D10Shape.build(r, outline, face, edges)
+        bodyPaint.color = if (colorByResult) resultColor(v) else bodyColor
+        canvas.drawPath(outline, bodyPaint)
+        val sw = outlinePaint.strokeWidth
+        outlinePaint.strokeWidth = r * 0.08f
+        canvas.drawPath(outline, outlinePaint)
+        outlinePaint.strokeWidth = sw
+        val ts = numberPaint.textSize
+        numberPaint.textSize = r * 0.8f
+        numberPaint.textScaleX = if (v >= 10) 0.8f else 1f
+        numberPaint.color = Ui.numberColor(v, tn)
+        canvas.drawText(v.toString(), 0f, r * 0.05f - (numberPaint.descent() + numberPaint.ascent()) / 2f, numberPaint)
+        numberPaint.textSize = ts
         canvas.restore()
     }
 

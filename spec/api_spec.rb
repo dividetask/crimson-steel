@@ -406,6 +406,10 @@ RSpec.describe 'Android app JSON API', type: :request do
       post '/encounter/resolve_attack', JSON.generate(payload), dm_env.merge('CONTENT_TYPE' => 'application/json')
       expect(last_response.status).to eq(200), last_response.body[0, 300]
       expect(flow.status).to eq('done')
+      # Everyone hears what happened.
+      news = as_other_phone { other_get('/api/prompts')['news'] }
+      expect(news.map { |n| n['text'] }.first).to match(/\A#{Regexp.escape(flow.actor_name)} (hit|missed) /)
+      expect(api_get('/api/initiative')['news'].first['yours']).to be true
     end
 
     it "asks a player on their phone during an attack the DM started, until the DM chooses for them" do

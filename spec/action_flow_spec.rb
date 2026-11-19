@@ -212,6 +212,18 @@ RSpec.describe ActionFlow do
       expect(f.public_roll_overview([5]).map { |r| r[:final] }).to eq([[10, 3, 7], [2, 8]])
     end
 
+    it 'gives the attacker their Damage Rider dice, where a 1 takes nothing away' do
+      f = dm_flow
+      rider = { 'id' => 'rider-0', 'creature_name' => 'Vicious', 'roll_name' => '(slashing)', 'dice_count' => 4, 'tn' => 3,
+                'starting_value' => 0, 'failure_modifier' => 0 }
+      f.sync!({ 'choices' => {}, 'rolls' => [rider] }, claimed: claimed)
+      t = f.roll_tasks.first
+      expect(t).to include('owner_id' => 9)
+      expect(t['roll']).to include('name' => 'Vicious', 'what' => 'Vicious', 'failure_modifier' => 0)
+      f.share!('rider-0' => { 'dice' => [1, 1, 10, 5] })
+      expect(t['value']['successes']).to eq(3)
+    end
+
     it 'clears the prompts when the builder is hidden' do
       f = dm_flow
       rolling(f)

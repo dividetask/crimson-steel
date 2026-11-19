@@ -63,12 +63,25 @@ class MainActivity : Activity() {
      */
     private val live = LiveEvents { onLiveChange() }
 
+    /** The audio bar for action sounds, over the bottom of every screen. */
+    private var audioBar: com.dividetask.crimsonsteel.ui.AudioBar? = null
+
+    private fun attachAudioBar() {
+        val bar = audioBar ?: com.dividetask.crimsonsteel.ui.AudioBar(this).also { audioBar = it }
+        (bar.view.parent as? ViewGroup)?.removeView(bar.view)
+        root.addView(bar.view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            gravity = Gravity.BOTTOM
+            val m = Ui.dp(this@MainActivity, 8)
+            setMargins(m, m, m, m)
+        })
+    }
+
     private fun onLiveChange() {
         if (!resumed) return
         if (playing) {
             screen?.refresh()
             checkAssignment()   // the DM may have moved this device to another Character
-            if (current != Tab.INITIATIVE) checkPrompts()
+            checkPrompts()
         } else checkAssignment()
     }
 
@@ -95,7 +108,7 @@ class MainActivity : Activity() {
                     lastAssignmentCheck = now
                     checkAssignment()
                 }
-                if (current != Tab.INITIATIVE) checkPrompts()
+                checkPrompts()
             } else checkAssignment()
             handler.postDelayed(this, pollDelay())
         }
@@ -108,19 +121,38 @@ class MainActivity : Activity() {
      * From any tab: when an attack step waits on this player (choose a defense,
      * roll…), badge the Initiative tab and say so once.
      */
+    /** Outcomes already announced (flow ids), so each is announced once. */
+    private val announcedNews = mutableSetOf<String>()
+    private var newsPrimed = false
+
+    /**
+     * From any tab: when a step waits on this player (choose a defense,
+     * roll…), badge the Initiative tab and say so once; and when the DM
+     * commits an action, say what happened, once.
+     */
     private fun checkPrompts() {
-        Session.prompts { r ->
-            val waiting = r.getOrNull()?.filter { it.waiting } ?: return@prompts
+        Session.promptsAndNews { r ->
+            val (prompts, news) = r.getOrNull() ?: return@promptsAndNews
+            val waiting = prompts.filter { it.waiting }
             tabViews[Tab.INITIATIVE]?.let { tv ->
                 tv.text = if (waiting.isEmpty()) Tab.INITIATIVE.label else "${Tab.INITIATIVE.label} \u25CF${waiting.size}"
                 tv.setTextColor(if (waiting.isEmpty()) (if (current == Tab.INITIATIVE) Ui.TEXT else Ui.TEXT_DIM) else Ui.GOLD)
             }
-            val fresh = waiting.filter { announced.add(it.taskId) }
-            if (fresh.isNotEmpty()) {
-                DebugLog.i(TAG, "prompt: ${fresh.joinToString { it.title }}")
-                android.widget.Toast.makeText(this, "Your move: ${fresh.first().title} (Initiative tab)",
-                    android.widget.Toast.LENGTH_LONG).show()
+            if (current != Tab.INITIATIVE) {
+                val fresh = waiting.filter { announced.add(it.taskId) }
+                if (fresh.isNotEmpty()) {
+                    DebugLog.i(TAG, "prompt: ${fresh.joinToString { it.title }}")
+                    android.widget.Toast.makeText(this, "Your move: ${fresh.first().title} (Initiative tab)",
+                        android.widget.Toast.LENGTH_LONG).show()
+                }
             }
+            // What just happened — not the outcomes from before the app opened.
+            val freshNews = news.filter { announcedNews.add(it.flowId) }
+            if (newsPrimed) freshNews.forEach {
+                DebugLog.i(TAG, "news: ${it.text}")
+                android.widget.Toast.makeText(this, it.text, android.widget.Toast.LENGTH_LONG).show()
+            }
+            newsPrimed = true
         }
     }
 
@@ -147,6 +179,11 @@ class MainActivity : Activity() {
         resumed = false
         live.stop()   // the connection is held only while the app is on screen
         handler.removeCallbacks(poll)
+    }
+
+    override fun onDestroy() {
+        audioBar?.detach()
+        super.onDestroy()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -245,6 +282,7 @@ class MainActivity : Activity() {
         }
         root.removeAllViews()
         root.addView(page, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        attachAudioBar()
         tabViews.clear()
         headerName = null
         content = null
@@ -280,6 +318,7 @@ class MainActivity : Activity() {
 
         root.removeAllViews()
         root.addView(col, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        attachAudioBar()
         select(current)
     }
 

@@ -58,6 +58,12 @@ function rollGroups(root) {
   return Array.from(root.querySelectorAll('tbody.roll-group'))
     .filter((g) => !g.closest('.ta-rider-stub'));
 }
+// A weapon's Damage Rider rows (after the attack lands): the attacker's dice.
+function riderGroups(root) {
+  return Array.from(root.querySelectorAll('.ta-rider-stub tbody.roll-group'));
+}
+function allGroups(root) { return rollGroups(root).concat(riderGroups(root)); }
+
 function inPlay(g) { return !g.classList.contains('roll-group-excluded') && !g.hidden; }
 
 function activeStep(root) {
@@ -97,7 +103,7 @@ function stepState(root, step) {
 }
 
 function rollsState(root) {
-  return rollGroups(root).filter(inPlay).map((g) => {
+  return allGroups(root).filter(inPlay).map((g) => {
     const c = cfgOf(g);
     return {
       id: g.dataset.rollId, side: g.dataset.side,
@@ -107,6 +113,7 @@ function rollsState(root) {
       positive_reroll: c.positive_reroll ? c.positive_reroll.count : 0,
       negative_reroll: c.negative_reroll ? c.negative_reroll.count : 0,
       bonus_penalty_list: c.bonus_penalty_list || [],
+      failure_modifier: c.failure_modifier != null ? c.failure_modifier : null,
     };
   });
 }
@@ -193,7 +200,7 @@ function fillDice(g, r) {
 }
 
 function applyRolls(root, flowId, rolls) {
-  rollGroups(root).forEach((g) => {
+  allGroups(root).forEach((g) => {
     const r = rolls && rolls[g.dataset.rollId];
     if (!r || !r.claimed) {
       const row = g.querySelector('tr.lr-row');
@@ -323,14 +330,13 @@ document.addEventListener('change', (e) => {
 });
 
 // Confirm shares every Roll with the players: the claimed ones that have
-// dice, and those Roll All rolled here.
-document.addEventListener('action:confirmed', (e) => {
-  if (e.detail && e.detail.auto) return;
-  const root = e.target.closest && e.target.closest('.action-builder');
+// dice, and those Roll All rolled here. The Damage Riders' own Confirm does
+// the same for the rider dice.
+function share(root) {
   const container = root && containerOf(root);
   if (!container || !container.dataset.flowId) return;
   const rolls = {};
-  rollGroups(root).filter(inPlay).forEach((g) => {
+  allGroups(root).filter(inPlay).forEach((g) => {
     if (g.dataset.lrSig || !g.dataset.rolledDice) return; // claimed: the server has its dice
     let fin; try { fin = JSON.parse(g.dataset.rolledDice); } catch (err) { return; }
     let initial = fin; let rerolled = null;
@@ -340,10 +346,18 @@ document.addEventListener('action:confirmed', (e) => {
   });
   post('/encounter/live/' + encodeURIComponent(container.dataset.flowId) + '/share', { rolls })
     .then((res) => { if (res && res.ok !== false) applyRolls(root, res.flow_id, res.rolls); });
-});
+}
 
-// A fresh page has no builder open yet: drop what the last page's builders
-// were asking the phones, then start syncing.
+document.addEventListener('action:confirmed', (e) => {
+  if (e.detail && e.detail.auto) return;
+  share(e.target.closest && e.target.closest('.action-builder'));
+});
+// Capture: before turnAttack.js collapses the rider rows.
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('.ta-rider-confirm');
+  if (b) share(b.closest('.turn-action') && b.closest('.turn-action').querySelector('.ta-attack .action-builder'));
+}, true);
+
 // A fresh page: reopen the actions that were in progress in a builder
 // (docs/project/action_flow.md → leaving the Encounter page), each where it
 // was, then start sending changes. Their phone prompts stayed up meanwhile.

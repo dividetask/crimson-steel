@@ -352,6 +352,8 @@ get '/api/initiative' do
     # This player's own attacks in progress.
     flows: (mine ? action_flows.active.select { |f| f.attacker_id == mine[:id] }.map { |f| flow_status_view(f) } : []),
     shared: api_in_combat? ? shared_actions(acc) : [],
+    # What the DM committed lately (shown once each on every phone).
+    news: api_in_combat? ? news_view(acc) : [],
     # Every action with Rolls on the table, whether or not this player rolls in it.
     actions: api_in_combat? ? action_views(acc) : [],
     requests: mine ? PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) } : []

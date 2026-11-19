@@ -38,7 +38,7 @@ helpers do
              # "Garroth Vask Attacks Wolf with Great Sword" — the prompt's heading.
              action_line: flow.title_line(viewer_ids), luck_remaining: t['luck_amount'] }
     if t['kind'] == 'roll'
-      view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
+      view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll', 'failure_modifier')
       # The DM's fudge, if any: the phone lands its dice in that band (never shown).
       view[:roll]['fudge'] = t['fudge'] if t['fudge']
       view[:result] = t['value'] if t['value'] && visible
@@ -97,6 +97,40 @@ helpers do
       end
       tasks.map { |t| flow_prompt_view(f, t, mine) }
     end
+  end
+
+  # What the DM committed lately, for every phone: shown once each.
+  def news_view(acc)
+    mine = my_combatant_ids(acc)
+    action_flows.recent_done.map do |f|
+      { flow_id: f.id, text: f.outcome, yours: mine.include?(f.actor_id) }
+    end
+  end
+
+  # What a committed action did, in a line for every phone.
+  def attack_outcome(flow, result)
+    target = flow.target_id ? flow.name_of(flow.target_id) : 'the target'
+    weapon = flow.action_name
+    dmg = result[:damage].to_i
+    line = if dmg.positive?
+             "#{flow.actor_name} hit #{target} with #{weapon} for #{dmg} #{result[:damage_type]} damage".squeeze(' ')
+           elsif result[:net_dos].to_i.positive?
+             "#{flow.actor_name} hit #{target} with #{weapon}, but did no damage"
+           else
+             "#{flow.actor_name} missed #{target} with #{weapon}"
+           end
+    extras = Array(result[:rider_outcomes]).filter_map do |o|
+      amt = (o[:damage] || o[:amount]).to_i
+      "#{o[:label]} #{amt}" if amt.positive?
+    end
+    line += " (#{extras.join(', ')})" unless extras.empty?
+    "#{line}."
+  end
+
+  def cast_outcome(flow, result)
+    verb = flow.kind == 'item' ? 'used' : 'cast'
+    target = flow.target_id ? " on #{flow.name_of(flow.target_id)}" : ''
+    "#{flow.actor_name} #{verb} #{result[:spell] || flow.action_name}#{target}."
   end
 
   # Every action with Rolls on the table, for every phone in combat — the
@@ -264,7 +298,7 @@ end
 get '/api/prompts' do
   acc = api_character!
   prompts = my_prompts(acc)
-  api_json(ok: true, count: prompts.count { |p| p[:status] == 'waiting' }, prompts: prompts)
+  api_json(ok: true, count: prompts.count { |p| p[:status] == 'waiting' }, prompts: prompts, news: news_view(acc))
 end
 
 # Answer a prompt. Body: { "value": "<option value>" } for a choice, or
@@ -309,7 +343,7 @@ post '/encounter/flows/:id/tasks/:task_id/approve' do
       result = encounter_state.use_special_payload('combatant_id' => f.actor_id, 'ability' => f.ability.to_s)
       if result[:ok]
         Conditions.store.persist!
-        f.done!
+        f.done!("#{f.actor_name} used #{f.ability}.")
       else
         session[:flow_error] = "#{f.ability}: #{result[:error]}"
       end

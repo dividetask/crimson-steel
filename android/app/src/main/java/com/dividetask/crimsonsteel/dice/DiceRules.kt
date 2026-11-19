@@ -120,8 +120,9 @@ object DiceRules {
     }
 
     /** Degree of Individual Success. */
-    fun dois(dice: List<Int>, tn: Int, startingValue: Int): Int =
-        startingValue + dice.sumOf { contribution(it, tn) }
+    /** [failureModifier]: what a 1 counts for (0 for a Damage Rider, whose 1s take nothing away). */
+    fun dois(dice: List<Int>, tn: Int, startingValue: Int, failureModifier: Int = DiceConfig.FAILURE_MODIFIER): Int =
+        startingValue + dice.sumOf { if (it == 1 && it != DiceConfig.DIE_SIZE) failureModifier else contribution(it, tn) }
 
     fun outcome(dois: Int, canFumble: Boolean = DiceConfig.FAILURE_MODIFIER != 0): Outcome = when {
         canFumble && dois <= -DiceConfig.FUMBLE_THRESHOLD -> Outcome.FUMBLE

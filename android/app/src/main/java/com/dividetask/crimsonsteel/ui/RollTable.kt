@@ -58,6 +58,9 @@ object RollTable {
     /** How long a stopped die stays as it fell before turning upright. */
     private const val UPRIGHT_AFTER_MS = 1000L
 
+    /** How long the first throw rests before its Luck rerolls / nudges happen. */
+    private const val REROLL_AFTER_MS = 4000L
+
     /** Close the dice table if it is open (e.g. to throw an action's dice again from the start). */
     fun clear() {
         table?.let { (it.parent as? ViewGroup)?.removeView(it) }
@@ -74,12 +77,12 @@ object RollTable {
     fun throwDice(
         activity: Activity, flowId: String, zones: List<Zone>, key: String,
         initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, startingValue: Int,
-        title: String? = null, onDone: () -> Unit = {},
+        title: String? = null, failureModifier: Int = -1, onDone: () -> Unit = {},
     ) {
         val t = table?.takeIf { it.flowId == flowId && it.isAttachedToWindow } ?: open(activity, flowId)
         t.setZones(zones)
         if (title != null) t.title = title
-        t.throwInto(key, initial, rerolled, final, tn, startingValue, onDone)
+        t.throwInto(key, initial, rerolled, final, tn, startingValue, failureModifier, onDone)
     }
 
     private fun open(activity: Activity, flowId: String): TableView {
@@ -98,8 +101,12 @@ object RollTable {
         var travelled: Float = 0f, var moving: Boolean = true,
         /** Shown on the die once it has changed after the first throw: '↻' rerolled, '±' nudged. */
         var mark: Char? = null,
-        /** Its value before a reroll or nudge changed it, shown as a small die beside it. */
+        /** Its value before a Luck reroll: a small die at its top left. */
         var original: Int? = null,
+        /** Its value before a nudge: a small die at its top right. */
+        var preNudge: Int? = null,
+        /** About to be rerolled ('↻') or nudged ('±'): an icon under it while it waits. */
+        var pending: Char? = null,
         /** When it last came to rest (0 while moving): a second later it turns upright. */
         var restSince: Long = 0,
     ) {
@@ -111,6 +118,7 @@ object RollTable {
     private class Throw(
         val zone: Int, val dice: MutableList<Die>, val tn: Int, val startingValue: Int,
         val rerolled: List<Int?>?, val final: List<Int>, val onDone: () -> Unit,
+        val failureModifier: Int = -1,
         var phase: Int = 0, var stoppedAt: Long = 0, var done: Boolean = false,
     )
 
@@ -167,9 +175,10 @@ object RollTable {
             return min(min(bandH * 0.17f, width / 9f), 44f * density)
         }
 
-        fun throwInto(key: String, initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, sv: Int, onDone: () -> Unit) {
+        fun throwInto(key: String, initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, sv: Int,
+                      fm: Int, onDone: () -> Unit) {
             val zone = zones.indexOfFirst { it.key == key }.coerceAtLeast(0)
-            val t = Throw(zone, mutableListOf(), tn, sv, rerolled, final, onDone)
+            val t = Throw(zone, mutableListOf(), tn, sv, rerolled, final, onDone, fm)
             throws[key] = t
             post {
                 t.dice.addAll(initial.map { launch(zone, it) })
@@ -289,7 +298,6 @@ object RollTable {
         private fun settled(t: Throw) {
             val now = System.currentTimeMillis()
             if (t.stoppedAt == 0L) { t.stoppedAt = now; return }
-            if (now - t.stoppedAt < 450) return
             // After the first throw has stopped: the Luck rerolls are thrown
             // again, and a nudged die (its final value differs with no reroll)
             // hops onto its new value. Both are marked.
@@ -297,7 +305,19 @@ object RollTable {
             val nudged = t.dice.indices.filter { i ->
                 i !in again && i < t.final.size && t.dice[i].target != t.final[i]
             }
-            if (t.phase == 0 && (again.isNotEmpty() || nudged.isNotEmpty())) {
+            val changes = t.phase == 0 && (again.isNotEmpty() || nudged.isNotEmpty())
+            if (!changes && now - t.stoppedAt < 450) return
+            if (changes) {
+                // Once a die has turned upright, an icon under it says it will be
+                // rerolled (or nudged); the change itself waits a few seconds.
+                for (i in again + nudged) {
+                    val d = t.dice.getOrNull(i) ?: continue
+                    if (d.pending == null && d.upright && d.restSince != 0L && now - d.restSince >= UPRIGHT_AFTER_MS)
+                        d.pending = if (i in again) '\u21bb' else '\u00b1'
+                }
+                if (now - t.stoppedAt < REROLL_AFTER_MS) return
+            }
+            if (changes) {
                 t.phase = 1
                 t.stoppedAt = 0
                 for (i in again + nudged) {
@@ -306,9 +326,10 @@ object RollTable {
                     val dir = rnd.nextDouble() * Math.PI * 2
                     d.vx = (cos(dir) * speed).toFloat(); d.vy = (sin(dir) * speed).toFloat()
                     d.spin = (rnd.nextFloat() - 0.5f) * (if (i in again) 1200f else 300f)
-                    d.original = d.target
+                    if (i in again) d.original = d.target else d.preNudge = d.target
                     d.target = t.final[i]
                     d.mark = if (i in again) '\u21bb' else '\u00b1'
+                    d.pending = null
                     d.moving = true
                 }
                 return
@@ -332,7 +353,7 @@ object RollTable {
                 val cx = t.dice.map { it.x }.average().toFloat()
                 val top = t.dice.minOf { it.y } - rad * 1.35f
                 val result = if (!t.done) "" else {
-                    val n = DiceRules.dois(t.final, t.tn, t.startingValue)
+                    val n = DiceRules.dois(t.final, t.tn, t.startingValue, t.failureModifier)
                     val crits = t.final.count { it == DiceConfig.DIE_SIZE }
                     "  \u00b7  $n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) ", $crits crit${if (crits == 1) "" else "s"}" else ""
                 }
@@ -378,34 +399,38 @@ object RollTable {
             val ty = r * 0.05f - (text.descent() + text.ascent()) / 2f
             canvas.drawText(d.face.toString(), 0f, ty, text)
             canvas.restore()
-            // A rerolled / nudged die: a much smaller die at its bottom left with
-            // the value it had before (upright, not rotated).
-            d.original?.let { o ->
-                val mr = r * 0.42f
-                val mx = d.x - r * 0.95f; val my = d.y + r * 0.8f
-                canvas.save()
-                canvas.translate(mx, my)
-                D10Shape.build(mr, outline, face, edges)
-                fill.color = shade(color, 0.9f)
-                canvas.drawPath(outline, fill)
-                stroke.color = 0x99000000.toInt(); stroke.strokeWidth = mr * 0.08f
-                canvas.drawPath(outline, stroke)
-                text.textSize = mr * 0.8f
-                text.color = Ui.numberColor(o, tn)
-                canvas.drawText(o.toString(), 0f, mr * 0.05f - (text.descent() + text.ascent()) / 2f, text)
-                canvas.restore()
-            }
-            // …and a small gold badge at its top right.
-            d.mark?.let { m ->
-                val bx = d.x + r * 0.78f; val by = d.y - r * 0.78f; val br = r * 0.34f
-                fill.color = Ui.GOLD
-                canvas.drawCircle(bx, by, br, fill)
-                stroke.color = 0xCC000000.toInt(); stroke.strokeWidth = r * 0.05f
-                canvas.drawCircle(bx, by, br, stroke)
-                text.textSize = br * 1.3f
-                text.color = Color.BLACK
-                canvas.drawText(m.toString(), bx, by - (text.descent() + text.ascent()) / 2f, text)
-            }
+            // Its earlier values as much smaller dice (upright): before a reroll
+            // at its top left, before a nudge at its top right.
+            d.original?.let { miniDie(canvas, it, d.x - r * 0.95f, d.y - r * 0.85f, r * 0.42f, color, tn) }
+            d.preNudge?.let { miniDie(canvas, it, d.x + r * 0.95f, d.y - r * 0.85f, r * 0.42f, color, tn) }
+            // About to change: an icon under it.
+            d.pending?.let { badge(canvas, it, d.x, d.y + r * 1.3f, r * 0.34f) }
+            // …and once changed, a small gold badge at its bottom right.
+            d.mark?.let { badge(canvas, it, d.x + r * 0.8f, d.y + r * 0.8f, r * 0.34f) }
+        }
+
+        private fun badge(canvas: Canvas, m: Char, bx: Float, by: Float, br: Float) {
+            fill.color = Ui.GOLD
+            canvas.drawCircle(bx, by, br, fill)
+            stroke.color = 0xCC000000.toInt(); stroke.strokeWidth = br * 0.15f
+            canvas.drawCircle(bx, by, br, stroke)
+            text.textSize = br * 1.3f
+            text.color = Color.BLACK
+            canvas.drawText(m.toString(), bx, by - (text.descent() + text.ascent()) / 2f, text)
+        }
+
+        private fun miniDie(canvas: Canvas, v: Int, x: Float, y: Float, mr: Float, color: Int, tn: Int) {
+            canvas.save()
+            canvas.translate(x, y)
+            D10Shape.build(mr, outline, face, edges)
+            fill.color = shade(color, 0.9f)
+            canvas.drawPath(outline, fill)
+            stroke.color = 0x99000000.toInt(); stroke.strokeWidth = mr * 0.08f
+            canvas.drawPath(outline, stroke)
+            text.textSize = mr * 0.8f
+            text.color = Ui.numberColor(v, tn)
+            canvas.drawText(v.toString(), 0f, mr * 0.05f - (text.descent() + text.ascent()) / 2f, text)
+            canvas.restore()
         }
 
         private fun shade(c: Int, f: Float) =

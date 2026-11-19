@@ -41,12 +41,20 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private var openGroup: String? = null
     /** What to bring to the top of the screen once rebuilt: an option's key, or "group:<name>". */
     private var scrollTarget: String? = null
+    /** Outcomes already seen here, so the player's own resets their options once. */
+    private val seenNews = mutableSetOf<String>()
+    private var newsPrimed = false
     private var wasMyTurn = false
     private var busy = false
 
     override fun fetch(done: (Result<Pair<Initiative, String>>) -> Unit) = Session.initiative { r ->
         r.onSuccess { (d, _) ->
             throwShared(d)
+            // The DM finished this player's action: close what they had open.
+            val mineDone = d.news.filter { it.yours && seenNews.add(it.flowId) }
+            if (newsPrimed && mineDone.isNotEmpty()) { clearSelection(); openGroup = null; orderOpen = false }
+            d.news.forEach { seenNews.add(it.flowId) }
+            newsPrimed = true
             // A new turn starts with everything closed and nothing selected.
             if (d.myTurn && !wasMyTurn) { orderOpen = false; openGroup = null; clearSelection() }
             wasMyTurn = d.myTurn
@@ -65,6 +73,14 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     override fun build(d: Initiative): View {
         val col = Ui.vertical(ctx, 12)
+        // What the DM just committed, for everyone.
+        if (d.news.isNotEmpty()) {
+            col.addView(Ui.sectionHeader(ctx, "Just happened"))
+            val card = Ui.card(ctx)
+            for (n in d.news.reversed()) card.addView(Ui.text(ctx, n.text, 15f, if (n.yours) Ui.GOLD else Ui.TEXT, bold = n.yours),
+                Ui.matchWidth(Ui.dp(ctx, 3)))
+            col.addView(card, Ui.matchWidth())
+        }
         // Steps of an action waiting on this player — on anyone's turn.
         if (d.prompts.isNotEmpty()) promptsSection(col, d)
         // Every other action with dice on the table: everyone sees it, rolling or not.
@@ -363,13 +379,6 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                         Ui.matchWidth(Ui.dp(ctx, 4)))
                 }
             }
-            // A sound tied to this action: play it on this device.
-            opt.sound?.let { snd ->
-                card.addView(Button(ctx).apply {
-                    text = if (SoundPlayer.playing == snd) "\u25A0  Stop sound" else "\u25B6  Play ${opt.name} sound"
-                    setOnClickListener { SoundPlayer.toggle(snd) { render() } }
-                }, Ui.matchWidth(Ui.dp(ctx, 8)))
-            }
             val needsDice = opt.dice.isNotEmpty() && selectedDice == null
             val needsTarget = opt.needsTarget && targetsFor(d, opt).none { it.combatantId == selectedTarget }
             val blocker = blocker(d, opt, selectedDice)
@@ -410,7 +419,12 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             val target = if (opt.needsTarget) selectedTarget else null
             Session.requestAction(opt.key, if (opt.dice.isEmpty()) null else selectedDice, target) { r ->
                 busy = false
-                if (r.isSuccess) clearSelection()
+                if (r.isSuccess) {
+                    clearSelection()
+                    openGroup = null
+                    // Taken: its sound (if any) is offered in the audio bar at the bottom.
+                    opt.sound?.let { SoundPlayer.offer(opt.name, it) }
+                }
                 afterChange(r)
             }
         }
@@ -608,7 +622,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 thrownShared += "${r.taskId}:${r.final}"
                 shownRolling += r.taskId
                 RollTable.throwDice(act, a.flowId, zones, r.taskId, r.dice ?: r.final!!, r.rerolled, r.final!!, r.tn, r.startingValue,
-                    title = a.actionLine)
+                    title = a.actionLine, failureModifier = r.failureModifier)
             }
         }
     }
@@ -676,15 +690,15 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
             val final = line.final
             if (final != null) {
-                // The first throw, then under each replaced (yellow) die its reroll, then any nudge.
-                dice.showLayered(line.dice ?: final, line.rerolled, final, line.tn)
+                // One row of final dice; small dice in the corners show the first throw / pre-nudge values.
+                dice.showHistory(line.dice ?: final, line.rerolled, final, line.tn)
                 result.text = resultText(line, final)
                 // Someone else's dice just arrived: throw them on the dice table in their colour.
                 if (line.taskId !in shownRolling) {
                     shownRolling += line.taskId
                     (ctx as? android.app.Activity)?.let { act ->
                         RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, line.dice ?: final, line.rerolled,
-                            final, line.tn, line.startingValue, title = p.actionLine ?: p.headline)
+                            final, line.tn, line.startingValue, title = p.actionLine ?: p.headline, failureModifier = line.failureModifier)
                     }
                 }
             } else {
@@ -725,12 +739,12 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         for (line in lines) {
             val final = line.final ?: continue
             RollTable.throwDice(act, p.flowId, zones, line.taskId, line.dice ?: final, line.rerolled, final,
-                line.tn, line.startingValue, title = p.actionLine ?: p.headline)
+                line.tn, line.startingValue, title = p.actionLine ?: p.headline, failureModifier = line.failureModifier)
         }
     }
 
     private fun resultText(line: com.dividetask.crimsonsteel.data.RollLine, final: List<Int>): String {
-        val n = line.successes ?: com.dividetask.crimsonsteel.dice.DiceRules.dois(final, line.tn, line.startingValue)
+        val n = line.successes ?: com.dividetask.crimsonsteel.dice.DiceRules.dois(final, line.tn, line.startingValue, line.failureModifier)
         val crits = final.count { it == com.dividetask.crimsonsteel.dice.DiceConfig.DIE_SIZE }
         val waiting = if (line.status == "submitted") " (waiting for the DM)" else ""
         return "$n ${if (kotlin.math.abs(n) == 1) "success" else "successes"}" +
@@ -754,8 +768,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         result.text = "Rolling\u2026"
         val act = ctx as? android.app.Activity ?: return
         RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, initial, rerolled, final, line.tn, line.startingValue,
-            title = p.actionLine ?: p.headline) {
-            view.showLayered(initial, rerolled, final, line.tn)
+            title = p.actionLine ?: p.headline, failureModifier = line.failureModifier) {
+            view.showHistory(initial, rerolled, final, line.tn)
             result.text = resultText(line, final) + " \u2014 sending to the DM\u2026"
             Session.submitRoll(p.flowId, p.taskId, initial, rerolled, final) { r ->
                 if (r.isFailure) shownRolling -= line.taskId // not sent: let them try again

@@ -1171,7 +1171,9 @@ post '/encounter/resolve_attack' do
     encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
     # A player-driven attack (lib/action_flow.rb) finished in the pre-filled
     # builder: it is done, so it leaves the Player actions panel and the phones.
-    ActionFlows.instance.find(payload['flow_id'])&.done! if payload['flow_id']
+    if payload['flow_id'] && (f = ActionFlows.instance.find(payload['flow_id']))
+      f.done!(attack_outcome(f, result))
+    end
     # An Active Spells strike remembers the target it just struck, so a weapon
     # that had no target set (a fresh / seeded one) stops re-asking on later
     # strikes; Retarget is how the DM changes it thereafter.
@@ -1275,7 +1277,9 @@ post '/encounter/resolve_cast' do
     result = result.merge(item_consumed: consumed) if consumed
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('caster', 'id').to_i) # Cast is a Main Action
-    ActionFlows.instance.find(payload['flow_id'])&.done! if payload['flow_id'] # a player-driven cast / item
+    if payload['flow_id'] && (f = ActionFlows.instance.find(payload['flow_id'])) # a cast / item in a flow
+      f.done!(cast_outcome(f, result))
+    end
   end
   encounter_response(result)
 end
@@ -1303,7 +1307,9 @@ post '/encounter/use_special' do
   return encounter_error(400, cap_err) if cap_err
   result = encounter_state.use_special_payload(payload)
   Conditions.store.persist! if result[:ok]
-  ActionFlows.instance.find(payload['flow_id'])&.done! if result[:ok] && payload['flow_id'] # a player-driven Ability
+  if result[:ok] && payload['flow_id'] && (f = ActionFlows.instance.find(payload['flow_id'])) # an Ability in a flow
+    f.done!("#{f.actor_name} used #{payload['ability'] || f.ability}.")
+  end
   encounter_response(result)
 end
 

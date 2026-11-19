@@ -60,6 +60,21 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
         }
     }
 
+    /** Download [path] (e.g. a sound) into [to], with this device's cookie. */
+    fun download(path: String, to: java.io.File) {
+        val conn = URI(server.baseUrl + path).toURL().openConnection() as HttpURLConnection
+        conn.connectTimeout = 4000
+        conn.readTimeout = 20_000
+        cookies.deviceCookie?.let { conn.setRequestProperty("Cookie", "$COOKIE=$it") }
+        try {
+            if (conn.responseCode != 200) throw ApiException(conn.responseCode, "HTTP ${conn.responseCode}")
+            conn.inputStream.use { input -> to.outputStream().use { input.copyTo(it) } }
+            DebugLog.i(TAG, "GET $path -> 200 (${to.length()} bytes)")
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     /**
      * Open the live-updates stream (Server-Sent Events, GET /api/events). The
      * server writes a heartbeat every 20 seconds, so a read that waits much

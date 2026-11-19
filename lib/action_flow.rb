@@ -212,6 +212,7 @@ class ActionFlow
       { task_id: t['id'], owner: t['owner_name'], owner_id: t['owner_id'], name: r['name'],
         what: r['what'], bonus: r['bonus'].to_i, dice_count: r['dice_count'], tn: r['tn'],
         starting_value: r['starting_value'], positive_reroll: r['positive_reroll'], negative_reroll: r['negative_reroll'],
+        failure_modifier: r.fetch('failure_modifier', -1),
         status: t['status'], summary: t['summary'], claimed: !!t['claimed'], by: t['by'],
         dice: v['dice'], rerolled: v['rerolled'], final: v['final'], successes: v['successes'] }
     end
@@ -387,7 +388,15 @@ class ActionFlow
   end
 
   def cancel! = @status = 'cancelled'
-  def done! = @status = 'done'
+
+  # The DM committed it. +outcome+: what happened, in a line for every phone
+  # ("Garroth Vask hit Wolf with Great Sword for 7 slashing damage").
+  def done!(outcome = nil)
+    @status = 'done'
+    @outcome = outcome.to_s.empty? ? "#{@actor_name}: #{summary}" : outcome.to_s
+    @finished_at = Time.now.to_f
+  end
+  attr_reader :outcome, :finished_at
 
   # For opening the builder: every choice the builder had made, in the order
   # it made them (it reports them as it goes), so coming back to the
@@ -429,11 +438,13 @@ class ActionFlow
     [final, rerolled]
   end
 
-  def self.dois(final, tn, starting_value)
+  # +failure_modifier+: what a 1 counts for (−1; 0 for a Damage Rider, whose
+  # 1s never take damage away).
+  def self.dois(final, tn, starting_value, failure_modifier = -1)
     size = die_size
     starting_value.to_i + final.sum do |v|
       if v == size then 2
-      elsif v == 1 then -1
+      elsif v == 1 then failure_modifier.to_i
       elsif v >= tn then 1
       else 0
       end
@@ -476,6 +487,7 @@ class ActionFlow
     when 'attacker', 'caster', 'performance' then @actor_id
     when 'defender', 'target' then target_id
     when 'shield' then shield_caster([@choices['ally_defense'].to_s])
+    when /\Arider-/ then @actor_id # a weapon's Damage Rider: the attacker's dice, once the hit lands
     when /\Asave-(\d+)\z/ then Regexp.last_match(1).to_i
     else r['owner_id']&.to_i
     end
@@ -484,13 +496,15 @@ class ActionFlow
   def sync_roll(r, claimed)
     rid = r['id'].to_s
     owner = roll_owner(r)
-    spec = { 'roll_id' => rid, 'name' => r['roll_name'].to_s, 'creature_name' => r['creature_name'].to_s,
+    rider = rid.start_with?('rider-')
+    spec = { 'roll_id' => rid, 'name' => (rider ? r['creature_name'] : r['roll_name']).to_s, 'creature_name' => r['creature_name'].to_s,
              'dice_count' => r['dice_count'].to_i, 'tn' => r['tn'].to_i, 'starting_value' => r['starting_value'].to_i,
              'positive_reroll' => r['positive_reroll'].to_i, 'negative_reroll' => r['negative_reroll'].to_i,
              'speed' => r['speed'].to_i, 'side' => r['side'].to_s,
              # For the roll prompt: what is rolled in words and its own bonus,
              # e.g. "Arcana" +3, "Dodging" +2, "Wisdom save" +1.
-             'what' => roll_what(r), 'bonus' => competency_of(r['bonus_penalty_list']) }
+             'what' => roll_what(r), 'bonus' => competency_of(r['bonus_penalty_list']),
+             'failure_modifier' => r.key?('failure_modifier') && !r['failure_modifier'].nil? ? r['failure_modifier'].to_i : -1 }
     t = roll_tasks.find { |x| x['roll']['roll_id'] == rid } ||
         new_task('builder', "roll:#{rid}", owner, 'kind' => 'roll', 'roll' => spec)
     # The dice or TN changed under it (the DM changed a step): roll again.
@@ -578,6 +592,7 @@ class ActionFlow
   def roll_what(r)
     c = @declare.to_h.merge(@choices)
     case r['id'].to_s
+    when /\Arider-/ then r['creature_name'].to_s # "Vicious"
     when 'attacker' then 'Martial'
     when 'caster'
       skill = c['dice'].to_s.split('|')[1].to_s
@@ -626,7 +641,7 @@ class ActionFlow
     rerolled = Array(v['rerolled'] || Array.new(dice.length)).map { |x| x.nil? ? nil : x.to_i }
     raise ArgumentError, "expected #{r['dice_count']} dice" unless dice.length == r['dice_count'] && final.length == dice.length
     raise ArgumentError, 'dice out of range' unless (dice + final).all? { |d| d.between?(1, die_size) }
-    successes = ActionFlow.dois(final, r['tn'], r['starting_value'])
+    successes = ActionFlow.dois(final, r['tn'], r['starting_value'], r.fetch('failure_modifier', -1))
     crits = final.count(die_size)
     @rolls[r['roll_id']] = { 'successes' => successes, 'crits' => crits, 'final' => final,
                              'tn' => r['tn'], 'starting_value' => r['starting_value'] }
@@ -656,6 +671,12 @@ class ActionFlows
   def active = @mutex.synchronize { @flows.select(&:active?) }
   # Not cancelled, with Rolls shared in the last +seconds+ (done ones too: a
   # commit right after Confirm must not hide them).
+  # Committed in the last +seconds+: what happened, for every phone.
+  def recent_done(seconds = 120)
+    now = Time.now.to_f
+    @mutex.synchronize { @flows.select { |f| f.status == 'done' && f.finished_at && now - f.finished_at < seconds } }
+  end
+
   def recent_shared(seconds = 120)
     now = Time.now.to_f
     @mutex.synchronize { @flows.select { |f| f.status != 'cancelled' && f.shared_at && now - f.shared_at < seconds } }

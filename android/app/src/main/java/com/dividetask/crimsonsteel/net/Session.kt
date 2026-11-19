@@ -175,6 +175,14 @@ object Session {
     fun prompts(done: (Result<List<com.dividetask.crimsonsteel.data.Prompt>>) -> Unit) =
         withApi({ com.dividetask.crimsonsteel.data.Prompt.list(it.get("/api/prompts").optJSONArray("prompts")) }, done)
 
+    /** Steps waiting on this player, and what the DM committed lately. */
+    fun promptsAndNews(done: (Result<Pair<List<com.dividetask.crimsonsteel.data.Prompt>, List<com.dividetask.crimsonsteel.data.NewsItem>>>) -> Unit) =
+        withApi({
+            val j = it.get("/api/prompts")
+            Pair(com.dividetask.crimsonsteel.data.Prompt.list(j.optJSONArray("prompts")),
+                com.dividetask.crimsonsteel.data.NewsItem.list(j.optJSONArray("news")))
+        }, done)
+
     /** Answer a choice prompt (defense, ally shield, Luck) with one of its option values. */
     fun answerPrompt(flowId: String, taskId: String, value: String, done: (Result<Unit>) -> Unit) = withApi({
         it.postJson("/api/prompts/$flowId/$taskId", JSONObject().put("value", value)); Unit

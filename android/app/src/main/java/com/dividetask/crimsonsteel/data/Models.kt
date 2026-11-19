@@ -264,6 +264,8 @@ data class RollLine(
     val dice: List<Int>? = null, val rerolled: List<Int?>? = null, val final: List<Int>? = null, val successes: Int? = null,
     /** The roller's dice colour, the same on every phone (null from an older server). */
     val color: Int? = null,
+    /** What a 1 counts for: −1, or 0 for a Damage Rider. */
+    val failureModifier: Int = -1,
 ) {
     val rolled: Boolean get() = final != null
 }
@@ -278,7 +280,15 @@ fun rollLine(it: JSONObject) = RollLine(it.optString("task_id"), it.optString("o
     what = it.optString("what"), bonus = it.optInt("bonus"),
     dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
     final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
-    color = com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")))
+    color = com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")),
+    failureModifier = if (it.has("failure_modifier") && !it.isNull("failure_modifier")) it.optInt("failure_modifier") else -1)
+
+/** What a committed action did ("Garroth Vask hit Wolf…"); [yours] when this player took it. */
+data class NewsItem(val flowId: String, val text: String, val yours: Boolean) {
+    companion object {
+        fun list(a: JSONArray?) = a.mapObjects { NewsItem(it.optString("flow_id"), it.optString("text"), it.optBoolean("yours")) }
+    }
+}
 
 /**
  * An action whose Rolls the DM just shared (Confirm): every phone in combat
@@ -376,6 +386,8 @@ data class Initiative(
     val shared: List<SharedAction> = emptyList(),
     /** Every action with Rolls on the table, whether or not this player rolls in it. */
     val actions: List<SharedAction> = emptyList(),
+    /** What the DM committed lately. */
+    val news: List<NewsItem> = emptyList(),
 ) {
     companion object {
         fun from(j: JSONObject): Initiative {
@@ -426,6 +438,7 @@ data class Initiative(
                 },
                 prompts = Prompt.list(j.optJSONArray("prompts")),
                 busy = j.optBoolean("busy"),
+                news = NewsItem.list(j.optJSONArray("news")),
                 actions = j.optJSONArray("actions").mapObjects { a ->
                     SharedAction(a.optString("flow_id"), 0, a.optString("action_line"),
                         a.optJSONArray("rolls").mapObjects { rollLine(it) }, a.optStringOrNull("headline"))

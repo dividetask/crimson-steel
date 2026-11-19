@@ -1,6 +1,6 @@
 # Action Sounds
 
-An Ability or Spell can have a sound. When a player picks that action on the Android app's Initiative screen ([android_app.md](android_app.md)), the action's card shows **▶ Play \<action\> sound**, which plays it on their own device (tap again — **■ Stop sound** — to stop it). Nobody else hears it through the app.
+An Ability or Spell can have a sound. When a player **takes** that action on the Android app ([android_app.md](android_app.md)) — sends the request — an audio bar appears at the bottom of the screen, over every tab: **▶ Play** (or ✕ to dismiss). While it plays: **Pause** / **Resume**, **■ Stop**, and its progress. The bar goes away when the sound ends or is stopped. The sound is downloaded once through the app's own connection and played from the phone. Nobody else hears it through the app.
 
 ## Adding a sound
 
