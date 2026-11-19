@@ -98,6 +98,8 @@ object RollTable {
         var travelled: Float = 0f, var moving: Boolean = true,
         /** Shown on the die once it has changed after the first throw: '↻' rerolled, '±' nudged. */
         var mark: Char? = null,
+        /** Its value before a reroll or nudge changed it, shown as a small die beside it. */
+        var original: Int? = null,
         /** When it last came to rest (0 while moving): a second later it turns upright. */
         var restSince: Long = 0,
     ) {
@@ -304,6 +306,7 @@ object RollTable {
                     val dir = rnd.nextDouble() * Math.PI * 2
                     d.vx = (cos(dir) * speed).toFloat(); d.vy = (sin(dir) * speed).toFloat()
                     d.spin = (rnd.nextFloat() - 0.5f) * (if (i in again) 1200f else 300f)
+                    d.original = d.target
                     d.target = t.final[i]
                     d.mark = if (i in again) '\u21bb' else '\u00b1'
                     d.moving = true
@@ -375,7 +378,24 @@ object RollTable {
             val ty = r * 0.05f - (text.descent() + text.ascent()) / 2f
             canvas.drawText(d.face.toString(), 0f, ty, text)
             canvas.restore()
-            // A rerolled / nudged die: a small gold badge at its top right (not rotated).
+            // A rerolled / nudged die: a much smaller die at its bottom left with
+            // the value it had before (upright, not rotated).
+            d.original?.let { o ->
+                val mr = r * 0.42f
+                val mx = d.x - r * 0.95f; val my = d.y + r * 0.8f
+                canvas.save()
+                canvas.translate(mx, my)
+                D10Shape.build(mr, outline, face, edges)
+                fill.color = shade(color, 0.9f)
+                canvas.drawPath(outline, fill)
+                stroke.color = 0x99000000.toInt(); stroke.strokeWidth = mr * 0.08f
+                canvas.drawPath(outline, stroke)
+                text.textSize = mr * 0.8f
+                text.color = Ui.numberColor(o, tn)
+                canvas.drawText(o.toString(), 0f, mr * 0.05f - (text.descent() + text.ascent()) / 2f, text)
+                canvas.restore()
+            }
+            // …and a small gold badge at its top right.
             d.mark?.let { m ->
                 val bx = d.x + r * 0.78f; val by = d.y - r * 0.78f; val br = r * 0.34f
                 fill.color = Ui.GOLD

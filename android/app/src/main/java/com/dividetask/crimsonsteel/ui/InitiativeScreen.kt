@@ -39,6 +39,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private var statusOpen: Int? = null
     private var orderOpen = false
     private var openGroup: String? = null
+    /** What to bring to the top of the screen once rebuilt: an option's key, or "group:<name>". */
+    private var scrollTarget: String? = null
     private var wasMyTurn = false
     private var busy = false
 
@@ -263,9 +265,12 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 if (open || opts.none { it.key == selectedKey }) clearSelection()
                 // A group of one opens straight onto its option.
                 if (!open && opts.size == 1) { selectedKey = opts.first().key; selectedDice = null }
+                // Opening a group brings it to the top of the screen.
+                scrollTarget = when { open -> null; opts.size == 1 -> opts.first().key; else -> "group:$g" }
                 render()
             }
             col.addView(head, Ui.matchWidth(Ui.dp(ctx, 6)))
+            if (scrollTarget == "group:$g") { scrollTarget = null; scrollToTop(head) }
             if (open) for (opt in opts) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
         }
     }
@@ -326,7 +331,10 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
 
         Ui.makeTappable(card, ctx) {
-            if (selectedKey == opt.key) clearSelection() else { selectedKey = opt.key; selectedDice = null }
+            if (selectedKey == opt.key) clearSelection() else {
+                selectedKey = opt.key; selectedDice = null
+                scrollTarget = opt.key  // the chosen action comes to the top of the screen
+            }
             render()
         }
 
@@ -374,6 +382,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             card.addView(confirm, Ui.matchWidth(Ui.dp(ctx, 8)))
             card.addView(Ui.text(ctx, "Sent to the DM, who resolves it.", 11f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 2)))
         }
+        if (isSelected && scrollTarget == opt.key) { scrollTarget = null; scrollToTop(card) }
         return card
     }
 
@@ -660,7 +669,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
             val final = line.final
             if (final != null) {
-                dice.show(final, line.tn, com.dividetask.crimsonsteel.dice.DiceRules.marksOf(line.dice, line.rerolled, final))
+                // The first throw, then under each replaced (yellow) die its reroll, then any nudge.
+                dice.showLayered(line.dice ?: final, line.rerolled, final, line.tn)
                 result.text = resultText(line, final)
                 // Someone else's dice just arrived: throw them on the dice table in their colour.
                 if (line.taskId !in shownRolling) {
@@ -738,7 +748,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         val act = ctx as? android.app.Activity ?: return
         RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, initial, rerolled, final, line.tn, line.startingValue,
             title = p.actionLine ?: p.headline) {
-            view.show(final, line.tn, com.dividetask.crimsonsteel.dice.DiceRules.marksOf(initial, rerolled, final))
+            view.showLayered(initial, rerolled, final, line.tn)
             result.text = resultText(line, final) + " \u2014 sending to the DM\u2026"
             Session.submitRoll(p.flowId, p.taskId, initial, rerolled, final) { r ->
                 if (r.isFailure) shownRolling -= line.taskId // not sent: let them try again

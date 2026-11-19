@@ -41,6 +41,10 @@ class DiceView(context: Context) : View(context) {
         val still: Boolean = false,
         /** '↻' rerolled, '±' nudged: a small badge on the die. */
         val mark: Char? = null,
+        /** Placed by [showLayered]: its column, row, and how many dice share its row band. */
+        val col: Int = -1, val row: Int = -1, val bandSize: Int = 0,
+        /** Drawn in this colour instead (yellow: a die that was replaced by a reroll or nudge). */
+        val tint: Int? = null,
     )
 
     private var dice: List<Die> = emptyList()
@@ -84,6 +88,8 @@ class DiceView(context: Context) : View(context) {
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     private val markPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    /** The die being drawn's tint, if any (yellow: replaced). */
+    private var tintNow: Int? = null
     private val outline = Path()
     private val face = Path()
     private val edges = Path()
@@ -110,6 +116,41 @@ class DiceView(context: Context) : View(context) {
         animator?.cancel()
         this.tn = tn
         dice = values.mapIndexed { i, v -> Die(v, 0f, 0f, 0f, 0f, 0f, v, still = true, mark = marks.getOrNull(i)) }
+        progress = 1f
+        requestLayout()
+        invalidate()
+    }
+
+    /**
+     * A roll as it happened, under an action: the first throw on top; each die
+     * a Luck reroll replaced is yellow, with its new value right under it; a
+     * nudged die likewise, with the nudged value under that. Each die is
+     * coloured by what it counts for (see [colorByResult]).
+     */
+    fun showLayered(initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int) {
+        animator?.cancel()
+        this.tn = tn
+        val n = initial.size
+        val anyReroll = rerolled?.any { it != null } == true
+        val nudgedAt = (0 until n).filter { i -> i < final.size && final[i] != (rerolled?.getOrNull(i) ?: initial[i]) }
+        val layers = 1 + (if (anyReroll) 1 else 0) + (if (nudgedAt.isNotEmpty()) 1 else 0)
+        val out = mutableListOf<Die>()
+        for (i in 0 until n) {
+            val band = i / perRow
+            val size = minOf(perRow, n - band * perRow)
+            val col = i % perRow
+            val top = band * layers
+            val re = rerolled?.getOrNull(i)
+            val nudged = i in nudgedAt
+            fun die(v: Int, row: Int, replaced: Boolean) =
+                Die(v, 0f, 0f, 0f, 0f, 0f, v, still = true, col = col, row = row, bandSize = size,
+                    tint = if (replaced) Ui.POOL_SELECTED else null)
+            // Yellow: replaced by a reroll (or, with no reroll, by a nudge).
+            out += die(initial[i], top, re != null || nudged)
+            if (re != null) out += die(re, top + 1, nudged)
+            if (nudged) out += die(final[i], top + layers - 1, false)
+        }
+        dice = out
         progress = 1f
         requestLayout()
         invalidate()
@@ -170,7 +211,8 @@ class DiceView(context: Context) : View(context) {
         super.onDetachedFromWindow()
     }
 
-    private fun rows() = maxOf(1, ceil(dice.size / perRow.toFloat()).toInt())
+    private fun rows() = if (dice.any { it.row >= 0 }) dice.maxOf { it.row } + 1
+        else maxOf(1, ceil(dice.size / perRow.toFloat()).toInt())
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
@@ -190,9 +232,10 @@ class DiceView(context: Context) : View(context) {
         numberPaint.textSize = size * 0.72f
 
         dice.forEachIndexed { i, d ->
-            val row = i / perRow
-            val inRow = if (row == rows() - 1) dice.size - row * perRow else perRow
-            val col = i % perRow
+            val placed = d.row >= 0
+            val row = if (placed) d.row else i / perRow
+            val inRow = if (placed) d.bandSize else if (row == rows() - 1) dice.size - row * perRow else perRow
+            val col = if (placed) d.col else i % perRow
             // Center each row, including a short last row.
             val restX = (w - inRow * cell) / 2f + cell * (col + 0.5f)
             val restY = cell * 0.65f + row * cell * 1.1f
@@ -218,6 +261,7 @@ class DiceView(context: Context) : View(context) {
                 }
             }
             val value = if (settled) d.finalValue else d.face
+            tintNow = d.tint
             drawDie(canvas, x, y, size * scale, angle, value, settled, lift = bounce / cell)
             if (settled) d.mark?.let { m ->
                 val br = size * 0.34f
@@ -251,7 +295,7 @@ class DiceView(context: Context) : View(context) {
         D10Shape.build(r, outline, face, edges)
 
         val blank = value == 0
-        val base = if (colorByResult && settled && !blank) resultColor(value) else bodyColor
+        val base = tintNow ?: if (colorByResult && settled && !blank) resultColor(value) else bodyColor
         bodyPaint.color = shade(base, 0.82f)
         canvas.drawPath(outline, bodyPaint)
         bodyPaint.color = base

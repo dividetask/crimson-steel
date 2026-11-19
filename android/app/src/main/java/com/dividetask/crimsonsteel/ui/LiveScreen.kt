@@ -65,6 +65,23 @@ abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (T
         scroll.post { scroll.scrollTo(0, keepY) }
     }
 
+    /**
+     * After the next layout, smoothly scroll so [v] (somewhere inside the
+     * screen) sits at the top — e.g. the action the player just picked.
+     */
+    protected fun scrollToTop(v: View) {
+        // Twice posted: after render()'s own restore of the scroll position.
+        scroll.post { scroll.post {
+            var y = 0
+            var cur: View? = v
+            while (cur != null && cur !== scroll) {
+                y += cur.top
+                cur = cur.parent as? View
+            }
+            if (cur === scroll) scroll.smoothScrollTo(0, (y - Ui.dp(ctx, 8)).coerceAtLeast(0))
+        } }
+    }
+
     protected fun toast(msg: String) {
         android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
     }
