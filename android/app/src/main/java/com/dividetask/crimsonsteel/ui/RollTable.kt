@@ -170,6 +170,9 @@ object RollTable {
             return RectF(0f, i * h, width.toFloat(), (i + 1) * h)
         }
 
+        /** Room at the top of a strip for its label (and, on the first, the action's title above it). */
+        private fun labelSpace(zone: Int): Float = (if (zone == 0 && title != null) 64f else 28f) * density
+
         private fun dieRadius(): Float {
             val bandH = height / max(1, zones.size).toFloat()
             return min(min(bandH * 0.17f, width / 9f), 44f * density)
@@ -192,7 +195,8 @@ object RollTable {
             val rad = dieRadius()
             val fromLeft = rnd.nextBoolean()
             val x = if (fromLeft) r.left + rad else r.right - rad
-            val y = r.top + rad + rnd.nextFloat() * (r.height() - 2 * rad)
+            val top = r.top + rad + labelSpace(zone)
+            val y = top + rnd.nextFloat() * max(0f, r.bottom - rad - top)
             val speed = (1100f + rnd.nextFloat() * 900f) * density
             val dir = (if (fromLeft) 0.0 else Math.PI) + (rnd.nextDouble() - 0.5) * 1.1
             return Die(x, y, (cos(dir) * speed).toFloat(), (sin(dir) * speed).toFloat(),
@@ -230,7 +234,6 @@ object RollTable {
             val drag = 260f * density      // constant rolling resistance, px/s²
             val stopSpeed = 30f * density
             val w = width.toFloat()
-            val h = height.toFloat()
             for ((_, t) in throws) {
                 if (t.done) continue
                 val r = zoneRect(t.zone)
@@ -239,16 +242,14 @@ object RollTable {
                     d.x += d.vx * dt
                     d.y += d.vy * dt
                     d.angle += d.spin * dt
-                    // Only the screen's edges stop a die: bounce, losing some speed.
+                    // Each Roll keeps to its own strip of the screen (no line is
+                    // drawn): its dice bounce off the strip's edges, losing some
+                    // speed, so several Rolls never mix.
+                    val top = r.top + rad + labelSpace(t.zone)
                     if (d.x < rad) { d.x = rad; d.vx = abs(d.vx) * 0.62f; d.spin *= -0.8f }
                     if (d.x > w - rad) { d.x = w - rad; d.vx = -abs(d.vx) * 0.62f; d.spin *= -0.8f }
-                    if (d.y < rad) { d.y = rad; d.vy = abs(d.vy) * 0.62f; d.spin *= -0.8f }
-                    if (d.y > h - rad) { d.y = h - rad; d.vy = -abs(d.vy) * 0.62f; d.spin *= -0.8f }
-                    // A gentle pull back towards the roller's own part of the
-                    // screen, so several people's dice stay apart (no line drawn).
-                    val pull = 9f
-                    if (d.y < r.top + rad) d.vy += (r.top + rad - d.y) * pull * dt
-                    if (d.y > r.bottom - rad) d.vy -= (d.y - (r.bottom - rad)) * pull * dt
+                    if (d.y < top) { d.y = top; d.vy = abs(d.vy) * 0.62f; d.spin *= -0.8f }
+                    if (d.y > r.bottom - rad) { d.y = r.bottom - rad; d.vy = -abs(d.vy) * 0.62f; d.spin *= -0.8f }
                     val speed = hypot(d.vx, d.vy)
                     val decay = max(0f, 1f - friction * dt) * max(0f, 1f - drag * dt / max(speed, 1f))
                     d.vx *= decay; d.vy *= decay; d.spin *= max(0f, 1f - 2.2f * dt)
@@ -346,23 +347,18 @@ object RollTable {
                 val color = zones.find { it.key == key }?.color ?: COLORS[0]
                 for (d in t.dice) drawDie(canvas, d, rad, color, t.tn, t.done || !d.moving)
             }
-            // Each roller's label (and result once stopped) floats just above their dice.
+            // Each Roll's label — whose and what, with the result once its dice
+            // stop — fixed at the top left of its strip.
             for ((key, t) in throws) {
-                if (t.dice.isEmpty()) continue
                 val z = zones.find { it.key == key } ?: continue
-                val cx = t.dice.map { it.x }.average().toFloat()
-                val top = t.dice.minOf { it.y } - rad * 1.35f
                 val result = if (!t.done) "" else {
                     val n = DiceRules.dois(t.final, t.tn, t.startingValue, t.failureModifier)
                     val crits = t.final.count { it == DiceConfig.DIE_SIZE }
                     "  \u00b7  $n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) ", $crits crit${if (crits == 1) "" else "s"}" else ""
                 }
-                val textLine = z.label + result
                 label.color = Color.rgb(min(255, Color.red(z.color) + 30), min(255, Color.green(z.color) + 30), min(255, Color.blue(z.color) + 30))
-                val tw = label.measureText(textLine)
-                val x = (cx - tw / 2f).coerceIn(8 * density, max(8 * density, width - tw - 8 * density))
-                val y = top.coerceIn(20 * density, height - 8 * density)
-                canvas.drawText(textLine, x, y, label)
+                val r = zoneRect(t.zone)
+                canvas.drawText(z.label + result, 12 * density, r.top + labelSpace(t.zone) - 8 * density, label)
             }
             title?.let {
                 label.textAlign = Paint.Align.CENTER
