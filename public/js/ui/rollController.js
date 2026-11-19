@@ -47,12 +47,16 @@ export class RollController {
     // single-slot `reroll` (StepMachine / manual) and the two-slot
     // `positive_reroll` / `negative_reroll` (composed upstream, e.g. Luck) both
     // feed the same Reroll primitive — Roll Resolution owns the application.
+    group.dataset.rolledInitial = JSON.stringify(initial);
+    delete group.dataset.rolledRerolled;
     const rerollSlots = RollController._rerollSlots(cfg);
     if (rerollSlots.positiveReroll || rerollSlots.negativeReroll) {
       const changes = Reroll.applyWithTn(current, rerollSlots, tn, rng, config, skip);
       RollController._markRerolled(skip, changes);
       current = merge(current, changes);
       RollController._render(group, '.row-reroll', DiceRenderer.renderDice(changes, tn, dieSize, startingValue, 'spacer'));
+      // For the players' phones (liveSync.js): which dice Luck rerolled, to what.
+      group.dataset.rolledRerolled = JSON.stringify(changes.map((c) => (c == null ? null : c)));
     }
 
     if (cfg.mass_reroll) {

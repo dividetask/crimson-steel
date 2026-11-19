@@ -119,7 +119,16 @@ RSpec.describe 'Android app JSON API', type: :request do
       j = api_get('/api/initiative')
       expect(j['combat_active']).to be true
       expect(j['order'].count { |r| r['is_you'] }).to eq(1)
-      expect(j['order'].first.keys).not_to include('hp', 'mana', 'toxicity')
+      expect(j['order'].first.keys).not_to include('toxicity')
+      # Status rows: a Player Character's vitals; an enemy's are hidden ("?" on the phone).
+      pc_row = j['order'].find { |r| r['is_pc'] }
+      expect(pc_row['hp']).to include('current', 'max')
+      expect(pc_row['tier']).to be_a(Integer)
+      enemy = j['order'].find { |r| !r['is_pc'] }
+      if enemy
+        expect(enemy).to include('hp' => { 'hidden' => true }, 'mana' => { 'hidden' => true }, 'conditions' => nil, 'tier' => nil)
+      end
+      expect(j['order'].map { |r| r['acted'] }).to all(be(true).or(be(false)))
     end
 
     it "lists the player's turn options from the DM's turn-menu code on their turn" do
@@ -278,53 +287,107 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(last_response.status).to eq(422)
     end
 
-    it 'runs request -> DM approval -> defender prompt -> rolls -> pre-fill -> commit closes it' do
+    # The DM's builder reporting its state (public/js/ui/liveSync.js).
+    def dm_sync(body)
+      header 'Host', 'localhost'
+      post '/encounter/live/sync', JSON.generate(body), dm_env.merge('CONTENT_TYPE' => 'application/json')
+      header 'Host', '192.168.1.10:4567'
+      JSON.parse(last_response.body)
+    end
+
+    def dm_json(path, body = {})
+      header 'Host', 'localhost'
+      post path, JSON.generate(body), dm_env.merge('CONTENT_TYPE' => 'application/json')
+      header 'Host', '192.168.1.10:4567'
+      JSON.parse(last_response.body)
+    end
+
+    def defense_step = { key: 'defense', options: [{ value: 'none', label: 'No defense' }, { value: 'dodge|2', group: 'dodge', label: '2', summary: 'Dodge — 2 dice' }] }
+
+    def builder_rolls(n)
+      [{ id: 'attacker', side: 'supporting', creature_name: 'me', roll_name: 'Attack', dice_count: n, tn: 7, starting_value: 0,
+         bonus_penalty_list: [['Competency', 1]] },
+       { id: 'defender', side: 'opposing', creature_name: 'them', roll_name: 'Dodge', dice_count: 2, tn: 7, starting_value: 0,
+         bonus_penalty_list: [] }]
+    end
+
+    it 'runs request -> DM approval -> the builder, with the target and attacker answering on their phones' do
       flow = attack_other_pc!
       expect(flow.stage).to eq('declare')
+      target_id = flow.target_id
 
-      # The DM sees it and approves the request.
+      # The DM sees it and approves: the builder opens by itself on the page.
       header 'Host', 'localhost'
       get '/encounter', {}, dm_env
-      expect(last_response.status).to eq(200)
       expect(last_response.body).to include('class="af-title">Player actions')
-      expect(last_response.body).to include('/approve')
+      expect(last_response.body).to include('/js/ui/liveSync.js')
       dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
-      expect(flow.stage).to eq('respond')
+      expect(flow.stage).to eq('builder')
+      header 'Host', 'localhost'
+      get '/encounter/flows_panel', {}, dm_env
+      expect(last_response.body).to include('data-open-now="1"')
+      get "/encounter/flows/#{flow.id}/prefill", {}, dm_env
+      expect(JSON.parse(last_response.body)['choices'].map(&:first)).to eq(%w[target action])
 
-      # The target's phone is asked for a defense, and answers.
+      as_other_phone { other_get('/api/hello') } # the target has the app too
+      # The builder reaches the Defense: the target's phone is asked.
+      res = dm_sync(flow_id: flow.id, kind: 'attack', actor_id: flow.actor_id, choices: { target: target_id.to_s },
+                    target_id: target_id, step: defense_step)
+      expect(res).to include('flow_id' => flow.id, 'waiting_on' => other_pc[:name])
       as_other_phone do
-        prompts = other_get('/api/prompts')['prompts']
-        defense = prompts.find { |p| p['step'] == 'defense' }
-        expect(defense['options'].map { |o| o['value'] }).to include('none')
-        j = other_post("/api/prompts/#{flow.id}/#{defense['task_id']}", value: 'none')
-        expect(j['prompts'].find { |p| p['task_id'] == defense['task_id'] }['status']).to eq('submitted')
+        defense = other_get('/api/prompts')['prompts'].find { |p| p['step'] == 'defense' }
+        expect(defense['options'].map { |o| o['value'] }).to eq(%w[none dodge|2])
+        other_post("/api/prompts/#{flow.id}/#{defense['task_id']}", value: 'dodge|2')
       end
-
       # The attacker cannot answer the defender's step.
-      t = flow.open_tasks.find { |x| x['step'] == 'defense' }
+      t = flow.choice_tasks.first
       api_post("/api/prompts/#{flow.id}/#{t['id']}", value: 'none')
       expect(last_response.status).to eq(403)
+      # The builder picks the phone's answer.
+      res = dm_sync(flow_id: flow.id, kind: 'attack', actor_id: flow.actor_id, choices: { target: target_id.to_s },
+                    target_id: target_id, step: defense_step)
+      expect(res['answer']).to eq('step' => 'defense', 'value' => 'dodge|2')
 
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{t['id']}/approve")
-      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: flow.options_for(x).first[:value]) } if flow.stage == 'luck'
-      expect(flow.stage).to eq('roll')
-
-      # The attacker rolls on their phone; the DM approves it.
-      roll = api_get('/api/initiative')['prompts'].find { |p| p['kind'] == 'roll' }
-      n = roll['roll']['dice_count']
+      # The dice are up: both players have their own roll.
+      n = 3
+      res = dm_sync(flow_id: flow.id, kind: 'attack', actor_id: flow.actor_id, target_id: target_id,
+                    choices: { target: target_id.to_s, defense: 'dodge|2' }, step: nil, rolls: builder_rolls(n))
+      expect(res['rolls'].values.map { |r| r['claimed'] }).to eq([true, true])
+      expect(as_other_phone { other_get('/api/prompts')['prompts'].map { |p| p['kind'] } }).to eq(['roll'])
+      roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
+      expect(roll['headline']).to start_with('Attacking with')
       api_post("/api/prompts/#{flow.id}/#{roll['task_id']}", roll: { dice: [10] * n, final: [10] * n })
       expect(last_response.status).to eq(200)
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{roll['task_id']}/approve")
-      expect(flow.stage).to eq('resolve')
 
-      header 'Host', 'localhost'
-      get "/encounter/flows/#{flow.id}/prefill", {}, dm_env
-      pre = JSON.parse(last_response.body)
-      expect(pre['choices'].map(&:first)).to eq(%w[target action defense])
-      expect(pre['rolls']['attacker']['successes']).to eq(2 * n)
+      # Not shared with the target until the DM approves it.
+      seen = lambda do
+        as_other_phone do
+          other_get('/api/prompts')['prompts'].first['all_rolls'].find { |r| r['task_id'] == roll['task_id'] }
+        end
+      end
+      expect(seen.call['final']).to be_nil
+      expect(dm_sync(flow_id: flow.id, kind: 'attack', actor_id: flow.actor_id, target_id: target_id,
+                     choices: { target: target_id.to_s, defense: 'dodge|2' }, rolls: builder_rolls(n))['rolls']['attacker'])
+        .to include('by' => 'player', 'final' => [10] * n)
+      dm_json("/encounter/live/#{flow.id}/rolls/#{roll['task_id']}/approve")
+      expect(seen.call['final']).to eq([10] * n)
+
+      # The DM rolls the target's dice: only the DM sees them; Confirm shares them.
+      dfn = flow.roll_tasks.find { |x| x['roll']['roll_id'] == 'defender' }
+      res = dm_json("/encounter/live/#{flow.id}/rolls/#{dfn['id']}/roll")
+      expect(res['rolls']['defender']).to include('by' => 'dm', 'status' => 'submitted')
+      mine_view = api_get('/api/prompts')['prompts'].first['all_rolls'].find { |r| r['task_id'] == dfn['id'] }
+      expect(mine_view['final']).to be_nil
+      as_other_phone do
+        own = other_get('/api/prompts')['prompts'].first
+        expect(own['status']).to eq('waiting') # still theirs to roll
+      end
+      dm_json("/encounter/live/#{flow.id}/share", rolls: {})
+      mine_view = api_get('/api/prompts')['prompts'].first['all_rolls'].find { |r| r['task_id'] == dfn['id'] }
+      expect(mine_view['final']).not_to be_nil
 
       # A committed attack carrying the flow id closes it.
-      payload = { target_id: pre['choices'][0][1].to_i, weapon_type: pre['choices'][1][1].split('|').first, commit: true,
+      payload = { target_id: target_id, weapon_type: flow.prefill[:choices][1][1].split('|').first, commit: true,
                   flow_id: flow.id, luck: [], defense: { choice: 'none' },
                   attacker: { id: flow.attacker_id, dice: n, speed: 0, successes: 2 * n } }
       post '/encounter/resolve_attack', JSON.generate(payload), dm_env.merge('CONTENT_TYPE' => 'application/json')
@@ -332,15 +395,26 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(flow.status).to eq('done')
     end
 
-    it 'lets the DM decide for a player, which clears their prompt' do
-      flow = attack_other_pc!
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
-      t = flow.open_tasks.find { |x| x['step'] == 'defense' }
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{t['id']}/decide", value: 'none')
-      expect(flow.task(t['id'])).to include('status' => 'approved', 'by' => 'dm')
-      as_other_phone do
-        expect(other_get('/api/prompts')['prompts'].map { |p| p['task_id'] }).not_to include(t['id'])
-      end
+    it "asks a player on their phone during an attack the DM started, until the DM chooses for them" do
+      mine = start_combat_on_my_turn!
+      enemy = Encounter.state.combatants.find { |c| c[:id] != mine[:id] }
+      res = dm_sync(kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s }, target_id: mine[:id],
+                    action_label: 'Claws', step: defense_step)
+      flow = ActionFlows.instance.find(res['flow_id'])
+      expect(flow.dm_started?).to be true
+      prompt = api_get('/api/prompts')['prompts'].first
+      expect(prompt).to include('step' => 'defense', 'title' => 'Choose your defense')
+      expect(api_get('/api/initiative')['busy']).to be false # someone else's action
+      # The DM picks in the builder, which moves on: the prompt goes away.
+      dm_sync(flow_id: flow.id, kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s, defense: 'none' }, step: nil)
+      expect(api_get('/api/prompts')['prompts']).to eq([])
+      # The builder is closed without committing: the flow is dropped.
+      expect(dm_sync(flow_id: flow.id, idle: true)['status']).to eq('cancelled')
+    end
+
+    it 'keeps the live builder DM-only' do
+      post '/encounter/live/sync', JSON.generate(kind: 'attack', actor_id: 1), player_env.merge('CONTENT_TYPE' => 'application/json')
+      expect(last_response.status).to eq(403)
     end
 
     def request_option(match, body = {})
@@ -358,51 +432,19 @@ RSpec.describe 'Android app JSON API', type: :request do
       dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
     end
 
-    it 'runs a save spell: the save is applied without asking and the target rolls it on their phone' do
+    it 'opens a spell or ability request in its own builder once approved' do
       start_combat_on_my_turn!
       target = api_get('/api/initiative')['targets'].find { |t| t['name'] == other_pc[:name] }
       opt, flow = request_option(->(o) { o['kind'] == 'cast' && o['name'] == 'Vicious Mockery' && !o['disabled'] },
                                  dice: nil, target_id: target['combatant_id'])
       expect(opt['target']).to eq('creature')
-      expect(flow.kind).to eq('cast')
       approve_request!(flow)
-      expect(flow.choices['defense']).to start_with('save:wis')
-      expect(flow.stage).to eq('roll')
-      as_other_phone do
-        roll = other_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
-        expect(roll['title']).to eq('Roll Wisdom save')
-        expect(roll['body']).to include('casts')
-      end
-    end
-
-    it 'sends a spell that rolls nothing, and an area spell, straight to the DM' do
-      start_combat_on_my_turn!
-      me_id = api_get('/api/initiative')['me']['combatant_id']
-      _, heal = request_option(->(o) { o['kind'] == 'cast' && o['name'] == 'Healing Word' && !o['disabled'] },
-                               target_id: me_id)
-      approve_request!(heal)
-      expect(heal.stage).to eq('resolve')
-      _, area = request_option(->(o) { o['kind'] == 'cast' && o['target'] == 'area' && !o['disabled'] },
-                               dice: nil)
-      expect(area.summary).to include('places it on the map')
-      approve_request!(area)
-      expect(area.stage).to eq('resolve')
+      expect(flow.prefill[:choices].map(&:first)).to eq(%w[spell dice target])
       header 'Host', 'localhost'
       get '/encounter/flows_panel', {}, dm_env
-      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include('data-open-now="1"')
+      # Not opened (no sync yet), e.g. after a reload: the DM can open it by hand.
       expect(last_response.body).to include('Open in Cast builder')
-    end
-
-    it 'runs a channeled ability with the performer rolling its check' do
-      start_combat_on_my_turn!
-      opt, flow = request_option(->(o) { o['kind'] == 'special' && o['dice'].any? { |d| d['affordable'] } },
-                                 dice: api_get('/api/initiative')['options'].find { |o| o['kind'] == 'special' && o['dice'].any? }&.dig('dice')&.find { |d| d['affordable'] }&.dig('dice'))
-      expect(flow.kind).to eq('special')
-      approve_request!(flow)
-      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: flow.options_for(x).first[:value]) } if flow.stage == 'luck'
-      expect(flow.stage).to eq('roll')
-      roll = api_get('/api/initiative')['prompts'].find { |p| p['kind'] == 'roll' }
-      expect(roll['title']).to eq("Roll #{opt['name']}")
     end
 
     it 'applies an approved Move and End Turn' do
@@ -435,62 +477,6 @@ RSpec.describe 'Android app JSON API', type: :request do
       _, heal = request_option(->(o) { o['kind'] == 'cast' && o['name'] == 'Healing Word' && !o['disabled'] }, target_id: me_id)
       expect(heal.blocking?).to be false
       expect(api_get('/api/initiative')['busy']).to be false
-    end
-
-    it 'shows every roll of the action, with dice and TNs, on a roll prompt' do
-      flow = attack_other_pc!
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
-      t = flow.open_tasks.find { |x| x['step'] == 'defense' }
-      dodge = flow.options_for(t).find { |o| o[:value].start_with?('dodge|') && !o[:disabled] }
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{t['id']}/decide", value: (dodge || { value: 'none' })[:value])
-      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: flow.options_for(x).first[:value]) } if flow.stage == 'luck'
-      roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
-      all = roll['all_rolls']
-      expect(all.length).to eq(flow.stage_tasks('roll').length)
-      expect(all.first.keys).to include('owner', 'name', 'what', 'bonus', 'dice_count', 'tn', 'status', 'final')
-      expect(all.map { |r| r['owner'] }).to include(flow.actor_name)
-      expect(all.find { |r| r['owner'] == flow.actor_name }['what']).to eq('Martial')
-      expect(roll['headline']).to start_with('Attacking with')
-
-      # Once a roll is in, everyone's prompt carries its dice.
-      d = [10] * roll['roll']['dice_count']
-      api_post("/api/prompts/#{flow.id}/#{roll['task_id']}", roll: { dice: d, final: d })
-      mine = flow.roll_overview.find { |r| r[:task_id] == roll['task_id'] }
-      expect(mine[:final]).to eq(d)
-      # Still on screen after the DM approves it, until the action is committed.
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{roll['task_id']}/approve")
-      still = api_get('/api/prompts')
-      expect(still['prompts'].map { |p| p['task_id'] }).to include(roll['task_id'])
-      expect(still['count']).to eq(0) # nothing waiting on this player, so no badge
-    end
-
-    it "hides the DM's rolls from the players until the DM approves them" do
-      flow = attack_other_pc!
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
-      pick = lambda do |x|
-        opts = flow.options_for(x).reject { |o| o[:disabled] }
-        (x['step'] == 'defense' && opts.find { |o| o[:value].start_with?('dodge|') }) || opts.first
-      end
-      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: pick.call(x)[:value]) } until %w[roll resolve].include?(flow.stage)
-      roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
-      expect(roll['all_rolls'].map { |r| r['color'] }).to all(match(/\A#\h{6}\z/))
-      tid = roll['task_id']
-
-      # The DM rolls the player's roll for them, twice: the player sees nothing.
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{tid}/roll")
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{tid}/roll")
-      expect(flow.task(tid)).to include('status' => 'submitted', 'by' => 'dm')
-      expect(api_get('/api/prompts')['prompts'].map { |p| p['task_id'] }).not_to include(tid)
-      status = api_get('/api/initiative')['flows'].flat_map { |f| f['tasks'] }
-      expect(status.map { |x| x['summary'] }).not_to include(flow.task(tid)['summary'])
-      expect(status.map { |x| x['status'] }).not_to include('submitted')
-      api_post("/api/prompts/#{flow.id}/#{tid}", roll: { dice: [10, 10], final: [10, 10] })
-      expect(last_response.status).not_to eq(200)
-
-      # Approved: now on the phone, with the DM's dice, as if just thrown.
-      dm_post("/encounter/flows/#{flow.id}/tasks/#{tid}/approve")
-      back = api_get('/api/prompts')['prompts'].find { |p| p['task_id'] == tid }
-      expect(back['all_rolls'].find { |r| r['task_id'] == tid }['final']).to eq(flow.task(tid)['value']['final'])
     end
 
     it 'keeps the DM actions DM-only' do

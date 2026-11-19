@@ -30,15 +30,20 @@ helpers do
       when /\Aroll:/      then ["Roll #{t.dig('roll', 'name')}", what]
       else [t['step'].to_s, what]
       end
+    visible = t['kind'] != 'roll' || flow.visible_to?(t, viewer_ids)
+    # A DM roll not yet approved: the owner still sees their Roll button.
+    status = visible ? t['status'] : 'waiting'
     view = { flow_id: flow.id, task_id: t['id'], kind: t['kind'], step: t['step'], title: title, body: body,
-             status: t['status'], summary: t['summary'] }
+             status: status, summary: visible ? t['summary'] : nil }
     if t['kind'] == 'roll'
       view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
-      view[:result] = t['value'] if t['value'] && !flow.dm_pending?(t)
+      view[:result] = t['value'] if t['value'] && visible
       # Everyone's roll in this action, so the player sees the whole picture
       # (and each phone can show the others' dice rolling as they arrive).
-      # A DM roll the DM has not approved yet is shown as not rolled.
-      view[:all_rolls] = flow.public_roll_overview.map { |r| r.merge(color: roll_color(r[:owner_id])) }
+      # A roll the DM has not approved is shown as not rolled.
+      view[:all_rolls] = flow.public_roll_overview(viewer_ids).map do |r|
+        r.except(:claimed, :by).merge(color: roll_color(r[:owner_id]))
+      end
       view[:headline] = flow.headline(viewer_ids)
     else
       view[:options] = flow.options_for(t)
@@ -46,13 +51,15 @@ helpers do
     view
   end
 
-  # One line per stage task for the attacker's own status view.
+  # One line per step for the actor's own status view (nothing the DM has
+  # not shared).
   def flow_status_view(flow)
+    mine = [flow.actor_id]
     { flow_id: flow.id, kind: flow.kind, stage: flow.stage, summary: flow.summary, blocking: flow.blocking?,
       pool_cost: flow.declared_pool_cost,
-      tasks: flow.stage_tasks.map do |t|
-        hidden = flow.dm_pending?(t)
-        { step: t['step'], owner: t['owner_name'], status: hidden ? 'waiting' : t['status'], summary: hidden ? nil : t['summary'] }
+      tasks: flow.tasks.reject { |t| t['kind'] == 'declare' }.map do |t|
+        shown = t['kind'] != 'roll' || flow.visible_to?(t, mine)
+        { step: t['step'], owner: t['owner_name'], status: shown ? t['status'] : 'waiting', summary: shown ? t['summary'] : nil }
       end }
   end
 
@@ -64,17 +71,22 @@ helpers do
     DiceColors.instance.hex_for(who)
   end
 
-  # Prompts waiting on this device's Character (its turn or not).
+  # A Combatant whose Character is assigned to a phone: its choices and dice
+  # go to that phone. Everyone else's are the DM's.
+  def claimed_combatant?(combatant_id)
+    c = encounter_state.combatants.find { |x| x[:id] == combatant_id.to_i }
+    return false unless c && creature_is_pc?(c[:creature_id])
+    DeviceRegistry.instance.list.any? { |d| d['character_id'].to_s == c[:creature_id].to_s }
+  end
+
+  # Prompts waiting on this device's Character (its turn or not), from the
+  # builders open on the DM's page.
   def my_prompts(acc)
     mine = my_combatant_ids(acc)
-    action_flows.active.flat_map do |f|
-      # A roll the DM made for the player and has not approved yet is the
-      # DM's business: it is not on the player's phone at all until approved.
-      tasks = f.open_tasks.select { |t| t['kind'] != 'declare' && mine.include?(t['owner_id']) && !f.dm_pending?(t) }
-      # A player's roll stays on screen (read-only once approved) until the DM
-      # commits the action, so they see everyone else's dice land too.
-      if %w[roll resolve].include?(f.stage)
-        f.stage_tasks('roll').each { |t| tasks << t if mine.include?(t['owner_id']) && !tasks.include?(t) && !f.dm_pending?(t) }
+    action_flows.active.select(&:live?).flat_map do |f|
+      tasks = f.tasks.select do |t|
+        next false unless mine.include?(t['owner_id'])
+        t['kind'] == 'choice' || (t['kind'] == 'roll' && t['claimed'])
       end
       tasks.map { |t| flow_prompt_view(f, t, mine) }
     end
@@ -238,20 +250,85 @@ post '/encounter/flows/:id/tasks/:task_id/approve' do
   flow_dm_action { |f| f.approve(params[:task_id]) }
 end
 
-post '/encounter/flows/:id/tasks/:task_id/reject' do
-  flow_dm_action { |f| f.reject(params[:task_id]) }
-end
-
-post '/encounter/flows/:id/tasks/:task_id/decide' do
-  flow_dm_action { |f| f.decide(params[:task_id], params[:value].to_s) }
-end
-
-post '/encounter/flows/:id/tasks/:task_id/roll' do
-  flow_dm_action { |f| f.roll_for(params[:task_id]) }
-end
-
 post '/encounter/flows/:id/cancel' do
   flow_dm_action(&:cancel!)
+end
+
+# --- The DM's builder (public/js/ui/liveSync.js) ----------------------------------------
+
+helpers do
+  def live_json!
+    halt 403, JSON.generate(ok: false, error: 'DM only') unless dm_view?
+    content_type :json
+    body = (JSON.parse(request.body.read) rescue nil)
+    halt 400, JSON.generate(ok: false, error: 'invalid payload') unless body.is_a?(Hash)
+    body
+  end
+
+  def live_flow!(id)
+    f = action_flows.find(id)
+    halt 404, JSON.generate(ok: false, error: 'unknown action') unless f && f.active?
+    f
+  end
+end
+
+# The builder's state, about once a second while it is on screen. Creates the
+# flow on the first sync of a builder the DM opened (no flow_id yet). Answers
+# with a player's pick for the current step and where every Roll stands.
+post '/encounter/live/sync' do
+  s = live_json!
+  f = s['flow_id'].to_s.empty? ? nil : action_flows.find(s['flow_id'])
+  f = nil if f && !f.active?
+  if f.nil?
+    return JSON.generate(ok: true, flow_id: nil) if s['idle']
+    actor = encounter_state.combatants.find { |c| c[:id] == s['actor_id'].to_i }
+    halt 404, JSON.generate(ok: false, error: 'unknown combatant') unless actor
+    kind = ActionFlow::KINDS.include?(s['kind'].to_s) ? s['kind'].to_s : 'attack'
+    f = action_flows.add(ActionFlow.new(kind: kind, actor_id: actor[:id], actor_name: tracker_name(actor),
+                                        turn_key: PlayerRequests.turn_key(encounter_state, actor[:id]), blob: nil,
+                                        names: flow_names, dm_started: true))
+  end
+  action_flows.synchronize { f.sync!(s, claimed: ->(cid) { claimed_combatant?(cid) }) }
+  # A builder the DM closed without committing: nothing was spent.
+  f.cancel! if s['idle'] && f.dm_started?
+  JSON.generate(ok: true, **f.builder_view)
+end
+
+# DM rolls a player's Roll for them (only the DM sees it until approved).
+post '/encounter/live/:id/rolls/:task_id/roll' do
+  live_json!
+  f = live_flow!(params[:id])
+  begin
+    action_flows.synchronize { f.roll_for(params[:task_id]) }
+  rescue ArgumentError => e
+    halt 422, JSON.generate(ok: false, error: e.message)
+  end
+  JSON.generate(ok: true, **f.builder_view)
+end
+
+# DM approves a Roll: now every phone sees it.
+post '/encounter/live/:id/rolls/:task_id/approve' do
+  live_json!
+  f = live_flow!(params[:id])
+  begin
+    action_flows.synchronize { f.approve(params[:task_id]) }
+  rescue ArgumentError => e
+    halt 422, JSON.generate(ok: false, error: e.message)
+  end
+  JSON.generate(ok: true, **f.builder_view)
+end
+
+# Confirm in the builder: share every Roll. Body: { rolls: { roll_id => { dice, rerolled, final } } }
+# for the Rolls the builder rolled itself (Roll All).
+post '/encounter/live/:id/share' do
+  s = live_json!
+  f = live_flow!(params[:id])
+  begin
+    action_flows.synchronize { f.share!(s['rolls'].is_a?(Hash) ? s['rolls'] : {}) }
+  rescue ArgumentError => e
+    halt 422, JSON.generate(ok: false, error: e.message)
+  end
+  JSON.generate(ok: true, **f.builder_view)
 end
 
 # The pre-fill for the DM's Attack builder (choices in step order + roll results).

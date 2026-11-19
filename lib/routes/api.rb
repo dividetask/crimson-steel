@@ -140,7 +140,7 @@ helpers do
       speed = [w[:speed].to_i, 0].max
       cap   = w[:dice_cap].to_i
       out << { key: "attack:#{w[:item_type]}", label: "Attack: #{w[:display_name]}", name: w[:display_name].to_s,
-               kind: 'attack', category: 'main', tier: nil,
+               kind: 'attack', category: 'main', tier: nil, ranged: !!w[:ranged],
                skill: api_skill_view('Martial', cap, w[:competency]), speed: speed,
                detail: "Speed #{speed} + 1 per die",
                dice: api_dice_choices(2..cap, pool, speed: speed), pool_cost: nil, mana_cost: 0 }
@@ -232,6 +232,23 @@ helpers do
     encounter_state.combatants.find { |c| c[:creature_id].to_s == acc.id.to_s }
   end
 
+  # A Combatant's status for the Initiative screen's Status rows, from its
+  # redacted tracker row (Encounter::Visibility): what a player may not see
+  # is marked hidden, and the app shows a "?" for it. Tier (for the name's
+  # colour) is sent for Player Characters only.
+  def api_status_view(r, es)
+    hp = r[:hp]
+    tier = r[:is_pc] ? ((Creatures.lookup(r[:creature_id]).tier rescue nil)) : nil
+    {
+      tier: tier.nil? ? nil : tier.to_i,
+      acted: !r[:acting] && !es.turn_pending_this_round?(r[:combatant_id]),
+      pool: r[:combat_pool],
+      hp: hp && (hp[:hide_numbers] ? { hidden: true } : { current: hp[:current], max: hp[:max] }),
+      mana: r[:is_pc] ? r[:mana] : { hidden: true },
+      conditions: r[:is_pc] ? Array(r[:badges]).map { |b| b[:label].to_s } : nil
+    }
+  end
+
   def dice_colors_view(character_id)
     mine = DiceColors.instance.key_for(character_id)
     names = ->(who) { who == DiceColors::DM ? 'the DM' : ((Creatures.get(who) || {})[:name] rescue nil) || 'another player' }
@@ -315,7 +332,7 @@ get '/api/initiative' do
     acting_combatant_id: acting, my_turn: my_turn, me: me,
     order: rows.map do |r|
       { combatant_id: r[:combatant_id], name: r[:name], is_pc: r[:is_pc], acting: r[:acting],
-        is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }
+        is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }.merge(api_status_view(r, es))
     end,
     options: my_turn ? api_turn_options(mine) : [],
     # True while one of the player's actions waits on other players or dice:

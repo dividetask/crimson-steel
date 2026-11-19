@@ -1,51 +1,56 @@
 require 'securerandom'
 require 'cgi'
 
-# A player-driven action (docs/project/action_flow.md): an Attack, a Cast, an
-# Item, or a Special Ability. The actor asks for it from the Android app;
-# every Combatant with a choice to make answers on their own phone; each
-# answer waits for the DM's approval; dice are rolled on the phones; and the
-# DM finishes it in the normal builder (Attack / Cast / Item / Special pane).
+# An action in progress (docs/project/action_flow.md): an Attack, a Cast, an
+# Item, or a Special Ability, run in the DM's own Action Builder with every
+# player who has a part in it answering on their phone.
 #
-# The flow is built on the DM's own Action Builder blob for that action
-# (attack_builder_blob, cast_builder_blob, item_builder_blob,
-# special_builder_blob), so every option, cost and patch is exactly what the
-# DM would see. A Special without a builder (e.g. Rage) has no blob: it is
-# declared, approved, and confirmed by the DM. Stages, in order:
+# Two ways in:
 #
-#   declare  — the actor's choices (Target, Weapon / Spell & dice…): the request.
-#   respond  — at the same time: the target's Defense, and an ally's Shield
-#              (when the target is shielded). A Saving Throw is not a choice
-#              (always the full Dice Cap), so it is applied without asking.
-#   luck     — at the same time: one task per Luck source (a Bard's Bardic
-#              Inspiration, DM Luck). After respond, because how much Luck a
-#              Roll can take depends on its dice (the builder's order too).
-#   roll     — at the same time: one roll per Roll in play (attacker / caster /
-#              performer, defender / target, ally shield), with Luck folded in.
-#   resolve  — the DM opens the builder pre-filled and commits it.
+# * **A player asks** from the Android app. The flow starts at `declare`
+#   (their choices: Target, Weapon / Spell and dice…). When the DM approves,
+#   it moves to `builder`: the DM's Encounter page opens the matching builder
+#   with those choices made, exactly as if the DM had pressed Attack.
+# * **The DM starts it** in the builder. The flow is created by the builder
+#   itself on its first sync, straight at `builder` (dm_started).
 #
-# Skipped straight to resolve: a Spell that rolls nothing (a buff, a Reservoir
-# pour), an area Spell (the DM places it on the map, and the creatures caught
-# in it are only known then), and a Special with no builder.
+# In `builder`, the builder is in charge: every second or so it sends its
+# state (#sync!) — the step it is on, its options, and once the dice are up,
+# every Roll. The flow mirrors that onto the phones:
 #
-# A task belongs to one Combatant (owner_id), or to the DM alone (owner_id nil
-# — e.g. DM Luck). The DM may answer any task on the owner's behalf; that
-# approves it at once and clears it from the owner's phone.
+# * A step that is a player's choice — the target's Defense, an ally's
+#   Shield, a Luck source's Bardic Inspiration — becomes a prompt on that
+#   player's phone. Their answer is picked in the builder by itself. When the
+#   DM picks first, the builder moves on and the prompt goes away.
+# * Each Roll owned by a player with a phone ("claimed") can be rolled on
+#   that phone, or by the DM ("Roll for …"). Either way only the DM sees it
+#   until the DM approves it; a player's roll replaces a DM roll not yet
+#   approved. Unclaimed Rolls (enemies, NPCs, players without the app) are
+#   rolled by the builder's Roll All. Confirm shares everything.
+#
+# The DM's commit (resolve_attack / resolve_cast / use_special with the
+# flow_id) closes the flow.
 class ActionFlow
-  STAGES = %w[declare respond luck roll resolve].freeze
-
+  STAGES = %w[declare builder].freeze
   KINDS = %w[attack cast item special].freeze
+  # A builder that has not synced for this long is closed or hidden: its
+  # prompts are not shown on the phones.
+  STALE_SECONDS = 25
 
-  attr_reader :id, :kind, :actor_id, :actor_name, :turn_key, :blob, :choices, :tasks, :rolls, :created_at, :ability
-  attr_accessor :stage, :status
+  # Steps the other players answer; every other step is the actor's own
+  # choice, which the DM makes in the builder.
+  PLAYER_STEPS = /\A(defense|ally_defense|luck:.+)\z/
+
+  attr_reader :id, :kind, :actor_id, :actor_name, :turn_key, :blob, :choices, :tasks, :rolls, :created_at, :ability,
+              :last_sync
+  attr_accessor :stage, :status, :needs_open
 
   # +kind+: attack / cast / item / special. +blob+: the builder blob (symbol
-  # keys), or nil for a Special with no builder. +declare+: the actor's
-  # choices as [[step key, value], ...] in builder order. +names+: combatant
-  # id → display name. The attack form (target_id + action_value) is kept for
-  # callers that predate the other kinds. The declare task starts submitted.
+  # keys) of a player's request, or nil. +declare+: the player's choices as
+  # [[step key, value], ...] in builder order. +names+: combatant id →
+  # display name. +dm_started+: created by the DM's builder (no request).
   def initialize(turn_key:, blob:, kind: 'attack', actor_id: nil, actor_name: nil, declare: nil, summary: nil,
-                 pool_cost: nil, ability: nil, names: {},
+                 pool_cost: nil, ability: nil, names: {}, dm_started: false,
                  attacker_id: nil, attacker_name: nil, target_id: nil, action_value: nil)
     raise ArgumentError, "unknown kind #{kind}" unless KINDS.include?(kind.to_s)
     @id          = SecureRandom.hex(5)
@@ -59,39 +64,53 @@ class ActionFlow
     @choices     = {}
     @tasks       = []
     @rolls       = {}
-    @stage       = 'declare'
     @status      = 'active'
     @created_at  = Time.now.to_i
-    @declare     = declare || [['target', target_id.to_s], ['action', action_value.to_s]]
-    @declare     = @declare.map { |k, v| [k.to_s, v.to_s] }
+    @dm_started  = dm_started
     @pool_cost   = pool_cost
-    decl = new_task('declare', 'declare', @actor_id)
-    decl.merge!('status' => 'submitted', 'by' => 'player', 'value' => @declare,
-                'summary' => summary || declare_summary)
+    @needs_open  = false
+    @last_sync   = nil
+    @live_label  = nil
+    @live_target = nil
+    if dm_started
+      @declare = []
+      @stage = 'builder'
+    else
+      @declare = declare || [['target', target_id.to_s], ['action', action_value.to_s]]
+      @declare = @declare.map { |k, v| [k.to_s, v.to_s] }
+      @stage = 'declare'
+      decl = new_task('declare', 'declare', @actor_id, 'kind' => 'declare')
+      decl.merge!('status' => 'submitted', 'by' => 'player', 'value' => @declare,
+                  'summary' => summary || declare_summary)
+    end
   end
 
-  # The names the attack-only callers (and the DM panel) use.
+  def dm_started? = @dm_started
   def attacker_id = @actor_id
   def attacker_name = @actor_name
 
   # --- Queries ------------------------------------------------------------------
 
-  # Combat Pool the declared action will cost when the DM commits it. For an
-  # attack: the weapon's Speed plus one per die (from the chosen action's
-  # patch); other kinds are given it by the caller.
+  # Combat Pool the declared action will cost when the DM commits it.
   def declared_pool_cost
     return @pool_cost.to_i unless @pool_cost.nil?
+    return 0 if @dm_started
     action = @declare.to_h['action'].to_s
     opt = raw_options('action').find { |o| o[:value].to_s == action }
     speed = Array(opt && opt.dig(:patch, :set_speed)).first&.dig(:speed).to_i
     speed + action.split('|').last.to_i
   end
 
-  def summary = stage_tasks('declare').first['summary']
+  def summary
+    d = stage_tasks('declare').first
+    return d['summary'] if d
+    [action_name, target_id && "at #{name_of(target_id)}"].compact.join(' ')
+  end
 
   # The action's own name, without dice or target: "Fire Dart", "+1 Rapier",
   # "Bardic Inspiration".
   def action_name
+    return @live_label.to_s if @dm_started || @declare.empty?
     d = @declare.to_h
     case @kind
     when 'attack'
@@ -117,11 +136,10 @@ class ActionFlow
   end
 
   # Whether this action holds up the actor's other actions while it is in
-  # progress: it waits on other players or on dice. An Attack always does; a
-  # Spell / Item does when it rolls a check; a Special when it has a builder
-  # (a channeled Performance check). A buff, a Reservoir pour or Rage does not
-  # — the player may Rage and then attack.
+  # progress. An Attack always does; a Spell / Item when it rolls a check; a
+  # Special when it has a builder. A buff, a Reservoir pour or Rage does not.
   def blocking?
+    return true if @dm_started
     case @kind
     when 'attack' then true
     when 'special' then !@blob.nil?
@@ -131,56 +149,134 @@ class ActionFlow
     end
   end
 
-  # Every Roll of the roll stage, for the roll prompt: who rolls what, with
-  # how many dice and at what TN (and where each one stands).
+  # The builder synced recently (open and on screen on the DM's page).
+  def live? = @stage == 'builder' && !@last_sync.nil? && Time.now.to_f - @last_sync < STALE_SECONDS
+
+  def task(task_id) = @tasks.find { |t| t['id'] == task_id.to_s }
+  def stage_tasks(stage = @stage) = @tasks.select { |t| t['stage'] == stage }
+  def roll_tasks = @tasks.select { |t| t['kind'] == 'roll' }
+  def choice_tasks = @tasks.select { |t| t['kind'] == 'choice' }
+  def open_tasks = @tasks.select { |t| t['status'] != 'approved' && t['stage'] == @stage }
+  def active? = @status == 'active'
+
+  # The targeted Combatant, or nil (no target, an object, or an area).
+  def target_id
+    t = @live_target || @choices['target'] || @declare.to_h['target']
+    t.to_s.match?(/\A\d+\z/) ? t.to_i : nil
+  end
+
+  def name_of(cid) = cid.nil? ? 'DM' : (@names[cid.to_i] || "Combatant ##{cid}")
+
+  # A choice task's options, for the phone: a flat list of
+  # { value, label, summary, group, group_label, dice, disabled }.
+  def options_for(t) = Array(t['options'])
+
+  # Every Roll of the action as the DM's builder has it.
   def roll_overview
-    stage_tasks('roll').map do |t|
+    roll_tasks.map do |t|
       r = t['roll']
       v = t['value'] || {}
       { task_id: t['id'], owner: t['owner_name'], owner_id: t['owner_id'], name: r['name'],
         what: r['what'], bonus: r['bonus'].to_i, dice_count: r['dice_count'], tn: r['tn'],
         starting_value: r['starting_value'], positive_reroll: r['positive_reroll'], negative_reroll: r['negative_reroll'],
-        status: t['status'], summary: t['summary'],
-        # Once rolled: the dice as thrown, any Luck rerolls, and the final dice,
-        # so every phone in the action can show them rolling.
+        status: t['status'], summary: t['summary'], claimed: !!t['claimed'], by: t['by'],
         dice: v['dice'], rerolled: v['rerolled'], final: v['final'], successes: v['successes'] }
     end
   end
 
-  def task(task_id) = @tasks.find { |t| t['id'] == task_id.to_s }
-  def stage_tasks(stage = @stage) = @tasks.select { |t| t['stage'] == stage }
-  def open_tasks = @tasks.select { |t| t['status'] != 'approved' && t['stage'] == @stage }
-  def active? = @status == 'active'
-  # The targeted Combatant, or nil (no target, an object, or an area).
-  def target_id
-    t = @choices['target'] || @declare.to_h['target']
-    t.to_s.match?(/\A\d+\z/) ? t.to_i : nil
+  # A Roll a phone may see: shared by the DM (approved), or the viewer's own
+  # roll they just made. Anything else — a DM roll, or another player's roll,
+  # not yet approved — looks exactly like a Roll nobody has rolled.
+  def visible_to?(t, viewer_ids)
+    t['status'] == 'approved' || (t['by'] == 'player' && viewer_ids.include?(t['owner_id']))
   end
-  def name_of(cid) = cid.nil? ? 'DM' : (@names[cid.to_i] || "Combatant ##{cid}")
 
-  # Options for a respond task, for the phone and the DM's picker: a flat list
-  # of { value, label, group, group_label, dice, disabled }.
-  def options_for(t)
-    case t['step']
-    when 'defense'      then step_options('defense')
-    when 'ally_defense' then step_options('ally_defense')
-    when /\Aluck:/      then luck_options(t['step'])
-    else []
+  def public_roll_overview(viewer_ids = [])
+    roll_tasks.zip(roll_overview).map do |t, r|
+      next r if visible_to?(t, viewer_ids)
+      r.merge(status: 'waiting', summary: nil, by: nil, dice: nil, rerolled: nil, final: nil, successes: nil)
+    end
+  end
+
+  # A roll the DM made for its owner and has not approved: the owner still
+  # sees their Roll button (their own roll would replace it).
+  def dm_pending?(t) = t['kind'] == 'roll' && t['status'] == 'submitted' && t['by'] == 'dm'
+
+  # --- The builder (DM's page) ------------------------------------------------------
+
+  # Mirror the builder's state. +s+ (string keys): choices, target_id,
+  # action_label, idle, step { key, options [...], luck {...} }, rolls [...].
+  # +claimed+: ->(combatant_id) { true when that Combatant is a player with a phone }.
+  def sync!(s, claimed:)
+    @last_sync = Time.now.to_f
+    @needs_open = false
+    @stage = 'builder' if @stage == 'declare'
+    @choices = (s['choices'] || {}).to_h { |k, v| [k.to_s, v.to_s] }
+    @live_target = s['target_id'] if s.key?('target_id')
+    @live_label = s['action_label'].to_s unless s['action_label'].to_s.empty?
+    keep = @tasks.select { |t| t['kind'] == 'declare' }
+    unless s['idle']
+      step = s['step']
+      if step.is_a?(Hash) && step['key'].to_s.match?(PLAYER_STEPS)
+        owner = step_owner(step)
+        if owner && claimed.call(owner)
+          key = step['key'].to_s
+          t = choice_tasks.find { |x| x['step'] == key && x['owner_id'] == owner } ||
+              new_task('builder', key, owner, 'kind' => 'choice')
+          t['options'] = step['luck'] ? luck_options(step['luck']) : normalize_options(step['options'])
+          keep << t
+        end
+      end
+      Array(s['rolls']).each { |r| keep << sync_roll(r, claimed) } if s['rolls'].is_a?(Array)
+    end
+    @tasks.replace(keep)
+  end
+
+  # What the builder needs back: a player's answer to the step it is on, and
+  # where every Roll stands (claimed ones with their dice, for the DM only).
+  def builder_view
+    answer = choice_tasks.find { |t| t['status'] == 'submitted' }
+    asked = choice_tasks.first
+    { flow_id: @id, stage: @stage, status: @status,
+      answer: answer && { step: answer['step'], value: answer['value'] },
+      waiting_on: asked && asked['status'] == 'waiting' ? asked['owner_name'] : nil,
+      rolls: roll_tasks.to_h do |t|
+        v = t['value'] || {}
+        [t['roll']['roll_id'], { task_id: t['id'], claimed: !!t['claimed'], owner: t['owner_name'],
+                                 status: t['status'], by: t['by'], dice: v['dice'], rerolled: v['rerolled'],
+                                 final: v['final'], successes: v['successes'], crits: v['crits'] }]
+      end }
+  end
+
+  # Confirm in the builder: every claimed Roll with dice is approved, and the
+  # unclaimed Rolls the builder rolled (+rolls+: { roll_id => { dice,
+  # rerolled, final } }) are scored and shared.
+  def share!(rolls = {})
+    roll_tasks.each do |t|
+      rid = t['roll']['roll_id']
+      if t['claimed']
+        t['status'] = 'approved' if t['value']
+      elsif (v = rolls[rid] || rolls[rid.to_sym])
+        t['value'] = score_roll(t, v)
+        t['summary'] = roll_summary(t['value'])
+        t.merge!('status' => 'approved', 'by' => 'dm')
+      end
     end
   end
 
   # --- Answers ----------------------------------------------------------------------
 
-  # A player answers their own task (submitted; waits for the DM).
+  # A player answers their own task. A choice waits for the builder to pick
+  # it; a roll waits for the DM's approval (and replaces a DM roll not yet
+  # approved).
   def submit(task_id, value, by: 'player')
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'that step is finished' if t['status'] == 'approved' || t['stage'] != @stage
-    raise ArgumentError, 'the DM is rolling that' if by == 'player' && dm_pending?(t)
     if t['kind'] == 'roll'
       t['value'] = score_roll(t, value)
       t['summary'] = roll_summary(t['value'])
     else
-      opt = options_for(t).find { |o| o[:value] == value.to_s }
+      opt = options_for(t).find { |o| o[:value].to_s == value.to_s }
       raise ArgumentError, 'not one of the options' unless opt
       raise ArgumentError, 'that option is not available' if opt[:disabled]
       t['value'] = value.to_s
@@ -191,16 +287,20 @@ class ActionFlow
     t
   end
 
-  # DM approves a submitted task. Advances the stage when it was the last one.
+  # DM approves: the player's request (opens the builder), or a roll (shares it).
   def approve(task_id)
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'nothing to approve yet' unless t['status'] == 'submitted'
     t['status'] = 'approved'
-    advance! if open_tasks.empty?
+    if t['kind'] == 'declare'
+      @declare.each { |k, v| @choices[k] = v }
+      @stage = 'builder'
+      @needs_open = true
+    end
     t
   end
 
-  # DM sends a submitted task back to its owner to answer again.
+  # DM sends a submitted roll back to its owner to roll again.
   def reject(task_id)
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'nothing to send back' unless t['status'] == 'submitted'
@@ -209,16 +309,8 @@ class ActionFlow
     t
   end
 
-  # DM answers on the owner's behalf: recorded and approved at once.
-  def decide(task_id, value)
-    submit(task_id, value, by: 'dm')
-    approve(task_id)
-  end
-
-  # DM rolls a roll task on the owner's behalf (server-side dice). The roll
-  # is kept for the DM's eyes only (submitted, by the DM) so the DM can roll
-  # again as often as they like; the players see nothing of it — not even
-  # that it was rolled — until the DM approves it.
+  # DM rolls a Roll on the owner's behalf (server-side dice), for the DM's
+  # eyes only until approved. May be repeated as often as the DM likes.
   def roll_for(task_id, rng: Random.new)
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'not a roll' unless t['kind'] == 'roll'
@@ -228,29 +320,17 @@ class ActionFlow
     submit(task_id, { 'dice' => initial, 'rerolled' => rerolled, 'final' => final }, by: 'dm')
   end
 
-  # A DM roll the DM has not approved yet: hidden from every player.
-  def dm_pending?(t) = t['kind'] == 'roll' && t['status'] == 'submitted' && t['by'] == 'dm'
-
-  # Every Roll as the players may see it: a DM roll still waiting for the
-  # DM's approval looks exactly like one nobody has rolled.
-  def public_roll_overview
-    roll_overview.map do |r|
-      next r unless dm_pending?(task(r[:task_id]))
-      r.merge(status: 'waiting', summary: nil, dice: nil, rerolled: nil, final: nil, successes: nil)
-    end
-  end
-
   def cancel! = @status = 'cancelled'
   def done! = @status = 'done'
 
-  # For the DM's pre-filled Attack builder: the choices in builder step order
-  # and each Roll's result.
+  # For opening the builder on a player's request: their choices in builder
+  # step order.
   def prefill
     order = Array(@blob && @blob[:steps]).map { |s| s[:key].to_s }
+    decl = @declare.to_h
     {
       flow_id: @id, kind: @kind, ability: @ability, attacker_id: @actor_id, actor_id: @actor_id,
-      choices: order.filter_map { |k| [k, @choices[k]] if @choices.key?(k) },
-      rolls: @rolls.transform_values { |r| r.slice('successes', 'crits', 'final', 'tn', 'starting_value') }
+      choices: order.filter_map { |k| [k, decl[k]] if decl.key?(k) }, rolls: {}
     }
   end
 
@@ -286,47 +366,70 @@ class ActionFlow
     end
   end
 
-  # Cross-side propagation (check_resolution_design.md; public/js/propagation.js):
-  # the initiating Roll takes every opposing Roll's entries inverted, the
-  # defending Roll every supporting Roll's, and the others only the lead Roll
-  # of the other side. Ascendancy entries and a Roll's no_propagate Types never
-  # cross. Returns { roll_id => propagated bonus_penalty_list }.
-  def self.propagate(supporting, opposing)
-    extend = lambda do |roll, sources|
-      list = Array(roll['bonus_penalty_list']).map(&:dup)
-      sources.each do |src|
-        next if src.nil? || src.equal?(roll)
-        skip = Array(src['no_propagate'])
-        Array(src['bonus_penalty_list']).each do |type, value, from|
-          next if skip.include?(type) || type == 'Ascendancy'
-          list << (from.nil? ? [type, -value] : [type, -value, from])
-        end
-      end
-      list
-    end
-    out = {}
-    supporting.each_with_index { |r, i| out[r['id']] = extend.call(r, i.zero? ? opposing : [opposing.first]) }
-    opposing.each_with_index { |r, j| out[r['id']] = extend.call(r, j.zero? ? supporting : [supporting.first]) }
-    out
-  end
-
   private
 
   def die_size = ActionFlow.die_size
 
   def new_task(stage, step, owner_id, extra = {})
-    t = { 'id' => SecureRandom.hex(4), 'stage' => stage, 'step' => step,
-          'kind' => (stage == 'roll' ? 'roll' : (stage == 'declare' ? 'declare' : 'choice')),
+    t = { 'id' => SecureRandom.hex(4), 'stage' => stage, 'step' => step, 'kind' => 'choice',
           'owner_id' => owner_id, 'owner_name' => name_of(owner_id),
           'status' => 'waiting', 'value' => nil, 'summary' => nil, 'by' => nil }.merge(extra)
     @tasks << t
     t
   end
 
+  # Who answers a player step: the target defends, the shielding ally
+  # interposes, a Luck source spends its Luck (nil for the DM's own Luck).
+  def step_owner(step)
+    case step['key'].to_s
+    when 'defense' then target_id
+    when 'ally_defense' then shield_caster(Array(step['options']).map { |o| o['value'].to_s })
+    else
+      id = step.dig('luck', 'source', 'id')
+      id.nil? ? nil : id.to_i
+    end
+  end
+
+  def shield_caster(values)
+    v = values.find { |x| x.start_with?('shield:') }
+    v && v.split('|').first.split(':').last.to_i
+  end
+
+  # Who rolls a Roll of the builder.
+  def roll_owner(r)
+    id = r['id'].to_s
+    case id
+    when 'attacker', 'caster', 'performance' then @actor_id
+    when 'defender', 'target' then target_id
+    when 'shield' then shield_caster([@choices['ally_defense'].to_s])
+    when /\Asave-(\d+)\z/ then Regexp.last_match(1).to_i
+    else r['owner_id']&.to_i
+    end
+  end
+
+  def sync_roll(r, claimed)
+    rid = r['id'].to_s
+    owner = roll_owner(r)
+    spec = { 'roll_id' => rid, 'name' => r['roll_name'].to_s, 'creature_name' => r['creature_name'].to_s,
+             'dice_count' => r['dice_count'].to_i, 'tn' => r['tn'].to_i, 'starting_value' => r['starting_value'].to_i,
+             'positive_reroll' => r['positive_reroll'].to_i, 'negative_reroll' => r['negative_reroll'].to_i,
+             'speed' => r['speed'].to_i, 'side' => r['side'].to_s,
+             # For the roll prompt: what is rolled in words and its own bonus,
+             # e.g. "Arcana" +3, "Dodging" +2, "Wisdom save" +1.
+             'what' => roll_what(r), 'bonus' => competency_of(r['bonus_penalty_list']) }
+    t = roll_tasks.find { |x| x['roll']['roll_id'] == rid } ||
+        new_task('builder', "roll:#{rid}", owner, 'kind' => 'roll', 'roll' => spec)
+    # The dice or TN changed under it (the DM changed a step): roll again.
+    same = %w[dice_count tn starting_value positive_reroll negative_reroll].all? { |k| t['roll'][k] == spec[k] }
+    t.merge!('status' => 'waiting', 'value' => nil, 'summary' => nil, 'by' => nil) unless same && t['owner_id'] == owner
+    t.merge!('roll' => spec, 'owner_id' => owner, 'owner_name' => owner ? name_of(owner) : r['creature_name'].to_s,
+             'claimed' => !owner.nil? && claimed.call(owner))
+    t
+  end
+
   def step_def(key) = Array(@blob && @blob[:steps]).find { |s| s[:key].to_s == key }
 
-  # Options of a builder step under the current choices (static list or the
-  # choice-dependent options_map entry), as the builder would show them.
+  # Options of a step of the request's builder blob under the declared choices.
   def raw_options(key)
     step = step_def(key) or return []
     return Array(step[:options]) if step[:options]
@@ -335,10 +438,8 @@ class ActionFlow
     Array((step[:options_map] || {})[map_key] || (step[:options_map] || {})[map_key.to_sym])
   end
 
-  # The builder keys choice-dependent maps by each prior option's `key`
-  # (falling back to its value).
   def choice_key(step_key)
-    v = @choices[step_key]
+    v = @declare.to_h[step_key]
     return '' if v.nil?
     opt = raw_options(step_key).find { |o| o[:value].to_s == v.to_s }
     (opt && !opt[:key].nil? ? opt[:key] : v).to_s
@@ -346,49 +447,48 @@ class ActionFlow
 
   def clean(label) = CGI.unescapeHTML(label.to_s.gsub(/<[^>]*>/, '')).strip
 
-  def step_options(key)
+  # The builder's options for a step as the phone shows them: grouped (one
+  # group per defense, its dice counts ascending), info text dropped.
+  def normalize_options(list)
     seen = {}
     groups = []
-    opts = raw_options(key).filter_map do |o|
-      next if o[:kind] == 'info' || o[:header_only]
-      v = o[:value].to_s
-      next if seen[v] # the builder's lead "max dice" button repeats a count
+    opts = Array(list).filter_map do |o|
+      o = o.transform_keys(&:to_s)
+      next if o['kind'] == 'info'
+      v = o['value'].to_s
+      next if v.empty? || seen[v]
       seen[v] = true
       head, dice = v.split('|', 2)
       dice_n = dice.to_s.match?(/\A\d+\z/) ? dice.to_i : nil
-      summary = clean(o[:summary] || o[:label])
-      group = (o[:group] || head).to_s
+      summary = clean(o['summary'] || o['label'])
+      group = (o['group'] || head).to_s
       groups << group unless groups.include?(group)
-      { value: v, label: clean(o[:label]), summary: summary,
+      { value: v, label: clean(o['label']), summary: summary,
         group: group, group_label: summary.split(' — ').first.to_s,
-        dice: dice_n, disabled: !!o[:disabled] }
+        dice: dice_n, disabled: !!o['disabled'] }
     end
-    # Builder order of the groups; dice counts ascending within a group.
     opts.sort_by { |o| [groups.index(o[:group]), o[:dice] || 0] }
   end
 
-  def luck_step_def(step_key) = step_def(step_key)
-
-  def luck_options(step_key)
-    step = luck_step_def(step_key) or return []
-    src  = step.dig(:luck, :source) || {}
-    sid  = src[:sid].to_s
-    out  = [{ value: "#{sid}|none", label: 'No luck', summary: "#{src[:label]}: no luck", group: 'none',
-              group_label: 'No luck', dice: nil, disabled: false }]
-    Array(step.dig(:luck, :targets)).each do |tgt|
-      rid = tgt[:roll_id].to_s
-      roll = current_rolls[rid]
-      next if roll.nil? || roll['excluded']
-      cap = [src[:amount].to_i, roll['dice_count'].to_i].min
+  # A Luck step's options from the builder's table: { source { sid, label,
+  # penalty }, targets [{ roll_id, label, cap }] }.
+  def luck_options(luck)
+    src = luck['source'] || {}
+    sid = src['sid'].to_s
+    out = [{ value: "#{sid}|none", label: 'No luck', summary: "#{src['label']}: no luck", group: 'none',
+             group_label: 'No luck', dice: nil, disabled: false }]
+    Array(luck['targets']).each do |tgt|
+      rid = tgt['roll_id'].to_s
+      cap = tgt['cap'].to_i
       next unless cap.positive?
-      who = roll_label(roll, tgt[:label])
+      who = tgt['label'].to_s
       (1..cap).each do |n|
-        out << { value: "#{sid}|pos|#{n}|#{rid}", label: "+#{n}", summary: "#{src[:label]}: +#{n} reroll on #{who}",
+        out << { value: "#{sid}|pos|#{n}|#{rid}", label: "+#{n}", summary: "#{src['label']}: +#{n} reroll on #{who}",
                  group: "pos:#{rid}", group_label: "Help #{who} (reroll low dice)", dice: n, disabled: false }
       end
-      next unless src[:penalty]
+      next unless src['penalty']
       (1..cap).each do |n|
-        out << { value: "#{sid}|neg|#{n}|#{rid}", label: "−#{n}", summary: "#{src[:label]}: −#{n} reroll on #{who}",
+        out << { value: "#{sid}|neg|#{n}|#{rid}", label: "−#{n}", summary: "#{src['label']}: −#{n} reroll on #{who}",
                  group: "neg:#{rid}", group_label: "Hinder #{who} (reroll high dice)", dice: n, disabled: false }
       end
     end
@@ -397,17 +497,19 @@ class ActionFlow
 
   # What a Roll is, in words, for the roll prompt: the actor's skill
   # ("Martial", "Arcana", "Perform (Dance)", the Ability), or the defense as
-  # a verb ("Dodging", "Blocking", "Parrying with Rapier", "Wisdom save"), or
-  # the ally's shield Spell.
+  # a verb ("Dodging", "Blocking", "Parrying with Rapier", "Wisdom save").
   def roll_what(r)
-    case r['id']
+    c = @declare.to_h.merge(@choices)
+    case r['id'].to_s
     when 'attacker' then 'Martial'
-    when 'caster' then pretty_skill(@declare.to_h['dice'].to_s.split('|')[1].to_s)
+    when 'caster'
+      skill = c['dice'].to_s.split('|')[1].to_s
+      skill.empty? ? r['roll_name'].to_s.delete('()') : pretty_skill(skill)
     when 'performance'
-      perf = @declare.to_h['performance']
-      perf ? pretty_skill(perf) : @ability.to_s
+      perf = c['performance']
+      perf ? pretty_skill(perf) : (@ability || r['roll_name']).to_s
     else
-      name = r['roll_name'].to_s
+      name = r['roll_name'].to_s.delete('()').strip
       case name
       when 'Dodge' then 'Dodging'
       when 'Block' then 'Blocking'
@@ -431,148 +533,11 @@ class ActionFlow
     entry ? entry[1].to_i : 0
   end
 
-  def roll_label(roll, fallback)
-    name = roll['creature_name'].to_s
-    rn = roll['roll_name'].to_s
-    name.empty? || name == '—' ? fallback.to_s : "#{name}'s #{rn.downcase}"
-  end
-
   # The attack's request in words; other kinds pass their own summary.
   def declare_summary
     d = @declare.to_h
     opt = raw_options('action').find { |o| o[:value].to_s == d['action'] }
     "#{opt ? clean(opt[:summary] || opt[:label]) : d['action']} at #{name_of(d['target'].to_i)}"
-  end
-
-  # A Spell option that rolls no check (a buff, a Reservoir pour): the builder
-  # skips Luck and the dice table for it (ActionBuilder `noRoll`).
-  def no_roll?
-    opt = raw_options('spell').find { |o| o[:value].to_s == @choices['spell'].to_s }
-    !!(opt && opt[:cast] && !opt[:cast][:roll])
-  end
-
-  # An area Spell: the DM places it on the map, which decides who saves.
-  def area? = @choices['target'].to_s == 'place'
-
-  def to_resolve! = @stage = 'resolve'
-  public :area?, :no_roll?
-
-  # --- Stage transitions -------------------------------------------------------------
-
-  def advance!
-    case @stage
-    when 'declare' then start_respond!
-    when 'respond' then start_luck!
-    when 'luck'    then start_roll!
-    when 'roll'    then @stage = 'resolve'
-    end
-  end
-
-  def start_respond!
-    @declare.each { |k, v| @choices[k] = v }
-    @stage = 'respond'
-    return to_resolve! if @blob.nil? || area?
-    defense = step_options('defense')
-    auto = raw_options('defense').select { |o| o[:kind] != 'info' && !o[:header_only] }
-    if auto.length == 1 && auto.first[:auto]
-      @choices['defense'] = auto.first[:value].to_s # a Saving Throw: full Dice Cap, nothing to ask
-    elsif !defense.empty? && target_id
-      new_task('respond', 'defense', target_id)
-    end
-    shield = raw_options('ally_defense').find { |o| o[:value].to_s.start_with?('shield:') }
-    if shield
-      caster = shield[:value].to_s.split('|').first.split(':').last.to_i
-      new_task('respond', 'ally_defense', caster)
-    end
-    start_luck! if stage_tasks('respond').empty?
-  end
-
-  def start_luck!
-    stage_tasks('respond').each { |t| @choices[t['step']] = t['value'] }
-    @stage = 'luck'
-    return to_resolve! if no_roll?
-    Array(@blob[:steps]).each do |s|
-      next unless s[:dynamic].to_s == 'luck'
-      next if luck_options(s[:key].to_s).length <= 1
-      src = s.dig(:luck, :source) || {}
-      new_task('luck', s[:key].to_s, src[:id])
-    end
-    start_roll! if stage_tasks('luck').empty?
-  end
-
-  def start_roll!
-    stage_tasks('luck').each { |t| @choices[t['step']] = t['value'] }
-    @stage = 'roll'
-    rolls = current_rolls
-    luck = Hash.new { |h, k| h[k] = { pos: 0, neg: 0 } }
-    @choices.each do |k, v|
-      next unless k.start_with?('luck:')
-      _sid, sign, n, rid = v.to_s.split('|')
-      next if sign.nil? || sign == 'none' || rid.nil?
-      key = sign == 'pos' ? :pos : :neg
-      luck[rid][key] = [luck[rid][key], n.to_i].max
-    end
-    included = rolls.values.reject { |r| r['excluded'] || r['dice_count'].to_i <= 0 }
-    sup = included.select { |r| r['side'] == 'supporting' }
-    opp = included.select { |r| r['side'] == 'opposing' }
-    lists = ActionFlow.propagate(sup, opp)
-    shield_caster = @choices['ally_defense'].to_s.start_with?('shield:') ? @choices['ally_defense'].split('|').first.split(':').last.to_i : nil
-    included.each do |r|
-      tn = DiceResolution.compute_target_number(lists[r['id']])
-      owner = case r['id']
-              when 'attacker', 'caster', 'performance' then @actor_id
-              when 'defender', 'target' then target_id
-              when 'shield' then shield_caster
-              end
-      roll = { 'roll_id' => r['id'], 'name' => r['roll_name'].to_s, 'creature_name' => r['creature_name'].to_s,
-               'dice_count' => r['dice_count'].to_i, 'tn' => tn[:tn], 'starting_value' => tn[:starting_value],
-               'positive_reroll' => luck[r['id']][:pos], 'negative_reroll' => luck[r['id']][:neg],
-               'speed' => r['speed'].to_i,
-               # For the roll prompt: what is rolled in words and its own bonus,
-               # e.g. "Arcana" +3, "Dodging" +2, "Wisdom save" +1.
-               'what' => roll_what(r), 'bonus' => competency_of(r['bonus_penalty_list']) }
-      new_task('roll', "roll:#{r['id']}", owner, 'roll' => roll)
-    end
-    @stage = 'resolve' if stage_tasks('roll').empty?
-  end
-
-  # The builder's seed Rolls with every chosen option's patch applied, in step
-  # order (a Ruby port of ActionBuilder._applyPatch). Keyed by roll id.
-  def current_rolls
-    rolls = Array(@blob[:rolls]).to_h { |r| [r[:id].to_s, r.transform_keys(&:to_s)] }
-    Array(@blob[:steps]).each do |s|
-      key = s[:key].to_s
-      next unless @choices.key?(key) && s[:dynamic].nil?
-      opt = raw_options(key).find { |o| o[:value].to_s == @choices[key].to_s }
-      apply_patch!(rolls, opt && opt[:patch])
-    end
-    rolls
-  end
-
-  def apply_patch!(rolls, patch)
-    return unless patch
-    each = ->(name) { Array(patch[name]).each { |p| (r = rolls[p[:id].to_s]) && yield_patch(name, r, p) } }
-    %i[set_dice scale_dice restore_dice set_speed set_bpl set_no_propagate set_name set_excluded].each { |n| each.call(n) }
-  end
-
-  def yield_patch(name, r, p)
-    case name
-    when :set_dice then r['dice_count'] = p[:count].to_i; r.delete('_base_dice')
-    when :scale_dice
-      r['_base_dice'] ||= r['dice_count'].to_i
-      base = r['_base_dice']
-      scaled = (base * (p[:num] || 1).to_i) / (p[:den] || 1).to_i
-      r['dice_count'] = [base, [(p[:min] || 1).to_i, scaled].max].min
-    when :restore_dice
-      if r['_base_dice'] then r['dice_count'] = r['_base_dice']; r.delete('_base_dice') end
-    when :set_speed then r['speed'] = p[:speed].to_i
-    when :set_bpl then r['bonus_penalty_list'] = Array(p[:bonus_penalty_list]).map { |e| Array(e) }
-    when :set_no_propagate then r['no_propagate'] = Array(p[:types])
-    when :set_name
-      r['creature_name'] = p[:creature_name] if p.key?(:creature_name)
-      r['roll_name'] = p[:roll_name] if p.key?(:roll_name)
-    when :set_excluded then r['excluded'] = !!p[:excluded]
-    end
   end
 
   # Check a roll answer and score it on the server (the phone's own total is not trusted).

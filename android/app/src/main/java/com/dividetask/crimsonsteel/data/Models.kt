@@ -193,6 +193,8 @@ data class TurnOption(
     val poolCost: Int?,
     val manaCost: Int,
     val disabledReason: String?,
+    /** Attacks: a ranged weapon (listed under Ranged, not Melee). */
+    val ranged: Boolean = false,
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
 
@@ -315,7 +317,24 @@ data class FlowStep(val step: String, val owner: String, val status: String, val
 data class InitiativeEntry(
     val combatantId: Int, val name: String, val isPc: Boolean,
     val acting: Boolean, val isYou: Boolean, val initiative: String?,
+    /** Player Characters' Tier, for the name's colour (null for others). */
+    val tier: Int? = null,
+    /** Their turn is over this Round. */
+    val acted: Boolean = false,
+    val pool: Stat? = null, val hp: Stat? = null, val mana: Stat? = null,
+    /** Conditions, or null when they are hidden from players. */
+    val conditions: List<String>? = null,
 )
+
+/** A value on a Status row; [hidden] when players may not see it (shown as "?"). */
+data class Stat(val current: Int, val max: Int, val hidden: Boolean = false) {
+    companion object {
+        fun from(j: JSONObject?): Stat? = j?.let {
+            if (it.optBoolean("hidden")) Stat(0, 0, true)
+            else Stat(if (it.has("current")) it.optInt("current") else it.optInt("remaining"), it.optInt("max"))
+        }
+    }
+}
 
 data class Initiative(
     val combatActive: Boolean,
@@ -346,7 +365,11 @@ data class Initiative(
                 mana = Meter.from(me?.optJSONObject("mana")),
                 order = j.optJSONArray("order").mapObjects {
                     InitiativeEntry(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("is_pc"),
-                        it.optBoolean("acting"), it.optBoolean("is_you"), it.optStringOrNull("initiative"))
+                        it.optBoolean("acting"), it.optBoolean("is_you"), it.optStringOrNull("initiative"),
+                        tier = it.optIntOrNull("tier"), acted = it.optBoolean("acted"),
+                        pool = Stat.from(it.optJSONObject("pool")), hp = Stat.from(it.optJSONObject("hp")),
+                        mana = Stat.from(it.optJSONObject("mana")),
+                        conditions = it.optJSONArray("conditions")?.let { a -> (0 until a.length()).map { i -> a.optString(i) } })
                 },
                 options = j.optJSONArray("options").mapObjects { o ->
                     TurnOption(
@@ -368,6 +391,7 @@ data class Initiative(
                         poolCost = o.optIntOrNull("pool_cost"),
                         manaCost = o.optInt("mana_cost"),
                         disabledReason = o.optStringOrNull("disabled_reason"),
+                        ranged = o.optBoolean("ranged"),
                     )
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),

@@ -30,7 +30,7 @@ A request from the app is never the DM: it does not come from the server host's 
 - A bar at the top of every screen, as in the Sudoku Trainer: the **character name** on the left (or *Crimson Steel* before a Character is assigned), the app version small and grey so screenshots show which build they came from, and a **gear** button that opens Settings.
 - A tab row under it selects one of five screens:
   - **Sheet** — the character sheet.
-  - **Initiative** — the Combat Pool, the turn order, and on the player's turn their action options (see *Initiative screen*).
+  - **Initiative** — Status, the turn order, and on the player's turn their actions (see *Initiative screen*).
   - **Items** — the inventory (see *Inventory screen*).
   - **Notes** — the Chronicle notes this Character can see, grouped by chapter. Tap a note to expand it.
   - **Scene** — the current chapter, the in-game time, and the Chronicle entries the DM has made active (scene notes and the characters present).
@@ -45,7 +45,7 @@ The screen on display is refreshed from the server: Initiative every 2 seconds, 
 
 The API answers only for the assigned Character and uses the same rules as the web pages for players:
 
-- The initiative list carries names and turn order only. No HP, Mana, Toxicity or Conditions are sent for any combatant.
+- The initiative list carries names, turn order, whether each has acted this Round, and the same vitals the web initiative tracker shows players (`Encounter::Visibility`): a Player Character's HP, Mana, Combat Pool and Conditions; for anyone else only the Combat Pool — their HP, Mana and Conditions are marked hidden and the app shows "?". Tier (for the name's colour) is sent for Player Characters only.
 - Notes and scene entries are filtered per Character (`visible_to`). Only the public text is sent, never `dm_description`.
 
 ## Character sheet
@@ -80,15 +80,17 @@ This is the player's half of the web app's Turn Action Stub ([turn_action_stub.m
 
 Top to bottom:
 
-1. **Combat Pool** — one small d10 per Combat Pool die. Remaining dice are filled, spent dice are hollow. The fill color depends on how much of the pool is left: more than half green, a quarter to a half amber, under a quarter red. Below it: Main Actions left this turn and Mana. The dice shown subtract this turn's pending requests (see below). While choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
-2. **Initiative order** — the round and every combatant, with the acting one highlighted. On the player's turn the list compacts to a single row, `<name> (you) — Your turn`; tapping it shows the full list, and *Hide initiative* compacts it again.
-3. **Action options** (player's turn only) — grouped under **Main Action**, **Bonus Action** and **Free Action**; an empty group is not shown.
+Anything waiting on the player (a defense, Luck, a roll — [action_flow.md](action_flow.md)) comes first, on anyone's turn. Then:
+
+1. **Status** — the player's own row, and the acting Combatant's row when it is someone else's turn. Each row: the name in its Tier colour, the Combat Pool as a row of small d10s, and **Acted** (their turn is over this Round) or **Waiting**. Tapping a row opens it over the other row: HP, Mana, Combat Pool, Conditions (and, for the player, Main Actions left) — "?" for a value players may not see. Tapping it again closes it. The player's own pool and Mana subtract this turn's pending requests. In the dice row, remaining dice are filled and spent dice are hollow; the fill colour shows how much is left (more than half green, a quarter to a half amber, under a quarter red), and while choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
+2. **Initiative** — one row, *\<name\>'s Turn* (*Your Turn* on the player's own). Tapping it shows the whole order (each with Turn / Acted / Waiting); tapping again closes it.
+3. **Actions** (player's turn only) — **Melee**, **Ranged**, **Spell**, **Item**, **Move**, **Special** and **End Turn**; a group with nothing in it is not shown. Tapping a group opens its options (one option opens straight onto it); tapping again closes it. Melee and Ranged split the weapon attacks by whether the weapon is ranged; Special holds the Abilities and active Spells.
 
 "The player's turn" means the party's Phase is Combat, combat is running, and the player's Combatant is the acting one. When there is no combat the screen says so.
 
 The options come from the same server code that builds the DM's turn menu (`api_turn_options` in `lib/routes/api.rb` reuses the Attack, Cast, Item and Special builders), so they match what the DM can pick:
 
-| Option | Group | Dice | Combat Pool cost | Mana |
+| Option | Action type | Dice | Combat Pool cost | Mana |
 |---|---|---|---|---|
 | Attack: `<weapon>` (one per equipped weapon, natural attack, and Unarmed) | Main | 2 up to the weapon's Martial Dice Cap | weapon Speed + dice | — |
 | Move | Main | — | Move Cost (4) | — |

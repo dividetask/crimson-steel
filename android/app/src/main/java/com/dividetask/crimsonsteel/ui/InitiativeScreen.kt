@@ -8,14 +8,22 @@ import android.widget.Button
 import android.widget.LinearLayout
 import com.dividetask.crimsonsteel.data.ActionCategory
 import com.dividetask.crimsonsteel.data.Initiative
+import com.dividetask.crimsonsteel.data.InitiativeEntry
+import com.dividetask.crimsonsteel.data.Stat
 import com.dividetask.crimsonsteel.data.TurnOption
 import com.dividetask.crimsonsteel.net.Session
 
 /**
  * Combat screen. Top to bottom:
- *  - the Combat Pool as a row of dice (colored by how much is left),
- *  - the initiative order (compacts to a single "your turn" row on your turn; tap to expand),
- *  - on your turn, your action options grouped by Main / Bonus / Free Action.
+ *  - anything waiting on this player (a defense, Luck, a roll), on anyone's turn;
+ *  - **Status**: the player's own row, and the acting Combatant's when it is
+ *    someone else's turn — the name in its Tier colour, the Combat Pool dice,
+ *    and *Acted* or *Waiting*. Tap a row to open it over the others: HP, Mana,
+ *    Combat Pool and Conditions ("?" for what players may not see). Tap again
+ *    to close it;
+ *  - **Initiative**: "<name>'s Turn"; tap for the whole order, tap again to close;
+ *  - **Actions** (on the player's turn): Melee, Ranged, Spell, Item, Move,
+ *    Special and End Turn. Tap one to open its options.
  *
  * Picking an action and its dice sends a *request* to the DM (it appears on
  * the DM's turn panel). Nothing is spent until the DM resolves it, so the
@@ -28,14 +36,17 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private var selectedTarget: Int? = null
     /** The option picked on each choice prompt, until it is sent (task id -> value). */
     private val promptPick = mutableMapOf<String, String>()
-    private var expanded = false
+    /** The Status row opened (combatant id), the whole initiative order shown, the action group opened. */
+    private var statusOpen: Int? = null
+    private var orderOpen = false
+    private var openGroup: String? = null
     private var wasMyTurn = false
     private var busy = false
 
     override fun fetch(done: (Result<Pair<Initiative, String>>) -> Unit) = Session.initiative { r ->
         r.onSuccess { (d, _) ->
-            // A new turn starts with the initiative list compacted and nothing selected.
-            if (d.myTurn && !wasMyTurn) { expanded = false; clearSelection() }
+            // A new turn starts with everything closed and nothing selected.
+            if (d.myTurn && !wasMyTurn) { orderOpen = false; openGroup = null; clearSelection() }
             wasMyTurn = d.myTurn
         }
         done(r)
@@ -52,7 +63,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     override fun build(d: Initiative): View {
         val col = Ui.vertical(ctx, 12)
-        // Steps of an attack waiting on this player — on anyone's turn.
+        // Steps of an action waiting on this player — on anyone's turn.
         if (d.prompts.isNotEmpty()) promptsSection(col, d)
         if (!d.combatActive) {
             col.addView(Ui.text(ctx, "No combat right now.", 18f, Ui.TEXT, bold = true))
@@ -60,10 +71,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 Ui.matchWidth(Ui.dp(ctx, 6)))
             return col
         }
-        d.pool?.let { col.addView(poolCard(d), Ui.matchWidth()) }
-        col.addView(Ui.sectionHeader(ctx, "Initiative — ${d.roundLabel}"))
-        if (d.myTurn && !expanded) col.addView(compactTurnRow(d), Ui.matchWidth()) else fullOrder(col, d)
-
+        statusSection(col, d)
+        initiativeSection(col, d)
         if (d.myTurn) {
             actionMenu(col, d)
         } else {
@@ -74,51 +83,90 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         return col
     }
 
-    // --- Combat Pool ------------------------------------------------------------
+    // --- Status -------------------------------------------------------------------
 
-    private fun poolCard(d: Initiative): View {
-        val pool = d.pool!!
-        val left = poolLeft(d).coerceAtLeast(0)
-        val card = Ui.card(ctx)
-        val top = Ui.horizontal(ctx)
-        top.addView(Ui.text(ctx, "Combat Pool", 14f, Ui.TEXT_DIM), Ui.weighted())
-        top.addView(Ui.text(ctx, "$left / ${pool.max}", 18f,
-            if (left > 0) PoolView.colorFor(left, pool.max) else Ui.TEXT_DIM, bold = true))
-        card.addView(top, Ui.matchWidth())
-        card.addView(PoolView(ctx).apply { max = pool.max; remaining = left; highlight = selectedCost(d) },
-            Ui.matchWidth(Ui.dp(ctx, 6)))
-        val main = mainLeft(d)?.let { "$it / 2" } ?: "—"
-        val mana = d.mana?.let { "${manaLeft(d)} / ${it.max}" } ?: "—"
-        card.addView(Ui.text(ctx, "Main Actions $main  ·  Mana $mana", 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 6)))
-        if (pending(d) > 0) {
-            card.addView(Ui.text(ctx, "Includes ${pending(d)} dice asked for this turn (not spent until the DM resolves them).",
-                12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 2)))
+    private fun statusSection(col: LinearLayout, d: Initiative) {
+        col.addView(Ui.sectionHeader(ctx, "Status"))
+        val me = d.order.find { it.isYou }
+        val acting = d.order.find { it.acting && !it.isYou }
+        val rows = listOfNotNull(me, acting)
+        // An opened row covers the others.
+        val open = rows.find { it.combatantId == statusOpen }
+        if (open == null) statusOpen = null
+        for (e in if (open != null) listOf(open) else rows) col.addView(statusRow(d, e, e == open), Ui.matchWidth(Ui.dp(ctx, 6)))
+    }
+
+    /** The Combat Pool a row shows: the player's own less what this turn's requests would spend. */
+    private fun poolOf(d: Initiative, e: InitiativeEntry): Stat? =
+        if (e.isYou) d.pool?.let { Stat(poolLeft(d).coerceAtLeast(0), it.max) } else e.pool
+
+    private fun statusRow(d: Initiative, e: InitiativeEntry, open: Boolean): View {
+        val card = Ui.vertical(ctx, 12).apply {
+            background = Ui.rounded(if (e.acting) Ui.CRIMSON_DARK else Ui.SURFACE, Ui.dpf(ctx, 10f),
+                if (open) Ui.GOLD else if (e.acting) Ui.CRIMSON else null, Ui.dp(ctx, if (open) 2 else 1))
         }
+        val top = Ui.horizontal(ctx)
+        val nameColor = e.tier?.let { Ui.tierColor(it) } ?: Ui.TEXT
+        top.addView(Ui.text(ctx, e.name + if (e.isYou) "  (you)" else "", 16f, nameColor, bold = true), Ui.weighted())
+        top.addView(Ui.text(ctx, if (e.acted) "Acted" else "Waiting", 13f, if (e.acted) Ui.TEXT_DIM else Ui.GOLD, bold = true))
+        card.addView(top, Ui.matchWidth())
+        val pool = poolOf(d, e)
+        if (pool != null && !pool.hidden) {
+            card.addView(PoolView(ctx).apply {
+                max = pool.max; remaining = pool.current
+                if (e.isYou) highlight = selectedCost(d)
+            }, Ui.matchWidth(Ui.dp(ctx, 6)))
+        }
+        if (open) {
+            val stats = Ui.vertical(ctx)
+            fun line(label: String, value: String) {
+                val r = Ui.horizontal(ctx).apply { setPadding(0, Ui.dp(ctx, 3), 0, Ui.dp(ctx, 3)) }
+                r.addView(Ui.text(ctx, label, 14f, Ui.TEXT_DIM), LinearLayout.LayoutParams(Ui.dp(ctx, 110), LinearLayout.LayoutParams.WRAP_CONTENT))
+                r.addView(Ui.text(ctx, value, 14f, Ui.TEXT, bold = true), Ui.weighted())
+                stats.addView(r, Ui.matchWidth())
+            }
+            fun shown(s: Stat?) = when {
+                s == null || s.hidden -> "?"
+                else -> "${s.current} / ${s.max}"
+            }
+            line("HP", shown(e.hp))
+            val mana = if (e.isYou) d.mana?.let { Stat(manaLeft(d) ?: it.current, it.max) } ?: e.mana else e.mana
+            line("Mana", shown(mana))
+            line("Combat Pool", shown(pool))
+            if (e.isYou) mainLeft(d)?.let { line("Main Actions", "$it / 2") }
+            line("Conditions", e.conditions?.ifEmpty { listOf("None") }?.joinToString(", ") ?: "?")
+            if (e.isYou && pending(d) > 0) {
+                stats.addView(Ui.text(ctx, "Combat Pool and Mana leave out what this turn's requests would spend (${pending(d)} dice).",
+                    12f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 4)))
+            }
+            card.addView(stats, Ui.matchWidth(Ui.dp(ctx, 8)))
+        }
+        Ui.makeTappable(card, ctx) { statusOpen = if (open) null else e.combatantId; render() }
         return card
     }
 
     // --- Initiative order ---------------------------------------------------------
 
-    private fun compactTurnRow(d: Initiative): View {
-        val me = d.order.find { it.isYou }
-        val row = Ui.horizontal(ctx).apply {
+    private fun initiativeSection(col: LinearLayout, d: Initiative) {
+        col.addView(Ui.sectionHeader(ctx, "Initiative \u2014 ${d.roundLabel}"))
+        val acting = d.order.find { it.acting }
+        val head = Ui.horizontal(ctx).apply {
             setPadding(Ui.dp(ctx, 12), Ui.dp(ctx, 12), Ui.dp(ctx, 12), Ui.dp(ctx, 12))
-            background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), Ui.CRIMSON, Ui.dp(ctx, 2))
+            background = Ui.rounded(Ui.SURFACE, Ui.dpf(ctx, 10f), if (orderOpen) Ui.GOLD else null, Ui.dp(ctx, 1))
         }
-        row.addView(Ui.text(ctx, "${me?.name ?: "You"} (you)", 16f, Ui.TEXT, bold = true), Ui.weighted())
-        row.addView(Ui.text(ctx, "Your turn  ▾", 14f, Ui.GOLD, bold = true))
-        Ui.makeTappable(row, ctx) { expanded = true; render() }
-        return row
+        val who = when {
+            acting == null -> "Nobody's turn yet"
+            acting.isYou -> "Your Turn"
+            else -> "${acting.name}'s Turn"
+        }
+        head.addView(Ui.text(ctx, who, 16f, if (acting?.isYou == true) Ui.GOLD else Ui.TEXT, bold = true), Ui.weighted())
+        head.addView(Ui.text(ctx, if (orderOpen) "\u25b4" else "\u25be", 16f, Ui.TEXT_DIM))
+        Ui.makeTappable(head, ctx) { orderOpen = !orderOpen; render() }
+        col.addView(head, Ui.matchWidth())
+        if (orderOpen) fullOrder(col, d)
     }
 
     private fun fullOrder(col: LinearLayout, d: Initiative) {
-        if (d.myTurn) {
-            val collapse = Ui.text(ctx, "Hide initiative  ▴", 13f, Ui.GOLD, bold = true).apply {
-                setPadding(Ui.dp(ctx, 4), Ui.dp(ctx, 4), Ui.dp(ctx, 4), Ui.dp(ctx, 8))
-            }
-            Ui.makeTappable(collapse, ctx) { expanded = false; render() }
-            col.addView(collapse)
-        }
         d.order.forEachIndexed { i, e ->
             val card = Ui.horizontal(ctx).apply {
                 setPadding(Ui.dp(ctx, 12), Ui.dp(ctx, 10), Ui.dp(ctx, 12), Ui.dp(ctx, 10))
@@ -130,22 +178,37 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             card.addView(Ui.text(ctx, "${i + 1}", 16f, Ui.TEXT_DIM, bold = true),
                 LinearLayout.LayoutParams(Ui.dp(ctx, 28), LinearLayout.LayoutParams.WRAP_CONTENT))
             val names = Ui.vertical(ctx)
-            names.addView(Ui.text(ctx, e.name + if (e.isYou) "  (you)" else "", 15f, Ui.TEXT, bold = e.acting || e.isYou))
+            names.addView(Ui.text(ctx, e.name + if (e.isYou) "  (you)" else "", 15f,
+                e.tier?.let { Ui.tierColor(it) } ?: Ui.TEXT, bold = e.acting || e.isYou))
             names.addView(Ui.text(ctx, if (e.isPc) "Player character" else "Enemy", 12f,
                 if (e.isPc) Ui.TEXT_DIM else Ui.DIE_FAIL))
             card.addView(names, Ui.weighted())
-            if (e.acting) card.addView(Ui.text(ctx, "Turn", 13f, Ui.GOLD, bold = true))
+            card.addView(Ui.text(ctx, if (e.acting) "Turn" else if (e.acted) "Acted" else "Waiting", 13f,
+                if (e.acting) Ui.GOLD else Ui.TEXT_DIM, bold = e.acting))
+            Ui.makeTappable(card, ctx) { orderOpen = false; render() }
             col.addView(card, Ui.matchWidth(Ui.dp(ctx, 6)))
         }
     }
 
-    // --- Action menu ----------------------------------------------------------------
+    // --- Actions --------------------------------------------------------------------
+
+    /** The action groups, in order, and which group an option belongs to. */
+    private val groups = listOf("Melee", "Ranged", "Spell", "Item", "Move", "Special", "End Turn")
+
+    private fun groupOf(o: TurnOption): String = when (o.kind) {
+        "attack" -> if (o.ranged) "Ranged" else "Melee"
+        "cast" -> "Spell"
+        "item" -> "Item"
+        "move" -> "Move"
+        "end_turn" -> "End Turn"
+        else -> "Special"
+    }
 
     private fun actionMenu(col: LinearLayout, d: Initiative) {
         if (d.requests.isNotEmpty()) {
             col.addView(Ui.sectionHeader(ctx, "Sent to the DM this turn"))
             val card = Ui.card(ctx)
-            for (r in d.requests) card.addView(Ui.text(ctx, "• ${r.summary}", 14f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
+            for (r in d.requests) card.addView(Ui.text(ctx, "\u2022 ${r.summary}", 14f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
             card.addView(Ui.text(ctx, "Shown on the DM's turn panel. The DM resolves each one.", 12f, Ui.TEXT_FAINT),
                 Ui.matchWidth(Ui.dp(ctx, 6)))
             card.addView(Button(ctx).apply {
@@ -163,6 +226,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
         flowsSection(col, d)
 
+        col.addView(Ui.sectionHeader(ctx, "Actions"))
         // One action at a time while it waits on other players or dice: the
         // rest come back when the DM finishes (or cancels) it.
         if (d.busy) {
@@ -172,11 +236,30 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             return
         }
 
-        for (category in ActionCategory.entries) {
-            val inCategory = d.options.filter { it.category == category }
-            if (inCategory.isEmpty()) continue     // empty categories are skipped, as on the web
-            col.addView(Ui.sectionHeader(ctx, category.label))
-            for (opt in inCategory) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 6)))
+        val byGroup = d.options.groupBy { groupOf(it) }
+        if (openGroup != null && byGroup[openGroup].isNullOrEmpty()) openGroup = null
+        for (g in groups) {
+            val opts = byGroup[g].orEmpty()
+            if (opts.isEmpty()) continue
+            val open = g == openGroup
+            val usable = opts.any { blocker(d, it, null) == null }
+            val head = Ui.horizontal(ctx).apply {
+                setPadding(Ui.dp(ctx, 14), Ui.dp(ctx, 12), Ui.dp(ctx, 14), Ui.dp(ctx, 12))
+                background = Ui.rounded(if (open) Ui.SURFACE_HI else Ui.SURFACE, Ui.dpf(ctx, 10f),
+                    if (open) Ui.GOLD else null, Ui.dp(ctx, 1))
+            }
+            head.addView(Ui.text(ctx, g, 16f, if (usable) Ui.TEXT else Ui.TEXT_FAINT, bold = true), Ui.weighted())
+            if (opts.size > 1) head.addView(Ui.text(ctx, "${opts.size}", 13f, Ui.TEXT_DIM))
+            head.addView(Ui.text(ctx, if (open) "  \u25b4" else "  \u25be", 16f, Ui.TEXT_DIM))
+            Ui.makeTappable(head, ctx) {
+                openGroup = if (open) null else g
+                if (open || opts.none { it.key == selectedKey }) clearSelection()
+                // A group of one opens straight onto its option.
+                if (!open && opts.size == 1) { selectedKey = opts.first().key; selectedDice = null }
+                render()
+            }
+            col.addView(head, Ui.matchWidth(Ui.dp(ctx, 6)))
+            if (open) for (opt in opts) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
         }
     }
 
@@ -401,10 +484,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     private fun stageText(stage: String) = when (stage) {
         "declare" -> "Waiting for the DM to approve"
-        "respond" -> "Defenses"
-        "luck" -> "Luck"
-        "roll" -> "Rolling"
-        "resolve" -> "The DM is resolving it"
+        "builder" -> "The DM is running it"
         else -> stage
     }
 
@@ -422,7 +502,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         card.addView(Ui.text(ctx, p.title, 17f, Ui.GOLD, bold = true))
         card.addView(Ui.text(ctx, p.body, 13f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
         if (!p.waiting) {
-            card.addView(Ui.text(ctx, "Sent: ${p.summary ?: ""} \u2014 waiting for the DM to approve.", 13f, Ui.TEXT_DIM),
+            card.addView(Ui.text(ctx, "Sent: ${p.summary ?: ""} \u2014 waiting for the DM.", 13f, Ui.TEXT_DIM),
                 Ui.matchWidth(Ui.dp(ctx, 8)))
             return card
         }

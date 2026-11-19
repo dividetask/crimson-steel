@@ -4988,3 +4988,8 @@ button.spell-school-badge { font-family: inherit; }
 .af-note { color: #666; font-size: 0.9em; }
 .af-prefill-note { background: #fff8e6; border: 1px solid #d4a84a; border-radius: 6px; padding: 6px 8px; }
 .af-prefill-warn { border-color: #b71c1c; color: #b71c1c; }
+/* Live builder (public/js/ui/liveSync.js): a Roll that belongs to a player's phone. */
+.lr-row td.lr-cell { padding: 4px 8px 6px; background: #f4f1fb; font-size: 0.88em; }
+.lr-status { color: #4b3f72; }
+.lr-row .af-btn { margin-left: 6px; }
+.lr-step-note { margin: 2px 0 6px; color: #4b3f72; font-size: 0.88em; font-style: italic; }

@@ -49,6 +49,28 @@ RSpec.describe ActionFlow do
                         target_id: 9, action_value: 'Rapier|3', names: { 1 => 'Ash', 9 => 'Goblin', 5 => 'Bryn', 7 => 'Lira' })
   end
 
+  # Phones: Goblin (9) has none; Bryn (5), Lira (7) and Ash (1) do.
+  let(:claimed) { ->(cid) { [1, 5, 7].include?(cid) } }
+
+  def defense_step
+    { 'key' => 'defense', 'options' => [
+      { 'value' => 'none', 'label' => 'No defense', 'summary' => 'No defense' },
+      { 'value' => 'dodge|2', 'group' => 'dodge', 'label' => '2', 'summary' => 'Dodge — 2 dice' },
+      { 'value' => 'dodge|3', 'group' => 'dodge', 'label' => '3', 'summary' => 'Dodge — 3 dice', 'disabled' => true }
+    ] }
+  end
+
+  def roll(id, n: 3, tn: 7)
+    { 'id' => id, 'side' => id == 'attacker' ? 'supporting' : 'opposing', 'creature_name' => id, 'roll_name' => 'Dodge',
+      'dice_count' => n, 'tn' => tn, 'starting_value' => 0, 'bonus_penalty_list' => [['Competency', 2]] }
+  end
+
+  # A DM-started attack by the Goblin (9) on Ash (1).
+  def dm_flow
+    described_class.new(kind: 'attack', actor_id: 9, actor_name: 'Goblin', turn_key: 't', blob: nil, dm_started: true,
+                        names: { 1 => 'Ash', 9 => 'Goblin', 5 => 'Bryn', 7 => 'Lira' })
+  end
+
   it 'starts with the attacker’s request waiting for the DM' do
     f = flow
     expect(f.stage).to eq('declare')
@@ -56,110 +78,116 @@ RSpec.describe ActionFlow do
     expect(f.tasks.first['summary']).to eq('Rapier — 3 dice at Goblin')
   end
 
-  it 'asks the target for a defense once the DM approves, with the builder’s options' do
+  it 'opens in the builder once the DM approves, with the player’s choices' do
     f = flow
     f.approve(f.tasks.first['id'])
-    expect(f.stage).to eq('respond')
-    defense = f.open_tasks.first
-    expect(defense).to include('step' => 'defense', 'owner_id' => 9, 'status' => 'waiting')
-    opts = f.options_for(defense)
-    expect(opts.map { |o| o[:value] }).to eq(%w[none dodge|2 dodge|3 dodge|4]) # info dropped, duplicate lead dropped, sorted
-    expect(opts.find { |o| o[:value] == 'dodge|4' }[:disabled]).to be true
+    expect(f.stage).to eq('builder')
+    expect(f.needs_open).to be true
+    expect(f.prefill[:choices]).to eq([%w[target 9], ['action', 'Rapier|3']])
+    f.sync!({ 'choices' => { 'target' => '9' } }, claimed: claimed)
+    expect(f.needs_open).to be false
+    expect(f.live?).to be true
   end
 
-  it 'needs DM approval for a player answer, and refuses a disabled option' do
-    f = flow
-    f.approve(f.tasks.first['id'])
-    t = f.open_tasks.first
-    expect { f.submit(t['id'], 'dodge|4') }.to raise_error(ArgumentError, /not available/)
-    f.submit(t['id'], 'dodge|3')
-    expect(f.stage).to eq('respond')
-    f.approve(t['id'])
-    expect(f.stage).to eq('roll')
-  end
-
-  it 'lets the DM send an answer back' do
-    f = flow
-    f.approve(f.tasks.first['id'])
-    t = f.open_tasks.first
+  it 'asks a player with a phone for their defense, and takes their answer' do
+    f = dm_flow
+    f.sync!({ 'choices' => { 'target' => '1' }, 'target_id' => 1, 'action_label' => 'Claws', 'step' => defense_step }, claimed: claimed)
+    t = f.choice_tasks.first
+    expect(t).to include('owner_id' => 1, 'step' => 'defense', 'status' => 'waiting')
+    expect(f.options_for(t).map { |o| o[:value] }).to eq(%w[none dodge|2 dodge|3])
+    expect(f.options_for(t).find { |o| o[:value] == 'dodge|3' }[:disabled]).to be true
+    expect(f.builder_view[:waiting_on]).to eq('Ash')
+    expect { f.submit(t['id'], 'dodge|3') }.to raise_error(ArgumentError, /not available/)
     f.submit(t['id'], 'dodge|2')
-    f.reject(t['id'])
-    expect(f.task(t['id'])).to include('status' => 'waiting', 'value' => nil)
+    expect(f.builder_view[:answer]).to eq(step: 'defense', value: 'dodge|2')
+    expect(f.headline([1])).to eq('Goblin attacking with Claws at you')
+    # The builder moved on (it picked the answer, or the DM chose): the prompt goes away.
+    f.sync!({ 'choices' => { 'target' => '1', 'defense' => 'dodge|2' }, 'step' => nil }, claimed: claimed)
+    expect(f.choice_tasks).to be_empty
   end
 
-  it 'asks an ally shield and a Luck source, Luck only after the defense is known' do
-    f = flow(with_shield: true, with_luck: true)
-    f.approve(f.tasks.first['id'])
-    expect(f.open_tasks.map { |t| [t['step'], t['owner_id']] }).to contain_exactly(['defense', 9], ['ally_defense', 5])
-    f.open_tasks.each { |t| f.decide(t['id'], t['step'] == 'defense' ? 'dodge|2' : 'shield:5|2') }
-    expect(f.stage).to eq('luck')
-    luck = f.open_tasks.first
-    expect(luck['owner_id']).to eq(7)
-    values = f.options_for(luck).map { |o| o[:value] }
-    expect(values).to include('7|none', '7|pos|2|attacker', '7|neg|2|defender')
-    expect(values).not_to include('7|pos|3|attacker') # capped by the source's 2 Luck
-  end
-
-  it 'builds one roll per Roll in play, with propagated TNs, rerolls and owners' do
-    f = flow(with_shield: true, with_luck: true)
-    f.approve(f.tasks.first['id'])
-    f.open_tasks.each { |t| f.decide(t['id'], t['step'] == 'defense' ? 'dodge|2' : 'shield:5|2') }
-    f.decide(f.open_tasks.first['id'], '7|pos|1|attacker')
-    expect(f.stage).to eq('roll')
-    rolls = f.open_tasks.to_h { |t| [t['roll']['roll_id'], t] }
-    expect(rolls.keys).to contain_exactly('attacker', 'defender', 'shield')
-    expect(rolls['attacker']['owner_id']).to eq(1)
-    expect(rolls['defender']['owner_id']).to eq(9)
-    expect(rolls['shield']['owner_id']).to eq(5)
-    atk = rolls['attacker']['roll']
-    expect(atk).to include('dice_count' => 3, 'positive_reroll' => 1)
-    # Attacker: +1 Competency, Dodge's Competency does not cross -> TN 7.
-    expect(atk['tn']).to eq(DiceResolution.compute_target_number([['Competency', 1]])[:tn])
-    # Defender: +2 Competency own, and the attacker's +1 crosses as a -1.
-    expect(rolls['defender']['roll']['tn']).to eq(DiceResolution.compute_target_number([['Competency', 2], ['Competency', -1]])[:tn])
-  end
-
-  it 'scores a phone roll on the server and offers the DM a pre-fill when done' do
+  it 'asks nobody when the one deciding has no phone' do
     f = flow
     f.approve(f.tasks.first['id'])
-    f.decide(f.open_tasks.first['id'], 'none')
-    t = f.open_tasks.first
-    tn = t['roll']['tn']
-    f.submit(t['id'], { 'dice' => [10, tn, 1], 'final' => [10, tn, 1], 'successes' => 99 })
-    expect(f.task(t['id'])['value']['successes']).to eq(2 + 1 - 1) # 99 ignored
-    f.approve(t['id'])
-    expect(f.stage).to eq('resolve')
-    expect(f.prefill[:choices]).to eq([%w[target 9], ['action', 'Rapier|3'], %w[defense none]])
-    expect(f.prefill[:rolls]['attacker']['successes']).to eq(2)
+    f.sync!({ 'choices' => { 'target' => '9' }, 'step' => defense_step }, claimed: claimed)
+    expect(f.choice_tasks).to be_empty
   end
 
-  it 'rejects a roll with the wrong number of dice' do
-    f = flow
-    f.approve(f.tasks.first['id'])
-    f.decide(f.open_tasks.first['id'], 'none')
-    expect { f.submit(f.open_tasks.first['id'], { 'dice' => [5] }) }.to raise_error(ArgumentError, /expected 3 dice/)
+  it 'asks the shielding ally and each Luck source on their phones' do
+    f = dm_flow
+    shield = { 'key' => 'ally_defense', 'options' => [{ 'value' => 'none' }, { 'value' => 'shield:5|2', 'summary' => 'Shield — 2 dice' }] }
+    f.sync!({ 'choices' => { 'target' => '1' }, 'step' => shield }, claimed: claimed)
+    expect(f.choice_tasks.first['owner_id']).to eq(5)
+    luck = { 'key' => 'luck:7', 'luck' => { 'source' => { 'id' => 7, 'sid' => '7', 'label' => 'Lira', 'penalty' => true },
+                                            'targets' => [{ 'roll_id' => 'attacker', 'label' => 'Goblin', 'cap' => 2 },
+                                                          { 'roll_id' => 'defender', 'label' => 'Ash', 'cap' => 0 }] } }
+    f.sync!({ 'choices' => { 'target' => '1' }, 'step' => luck }, claimed: claimed)
+    t = f.choice_tasks.first
+    expect(t['owner_id']).to eq(7)
+    expect(f.options_for(t).map { |o| o[:value] }).to eq(['7|none', '7|pos|1|attacker', '7|pos|2|attacker', '7|neg|1|attacker', '7|neg|2|attacker'])
   end
 
-  it 'lets the DM roll for a player' do
-    f = flow
-    f.approve(f.tasks.first['id'])
-    f.decide(f.open_tasks.first['id'], 'none')
-    t = f.open_tasks.first
-    f.roll_for(t['id'], rng: Random.new(1))
-    # Kept for the DM until approved: hidden from the players, can be rolled again.
-    expect(f.task(t['id'])).to include('status' => 'submitted', 'by' => 'dm')
-    expect(f.dm_pending?(f.task(t['id']))).to be true
-    expect(f.stage).to eq('roll')
-    hidden = f.public_roll_overview.find { |r| r[:task_id] == t['id'] }
-    expect(hidden).to include(status: 'waiting', dice: nil, final: nil, successes: nil, summary: nil)
-    first = f.task(t['id'])['value']
-    f.roll_for(t['id'], rng: Random.new(2))
-    expect(f.task(t['id'])['value']).not_to eq(first)
-    expect { f.submit(t['id'], { 'dice' => [5, 5, 5] }) }.to raise_error(ArgumentError, /DM is rolling/)
-    f.approve(t['id'])
-    expect(f.task(t['id'])).to include('status' => 'approved', 'by' => 'dm')
-    expect(f.stage).to eq('resolve')
-    expect(f.public_roll_overview.find { |r| r[:task_id] == t['id'] }[:final]).to eq(f.task(t['id'])['value']['final'])
+  describe 'rolls' do
+    def rolling(f)
+      f.sync!({ 'choices' => { 'target' => '1', 'dice' => '3|arcana' }, 'step' => nil,
+                'rolls' => [roll('attacker'), roll('defender', n: 2)] }, claimed: claimed)
+    end
+
+    it 'gives a player with a phone their own roll; the rest are the DM’s' do
+      f = dm_flow
+      rolling(f)
+      atk, dfn = f.roll_tasks
+      expect(atk).to include('owner_id' => 9, 'claimed' => false)
+      expect(dfn).to include('owner_id' => 1, 'claimed' => true)
+      expect(dfn['roll']).to include('what' => 'Dodging', 'bonus' => 2, 'dice_count' => 2)
+    end
+
+    it 'keeps a roll to the DM until approved; a player’s roll replaces the DM’s' do
+      f = dm_flow
+      rolling(f)
+      t = f.roll_tasks.last
+      f.roll_for(t['id'], rng: Random.new(1))
+      expect(f.dm_pending?(t)).to be true
+      expect(f.builder_view[:rolls]['defender']).to include(status: 'submitted', by: 'dm')
+      hidden = f.public_roll_overview([1]).find { |r| r[:task_id] == t['id'] }
+      expect(hidden).to include(status: 'waiting', final: nil)
+      # Ash rolls on the phone anyway: theirs replaces the DM's, still unapproved.
+      f.submit(t['id'], { 'dice' => [9, 9], 'final' => [9, 9] })
+      expect(t).to include('by' => 'player', 'status' => 'submitted')
+      expect(f.public_roll_overview([1]).find { |r| r[:task_id] == t['id'] }[:final]).to eq([9, 9]) # Ash sees their own
+      expect(f.public_roll_overview([5]).find { |r| r[:task_id] == t['id'] }[:final]).to be_nil    # others do not
+      f.approve(t['id'])
+      expect(f.public_roll_overview([5]).find { |r| r[:task_id] == t['id'] }[:final]).to eq([9, 9])
+      expect { f.submit(t['id'], { 'dice' => [1, 1] }) }.to raise_error(ArgumentError, /finished/)
+    end
+
+    it 'rolls again when the dice or TN change under a roll' do
+      f = dm_flow
+      rolling(f)
+      t = f.roll_tasks.last
+      f.submit(t['id'], { 'dice' => [9, 9] })
+      f.sync!({ 'choices' => {}, 'rolls' => [roll('attacker'), roll('defender', n: 3)] }, claimed: claimed)
+      expect(f.roll_tasks.last).to include('status' => 'waiting', 'value' => nil)
+    end
+
+    it 'shares every roll on Confirm, scoring the ones the builder rolled' do
+      f = dm_flow
+      rolling(f)
+      atk, dfn = f.roll_tasks
+      f.submit(dfn['id'], { 'dice' => [2, 8] })
+      f.share!('attacker' => { 'dice' => [10, 3, 7], 'final' => [10, 3, 7] })
+      expect(atk).to include('status' => 'approved')
+      expect(atk['value']).to include('successes' => 3, 'crits' => 1)
+      expect(dfn['status']).to eq('approved')
+      expect(f.public_roll_overview([5]).map { |r| r[:final] }).to eq([[10, 3, 7], [2, 8]])
+    end
+
+    it 'clears the prompts when the builder is hidden' do
+      f = dm_flow
+      rolling(f)
+      f.sync!({ 'idle' => true }, claimed: claimed)
+      expect(f.roll_tasks).to be_empty
+    end
   end
 
   describe '.apply_rerolls' do
@@ -172,15 +200,4 @@ RSpec.describe ActionFlow do
     end
   end
 
-  describe '.propagate' do
-    it 'inverts the other side, skipping no_propagate Types and Ascendancy' do
-      sup = [{ 'id' => 'a', 'bonus_penalty_list' => [['Competency', 1], ['Ascendancy', 3]] }]
-      opp = [{ 'id' => 'd', 'bonus_penalty_list' => [['Competency', 2]], 'no_propagate' => ['Competency'] },
-             { 'id' => 's', 'bonus_penalty_list' => [['Guidance', 1]] }]
-      out = described_class.propagate(sup, opp)
-      expect(out['a']).to eq([['Competency', 1], ['Ascendancy', 3], ['Guidance', -1]])
-      expect(out['d']).to eq([['Competency', 2], ['Competency', -1]])
-      expect(out['s']).to eq([['Guidance', 1], ['Competency', -1]])
-    end
-  end
 end
