@@ -119,7 +119,7 @@ class SettingsActivity : Activity() {
                 }
                 row.addView(cell, Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 4); bottomMargin = Ui.dp(this@SettingsActivity, 4) })
             }
-            repeat(4 - rowOpts.size) { row.addView(View(this), Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 4) }) }
+            repeat(4 - rowOpts.size) { row.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).apply { marginEnd = Ui.dp(this@SettingsActivity, 4) }) }
             box.addView(row, Ui.matchWidth())
         }
     }

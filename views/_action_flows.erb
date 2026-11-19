@@ -8,7 +8,8 @@
     Builder  — it runs in the builder: the other players' choices and dice
                show up there. If the builder is closed (e.g. the page was
                reloaded), Open in builder brings it back.
-  Actions the DM starts in the builder never appear here.
+  An action the DM started in the builder appears here only while its
+  builder is closed (so it can be reopened or cancelled).
 
   Locals: flows (active ActionFlow list), acting_id (the acting Combatant).
   Refreshed in place every few seconds by public/js/ui/flowsPanel.js, which
@@ -16,7 +17,10 @@
 %>
 <% verbs = { 'attack' => 'attacks', 'cast' => 'casts', 'item' => 'uses', 'special' => 'uses' } %>
 <% panes = { 'attack' => 'Attack builder', 'cast' => 'Cast builder', 'item' => 'Item builder', 'special' => 'Ability' } %>
-<% shown = flows.reject(&:dm_started?) %>
+<%# An action the DM started shows here only when its builder is closed
+    (e.g. the turn moved on before it was finished), so it can be reopened
+    or cancelled. %>
+<% shown = flows.reject { |f| f.dm_started? && f.live? } %>
 <div id="action-flows" class="action-flows" data-flows-panel="1">
   <% unless shown.empty? %>
     <h3 class="af-title">Player actions</h3>

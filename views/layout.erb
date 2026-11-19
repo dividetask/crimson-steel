@@ -59,7 +59,11 @@
         Viewing As Player, so the preview matches what a real player sees).
         Players never see the server's IP. %>
     <% if dm_view? %>
+      <%# What the players are waiting on, on every DM page (live —
+          public/js/ui/dmNotices.js; docs/project/live_updates.md). %>
+      <%= erb :_dm_notices, layout: false %>
       <span class="server-addr"><%= server_address %>:<%= request.port %></span>
+      <script type="module" src="/js/ui/dmNotices.js"></script>
     <% end %>
   </nav>
 

@@ -18,5 +18,5 @@ Each open connection holds one web-server thread. The table is planned for **8 p
 
 - `lib/change_feed.rb` — the version counter, the wait, and the event stream.
 - `lib/routes/live_events.rb` — the `after` filter that counts a successful POST as a change, and the two event streams.
-- `public/js/ui/liveSync.js` — the DM page's `EventSource`; sends builder state on change; fires `live:changed` for `public/js/ui/flowsPanel.js`.
+- `public/js/ui/dmNotices.js` — every DM page's `EventSource` (with the notice in the top bar); fires `live:changed` for `public/js/ui/liveSync.js` (builders: send state on change, fetch on `changed`) and `public/js/ui/flowsPanel.js`.
 - `android/…/net/LiveEvents.kt` — the app's connection; `MainActivity` refreshes the screen, the assignment and the prompt badge on each notice.

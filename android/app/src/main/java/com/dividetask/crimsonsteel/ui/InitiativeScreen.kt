@@ -73,13 +73,13 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
         statusSection(col, d)
         initiativeSection(col, d)
-        if (d.myTurn) {
-            actionMenu(col, d)
-        } else {
+        if (!d.myTurn) {
             val acting = d.order.find { it.acting }
             col.addView(Ui.text(ctx, acting?.let { "Waiting for ${it.name}." } ?: "Waiting for the DM.", 14f, Ui.TEXT_DIM),
                 Ui.matchWidth(Ui.dp(ctx, 14)))
         }
+        // Everything on the player's turn; on anyone else's, their Free actions (Rage…).
+        if (d.myTurn || d.options.isNotEmpty() || d.busy) actionMenu(col, d)
         return col
     }
 
@@ -226,12 +226,12 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
         flowsSection(col, d)
 
-        col.addView(Ui.sectionHeader(ctx, "Actions"))
-        // One action at a time while it waits on other players or dice: the
-        // rest come back when the DM finishes (or cancels) it.
+        col.addView(Ui.sectionHeader(ctx, if (d.myTurn) "Actions" else "Free actions"))
+        // A die roll waiting on this player comes first: the actions come back
+        // once it is rolled.
         if (d.busy) {
             col.addView(Ui.card(ctx).apply {
-                addView(Ui.text(ctx, "Your other actions are hidden until this one is finished.", 14f, Ui.TEXT_DIM))
+                addView(Ui.text(ctx, "Roll your dice first (under Your move). Your actions come back once it is rolled.", 14f, Ui.TEXT_DIM))
             }, Ui.matchWidth(Ui.dp(ctx, 8)))
             return
         }
@@ -449,7 +449,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             Ui.makeTappable(chip, ctx) { selectedTarget = t.combatantId; render() }
             row!!.addView(chip, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 6) })
         }
-        if (targets.size % 2 == 1) row?.addView(View(ctx), Ui.weighted())
+        if (targets.size % 2 == 1) row?.addView(View(ctx), LinearLayout.LayoutParams(0, 1, 1f)) // 1 px: a plain View grows to all the height on offer
         if (targets.isEmpty()) card.addView(Ui.text(ctx, "No one to target.", 13f, Ui.TEXT_DIM))
     }
 

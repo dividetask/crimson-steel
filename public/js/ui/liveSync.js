@@ -318,23 +318,40 @@ document.addEventListener('action:confirmed', (e) => {
 
 // A fresh page has no builder open yet: drop what the last page's builders
 // were asking the phones, then start syncing.
-post('/encounter/live/reset').then(() => {
-  setInterval(tick, CHECK_MS);
-  setInterval(refreshAll, FALLBACK_MS);
-  tick();
-  listen();
+// A fresh page: reopen the actions that were in progress in a builder
+// (docs/project/action_flow.md → leaving the Encounter page), each where it
+// was, then start sending changes. Their phone prompts stayed up meanwhile.
+async function resume() {
+  const res = await fetch('/encounter/live/open', { headers: { Accept: 'application/json' } }).then((r) => r.json()).catch(() => null);
+  for (const f of (res && res.flows) || []) {
+    if (!window.openFlowBuilder) break;
+    if (!document.querySelector('.turn-action[data-combatant-id="' + f.actor_id + '"]')) continue; // not this turn
+    try { await window.openFlowBuilder(f.flow_id, true); } catch (e) { /* leave it in the panel */ }
+  }
+}
+
+function startSync() {
+  resume().finally(() => {
+    setInterval(tick, CHECK_MS);
+    setInterval(refreshAll, FALLBACK_MS);
+    tick();
+    listen();
+  });
+}
+// Leaving the page closes its builders; their actions carry on and reopen
+// here when the DM comes back.
+window.addEventListener('pagehide', () => {
+  if (navigator.sendBeacon) navigator.sendBeacon('/encounter/live/left', new Blob(['{}'], { type: 'application/json' }));
 });
 
-// The live-updates connection: "changed" whenever something changed on the
-// server. The browser reconnects by itself if it drops. Other parts of the
-// page (the Player actions panel) listen for `live:changed` too.
+// After the page's own scripts (app.js) have bound the turn panel's buttons.
+if (document.readyState === 'complete') setTimeout(startSync, 250);
+else window.addEventListener('load', () => setTimeout(startSync, 250));
+
+// The page's live-updates connection lives in dmNotices.js (the notice in the
+// top bar of every DM page); it fires `live:changed` on every change.
 function listen() {
-  if (!window.EventSource) return;
-  const es = new EventSource('/encounter/events');
-  es.addEventListener('changed', () => {
-    refreshAll();
-    document.dispatchEvent(new CustomEvent('live:changed'));
-  });
+  document.addEventListener('live:changed', refreshAll);
 }
 
 // Back from a background tab (where timers run slowly): catch up at once.

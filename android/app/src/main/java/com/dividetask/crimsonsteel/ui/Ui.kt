@@ -169,22 +169,31 @@ object Ui {
         val chips = mutableListOf<View>()
         // One die on the left for each die the action's Speed costs: lit with
         // the count, so 5 dice at Speed 1 shows 6 dice lit (the count still says 5).
-        repeat(speed) { chips += DieChip(ctx, null, speed = true).apply { lit = chosen > 0; contentDescription = "Speed" } }
+        // A die that cannot be picked (the Speed, below the minimum, or
+        // unaffordable) flashes red when tapped and does nothing else — the
+        // tap must not reach the action card underneath (that would close it).
+        fun refuse(chip: DieChip) = chip.setOnClickListener { chip.flash() }
+        repeat(speed) { chips += DieChip(ctx, null, speed = true).apply { lit = chosen > 0; contentDescription = "Speed"; refuse(this) } }
         val first = choices.minOfOrNull { it.first } ?: 1
-        for (n in 1 until first) chips += DieChip(ctx, null).apply { lit = n <= chosen }
+        for (n in 1 until first) chips += DieChip(ctx, null).apply { lit = n <= chosen; refuse(this) }
         for ((n, enabled, onTap) in choices.sortedBy { it.first }) {
             chips += DieChip(ctx, n).apply {
                 lit = n <= chosen
                 available = enabled
                 contentDescription = "$n dice"
-                if (enabled) makeTappable(this, ctx, onTap)
+                if (enabled) makeTappable(this, ctx, onTap) else refuse(this)
             }
         }
         val grid = vertical(ctx)
         chips.chunked(perRow).forEach { rowChips ->
             val row = horizontal(ctx)
             rowChips.forEach { row.addView(it, weighted().apply { marginEnd = dp(ctx, 2) }) }
-            repeat(perRow - rowChips.size) { row.addView(View(ctx), weighted().apply { marginEnd = dp(ctx, 2) }) }
+            // Empty places keep the dice their usual size in a short row. They are
+            // 1 px tall: a plain View would grow to all the height on offer
+            // (a huge empty box on a tablet).
+            repeat(perRow - rowChips.size) {
+                row.addView(View(ctx), LinearLayout.LayoutParams(0, 1, 1f).apply { marginEnd = dp(ctx, 2) })
+            }
             grid.addView(row, matchWidth(dp(ctx, 2)))
         }
         return grid

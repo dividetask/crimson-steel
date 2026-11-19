@@ -74,15 +74,16 @@ const PANES = {
   special: { container: '.ta-special' },
 };
 
-async function openBuilder(flowId) {
+// +quiet+: reopening on page load — no alerts when it cannot be done here.
+async function openBuilder(flowId, quiet) {
   const res = await fetch('/encounter/flows/' + encodeURIComponent(flowId) + '/prefill').then((r) => r.json()).catch(() => null);
-  if (!res || res.ok === false) { alert('This action is no longer available.'); return; }
+  if (!res || res.ok === false) { if (!quiet) alert('This action is no longer available.'); return false; }
   const kind = res.kind || 'attack';
   const pane = PANES[kind] || PANES.attack;
   const panel = document.querySelector('.turn-action[data-combatant-id="' + res.actor_id + '"]');
-  if (!panel) { alert('Open the acting Combatant’s turn first.'); return; }
+  if (!panel) { if (!quiet) alert('Open the acting Combatant’s turn first.'); return false; }
   const container = panel.querySelector(pane.container);
-  if (!container) { alert('That action is not available on this turn panel.'); return; }
+  if (!container) { if (!quiet) alert('That action is not available on this turn panel.'); return false; }
   container.dataset.flowId = flowId;
 
   if (kind === 'special') {
@@ -90,13 +91,13 @@ async function openBuilder(flowId) {
     // (Bardic Performance) then loads its builder; any other shows its summary
     // and Confirm.
     const opt = Array.from(panel.querySelectorAll('.ta-special-opt')).find((b) => b.dataset.ability === res.ability);
-    if (!opt || opt.disabled) { alert(res.ability + ' is not available right now.'); return; }
+    if (!opt || opt.disabled) { if (!quiet) alert(res.ability + ' is not available right now.'); return false; }
     opt.click();
     container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (!res.choices.length) { note(container, res.actor_name ? 'Requested by ' + res.actor_name + '. Check it, then press Confirm.' : 'Check it, then press Confirm.', false); return; }
   } else {
     const btn = panel.querySelector('.ta-menu-btn[data-ta-action="' + pane.action + '"]');
-    if (!btn) { alert('That action is not available on this turn panel.'); return; }
+    if (!btn) { if (!quiet) alert('That action is not available on this turn panel.'); return false; }
     btn.click();
   }
 
@@ -106,7 +107,7 @@ async function openBuilder(flowId) {
       const b = container.querySelector('.action-builder');
       return b && b._cb && b._cb.steps && b._cb.steps.length ? b : null;
     });
-  } catch (e) { alert('The builder did not load.'); return; }
+  } catch (e) { if (!quiet) alert('The builder did not load.'); return false; }
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // Replay the choices in builder order. Each press activates the next step,
@@ -126,12 +127,18 @@ async function openBuilder(flowId) {
   }
 
   if (missed.length) {
-    note(container, 'The player’s choices are filled in, except: ' + missed.join(', ') +
+    note(container, 'Filled in, except: ' + missed.join(', ') +
       ' (an option changed since — choose it by hand).', true);
+  } else if (res.resumed) {
+    note(container, 'Picked up where you left off. The players’ answers and dice are kept; roll any of your own dice again.', false);
   } else {
     note(container, 'Requested from the player’s phone. Continue as usual: the other players answer on their phones.', false);
   }
+  return true;
 }
+
+// liveSync.js reopens the actions in progress when the page loads.
+window.openFlowBuilder = openBuilder;
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('.af-open-builder');

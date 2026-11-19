@@ -412,14 +412,48 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(dm_sync(flow_id: flow.id, idle: true)['status']).to eq('cancelled')
     end
 
-    it 'drops the last page’s prompts when the DM’s page loads again' do
+    it 'keeps an action going while the DM is on another page, and reopens it where it was' do
       mine = start_combat_on_my_turn!
       enemy = Encounter.state.combatants.find { |c| c[:id] != mine[:id] }
-      res = dm_sync(kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s }, target_id: mine[:id], step: defense_step)
-      expect(api_get('/api/prompts')['prompts'].length).to eq(1)
-      dm_json('/encounter/live/reset')
-      expect(api_get('/api/prompts')['prompts']).to eq([])
-      expect(ActionFlows.instance.find(res['flow_id']).status).to eq('cancelled')
+      res = dm_sync(kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s, action: 'Claws|2' },
+                    target_id: mine[:id], step: defense_step)
+      # The DM goes to another page: the prompt stays, and the player can answer.
+      prompt = api_get('/api/prompts')['prompts'].first
+      api_post("/api/prompts/#{res['flow_id']}/#{prompt['task_id']}", value: 'none')
+      expect(last_response.status).to eq(200)
+      # Back on the Encounter page: the action is listed to reopen, with its choices in order.
+      header 'Host', 'localhost'
+      get '/encounter/live/open', {}, dm_env
+      expect(JSON.parse(last_response.body)['flows'].map { |f| f['flow_id'] }).to include(res['flow_id'])
+      get "/encounter/flows/#{res['flow_id']}/prefill", {}, dm_env
+      pre = JSON.parse(last_response.body)
+      expect(pre['resumed']).to be true
+      expect(pre['choices']).to eq([['target', mine[:id].to_s], ['action', 'Claws|2']])
+      # The reopened builder reaches the step again and gets the answer.
+      res2 = dm_sync(flow_id: res['flow_id'], kind: 'attack', actor_id: enemy[:id], choices: pre['choices'].to_h,
+                     target_id: mine[:id], step: defense_step)
+      expect(res2['answer']).to eq('step' => 'defense', 'value' => 'none')
+    end
+
+    it 'shows the DM what the players are waiting on, on every DM page' do
+      flow = attack_other_pc!
+      header 'Host', 'localhost'
+      get '/status', {}, dm_env
+      expect(last_response.body).to include('id="dm-notices"', 'Player actions <b>1</b>', "/approve?go=encounter")
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve?go=encounter")
+      expect(last_response.headers['Location']).to end_with('/encounter')
+    end
+
+    it 'lets a player ask for a Free action on someone else’s turn, but nothing else' do
+      mine = start_combat_on_my_turn!
+      other = Encounter.state.combatants.find { |c| c[:id] != mine[:id] }
+      Encounter.state.set_acting_combatant(other[:id])
+      ini = api_get('/api/initiative')
+      expect(ini['my_turn']).to be false
+      expect(ini['options'].map { |o| o['category'] }.uniq - ['free']).to eq([])
+      expect(ini['options'].map { |o| o['kind'] }).not_to include('end_turn')
+      api_post('/api/turn/requests', key: 'move')
+      expect(last_response.status).to eq(409)
     end
 
     it 'shows every phone in combat the rolls the DM shared' do
@@ -482,15 +516,18 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(Encounter.state.acting_combatant_id).not_to eq(mine[:id])
     end
 
-    it 'holds up other actions while an attack is in progress, but not after a Rage-like no-roll action' do
+    it 'holds up new requests only while a die roll waits on the player' do
       flow = attack_other_pc!
-      ini = api_get('/api/initiative')
-      expect(ini['busy']).to be true
-      expect(ini['flows'].first['blocking']).to be true
+      expect(api_get('/api/initiative')['busy']).to be false # requested, nothing to roll yet
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
+      dm_sync(flow_id: flow.id, kind: 'attack', actor_id: flow.actor_id, target_id: flow.target_id,
+              choices: { target: flow.target_id.to_s }, rolls: builder_rolls(3))
+      expect(api_get('/api/initiative')['busy']).to be true
       api_post('/api/turn/requests', key: 'move')
       expect(last_response.status).to eq(409)
-      expect(JSON.parse(last_response.body)['error']).to include('finish your current action')
-      dm_post("/encounter/flows/#{flow.id}/cancel")
+      expect(JSON.parse(last_response.body)['error']).to include('roll your dice first')
+      roll = api_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
+      api_post("/api/prompts/#{flow.id}/#{roll['task_id']}", roll: { dice: [5, 5, 5], final: [5, 5, 5] })
       expect(api_get('/api/initiative')['busy']).to be false
     end
 

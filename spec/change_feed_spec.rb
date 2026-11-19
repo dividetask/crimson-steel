@@ -48,7 +48,7 @@ RSpec.describe ChangeFeed do
       post '/dice_colors', { who: 'dm', color: 'sky' }, 'REMOTE_ADDR' => '192.168.1.50' # a player: 403
       expect(ChangeFeed.instance.version).to eq(0)
       header 'Host', 'localhost'
-      post '/encounter/live/reset', '{}', 'REMOTE_ADDR' => '127.0.0.1', 'CONTENT_TYPE' => 'application/json'
+      post '/encounter/live/sync', '{"idle":true}', 'REMOTE_ADDR' => '127.0.0.1', 'CONTENT_TYPE' => 'application/json'
       expect(ChangeFeed.instance.version).to eq(1)
     end
 

@@ -171,7 +171,11 @@ class ActionFlow
   end
 
   # The builder synced recently (open and on screen on the DM's page).
-  def live? = @stage == 'builder' && !@last_sync.nil? && Time.now.to_f - @last_sync < STALE_SECONDS
+  def live? = @stage == 'builder' && !@last_sync.nil? && !@page_left && Time.now.to_f - @last_sync < STALE_SECONDS
+
+  # The DM left the Encounter page: the builder is closed, but the action
+  # (its choices, the phones' prompts and dice) stays until the DM is back.
+  def page_left! = @page_left = true
 
   def task(task_id) = @tasks.find { |t| t['id'] == task_id.to_s }
   def stage_tasks(stage = @stage) = @tasks.select { |t| t['stage'] == stage }
@@ -230,11 +234,13 @@ class ActionFlow
   # +claimed+: ->(combatant_id) { true when that Combatant is a player with a phone }.
   def sync!(s, claimed:)
     @last_sync = Time.now.to_f
+    @page_left = false
     @needs_open = false
     @stage = 'builder' if @stage == 'declare'
     @choices = (s['choices'] || {}).to_h { |k, v| [k.to_s, v.to_s] }
     @live_target = s['target_id'] if s.key?('target_id')
     @live_label = s['action_label'].to_s unless s['action_label'].to_s.empty?
+    @ability ||= @live_label if @kind == 'special' # a DM-started Ability: which one, for resuming
     keep = @tasks.select { |t| t['kind'] == 'declare' }
     unless s['idle']
       step = s['step']
@@ -255,7 +261,10 @@ class ActionFlow
   end
 
   # The builder is still open (it fetched where things stand).
-  def touch! = @last_sync = Time.now.to_f
+  def touch!
+    @last_sync = Time.now.to_f
+    @page_left = false
+  end
 
   # What the builder needs back: a player's answer to the step it is on, and
   # where every Roll stands (claimed ones with their dice, for the DM only).
@@ -354,14 +363,22 @@ class ActionFlow
   def cancel! = @status = 'cancelled'
   def done! = @status = 'done'
 
-  # For opening the builder on a player's request: their choices in builder
-  # step order.
+  # For opening the builder: every choice the builder had made, in the order
+  # it made them (it reports them as it goes), so coming back to the
+  # Encounter page picks up where the DM left off; before the builder ever
+  # ran, the player's request in builder step order.
   def prefill
-    order = Array(@blob && @blob[:steps]).map { |s| s[:key].to_s }
-    decl = @declare.to_h
+    choices =
+      if @choices.any? && @stage == 'builder' && !@last_sync.nil?
+        @choices.to_a
+      else
+        order = Array(@blob && @blob[:steps]).map { |s| s[:key].to_s }
+        decl = @declare.to_h
+        order.filter_map { |k| [k, decl[k]] if decl.key?(k) }
+      end
     {
       flow_id: @id, kind: @kind, ability: @ability, attacker_id: @actor_id, actor_id: @actor_id,
-      choices: order.filter_map { |k| [k, decl[k]] if decl.key?(k) }, rolls: {}
+      resumed: !@last_sync.nil?, choices: choices, rolls: {}
     }
   end
 

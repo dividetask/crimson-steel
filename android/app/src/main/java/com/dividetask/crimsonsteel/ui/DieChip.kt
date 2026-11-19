@@ -19,6 +19,17 @@ class DieChip(context: Context, private val number: Int?, private val speed: Boo
     var available = true
         set(v) { field = v; invalidate() }
 
+    private var flashing = false
+
+    /** Briefly red: this die cannot be picked (below the minimum, the Speed, or unaffordable). */
+    fun flash() {
+        flashing = true
+        invalidate()
+        removeCallbacks(endFlash)
+        postDelayed(endFlash, 350)
+    }
+    private val endFlash = Runnable { flashing = false; invalidate() }
+
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -46,6 +57,7 @@ class DieChip(context: Context, private val number: Int?, private val speed: Boo
         canvas.save()
         canvas.translate(width / 2f, height / 2f)
         val base = when {
+            flashing -> Ui.DIE_FAIL
             !available -> Ui.SURFACE
             // A die the weapon's Speed costs: amber, marked "S".
             speed && lit -> 0xFF8A5A00.toInt()

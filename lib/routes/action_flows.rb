@@ -201,10 +201,24 @@ helpers do
     [action_flows.add(flow), nil]
   end
 
-  # The player's own action in progress that holds up their other actions
-  # (it waits on other players or dice), or nil.
+  # An action with a die roll still waiting on this player (theirs to roll
+  # on the phone — or one the DM rolled but has not approved, which the
+  # player may still roll over), or nil. Until it is rolled the player cannot
+  # ask for anything else.
   def blocking_flow(combatant)
-    action_flows.active.find { |f| f.actor_id == combatant[:id] && f.blocking? }
+    action_flows.active.find do |f|
+      f.stage == 'builder' && f.roll_tasks.any? do |t|
+        t['claimed'] && t['owner_id'] == combatant[:id] && (t['status'] == 'waiting' || f.dm_pending?(t))
+      end
+    end
+  end
+
+  # What a player may ask for right now: everything on their own turn; on
+  # anyone else's, only Free actions (Rage…) — never End Turn.
+  def api_available_options(mine, my_turn)
+    return [] unless mine && api_in_combat?
+    opts = api_turn_options(mine)
+    my_turn ? opts : opts.select { |o| o[:category] == 'free' && o[:kind] != 'end_turn' }
   end
 
   # How each kind reads in a sentence ("Ash casts at you: …").
@@ -263,8 +277,29 @@ end
 # --- DM -----------------------------------------------------------------------------
 
 
+# Approve a player's request. An Ability with no builder (Rage…) is used at
+# once — on anyone's turn, from any page. Anything else opens in its builder
+# on the Encounter page (the panel opens it by itself); approved from another
+# page (the DM notice), the DM is taken there.
 post '/encounter/flows/:id/tasks/:task_id/approve' do
-  flow_dm_action { |f| f.approve(params[:task_id]) }
+  halt 403 unless dm_view?
+  f = action_flows.find(params[:id])
+  halt 404 unless f
+  begin
+    action_flows.synchronize { f.approve(params[:task_id]) }
+    if f.kind == 'special' && f.blob.nil?
+      result = encounter_state.use_special_payload('combatant_id' => f.actor_id, 'ability' => f.ability.to_s)
+      if result[:ok]
+        Conditions.store.persist!
+        f.done!
+      else
+        session[:flow_error] = "#{f.ability}: #{result[:error]}"
+      end
+    end
+  rescue ArgumentError => e
+    session[:flow_error] = e.message
+  end
+  redirect(params[:go] == 'encounter' && f.active? ? '/encounter' : (request.referer || '/encounter'))
 end
 
 post '/encounter/flows/:id/cancel' do
@@ -311,19 +346,24 @@ post '/encounter/live/sync' do
   JSON.generate(ok: true, **f.builder_view)
 end
 
-# The DM's Encounter page just loaded: no builder is open yet, so drop what
-# the previous page's builders were asking (an action the DM started there is
-# gone; a player's request waits in the panel to be opened again).
-post '/encounter/live/reset' do
-  live_json!
-  open = action_flows.active.select { |f| f.stage == 'builder' }
-  action_flows.synchronize do
-    open.each do |f|
-      f.sync!({ 'idle' => true }, claimed: ->(_) { false })
-      f.cancel! if f.dm_started?
-    end
-  end
+# The DM is leaving the Encounter page (sent as the page closes): its builders
+# are closed now, so the notice on the other pages shows their actions as in
+# progress at once. Nothing else changes.
+post '/encounter/live/left' do
+  halt 403 unless dm_view?
+  open = action_flows.active.select { |f| f.stage == 'builder' && !f.last_sync.nil? }
+  action_flows.synchronize { open.each(&:page_left!) }
   JSON.generate(ok: true)
+end
+
+# The DM's Encounter page just loaded: the actions in progress in a builder,
+# which the page reopens where they were (public/js/ui/liveSync.js). Their
+# phone prompts stayed up meanwhile.
+get '/encounter/live/open' do
+  halt 403, JSON.generate(ok: false, error: 'DM only') unless dm_view?
+  content_type :json
+  open = action_flows.active.select { |f| f.stage == 'builder' && !f.last_sync.nil? }
+  JSON.generate(ok: true, flows: open.map { |f| { flow_id: f.id, kind: f.kind, actor_id: f.actor_id } })
 end
 
 # Where an open builder's action stands (a phone's answer, every Roll), fetched

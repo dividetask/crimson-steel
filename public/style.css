@@ -5000,3 +5000,12 @@ button.spell-school-badge { font-family: inherit; }
 .lr-status { color: #4b3f72; }
 .lr-row .af-btn { margin-left: 6px; }
 .lr-step-note { margin: 2px 0 6px; color: #4b3f72; font-size: 0.88em; font-style: italic; }
+/* The DM's notice (views/_dm_notices.erb). */
+.dm-notices { position: relative; margin-left: auto; margin-right: 10px; }
+.dm-notices-btn { background: #d4a84a; color: #1f1f1f; border: none; border-radius: 4px; padding: 5px 10px; font-weight: bold; cursor: pointer; }
+.dm-notices-btn b { background: #b71c1c; color: #fff; border-radius: 9px; padding: 0 6px; margin-left: 4px; }
+.dm-notices-list { position: absolute; right: 0; top: 110%; z-index: 1000; min-width: 380px; background: #fff; color: #1f1f1f;
+  border: 1px solid #d4a84a; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); padding: 6px 8px; }
+.dm-notice { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 0.92em; }
+.dm-notice:last-child { border-bottom: none; }
+.dm-notice-what { flex: 1 1 200px; }

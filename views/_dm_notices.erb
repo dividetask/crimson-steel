@@ -1,0 +1,54 @@
+<%#
+  The DM's notice (docs/project/action_flow.md → On every DM page): what the
+  players are waiting on, in the top bar of every DM page, kept live by
+  public/js/ui/dmNotices.js.
+    - a player's request for an action: Approve (an Ability with no builder,
+      e.g. Rage, is used at once; anything else opens in its builder — the DM
+      is taken to the Encounter page) or Cancel;
+    - an action already in progress whose builder is not open: Open Encounter;
+    - a plain request (Move, End Turn…): Approve applies Move / End Turn here;
+      Dismiss.
+%>
+<% flows = ActionFlows.instance.active %>
+<% asks = flows.select { |f| f.stage == 'declare' } %>
+<% waiting = flows.select { |f| f.stage == 'builder' && !f.live? && (!f.dm_started? || f.tasks.any?) } %>
+<% plain = (PlayerRequests.instance.current(encounter_state) rescue []) %>
+<% count = asks.length + waiting.length + plain.length %>
+<span id="dm-notices" class="dm-notices" data-count="<%= count %>">
+  <% if count.positive? %>
+    <button type="button" class="dm-notices-btn">Player actions <b><%= count %></b></button>
+    <div class="dm-notices-list" hidden>
+      <% asks.each do |f| %>
+        <% d = f.stage_tasks('declare').first %>
+        <div class="dm-notice">
+          <span class="dm-notice-what"><strong><%= h f.actor_name %></strong>: <%= h d['summary'].to_s %></span>
+          <form method="post" action="/encounter/flows/<%= f.id %>/tasks/<%= d['id'] %>/approve?go=encounter" class="af-inline">
+            <button type="submit" class="af-btn af-primary"><%= f.kind == 'special' && f.blob.nil? ? 'Approve' : 'Approve (opens Encounter)' %></button>
+          </form>
+          <form method="post" action="/encounter/flows/<%= f.id %>/cancel" class="af-inline">
+            <button type="submit" class="af-btn af-cancel">Cancel</button>
+          </form>
+        </div>
+      <% end %>
+      <% waiting.each do |f| %>
+        <div class="dm-notice">
+          <span class="dm-notice-what"><strong><%= h f.actor_name %></strong>: <%= h f.summary %> — in progress</span>
+          <a class="af-btn af-primary" href="/encounter">Open Encounter</a>
+        </div>
+      <% end %>
+      <% plain.each do |r| %>
+        <div class="dm-notice">
+          <span class="dm-notice-what"><strong><%= h(encounter_state.combatant(r['combatant_id']) ? tracker_name(encounter_state.combatant(r['combatant_id'])) : 'A player') %></strong>: <%= h r['label'] %><% if r['dice'] %> — <%= r['dice'] %> dice<% end %></span>
+          <% if %w[move end_turn].include?(r['key']) %>
+            <form method="post" action="/encounter/player_requests/<%= r['id'] %>/apply" class="af-inline">
+              <button type="submit" class="af-btn af-primary"><%= r['key'] == 'move' ? 'Approve (spend Move)' : 'Approve (end turn)' %></button>
+            </form>
+          <% end %>
+          <form method="post" action="/encounter/player_requests/<%= r['id'] %>/dismiss" class="af-inline">
+            <button type="submit" class="af-btn">Dismiss</button>
+          </form>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</span>

@@ -29,3 +29,9 @@ get '/encounter/events' do
   halt 403 unless dm_view?
   event_stream
 end
+
+# The DM's notice in the top bar, re-fetched when something changes.
+get '/dm/notices' do
+  halt 403 unless dm_view?
+  erb :_dm_notices, layout: false
+end

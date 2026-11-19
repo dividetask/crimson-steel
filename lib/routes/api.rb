@@ -334,18 +334,19 @@ get '/api/initiative' do
       { combatant_id: r[:combatant_id], name: r[:name], is_pc: r[:is_pc], acting: r[:acting],
         is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }.merge(api_status_view(r, es))
     end,
-    options: my_turn ? api_turn_options(mine) : [],
-    # True while one of the player's actions waits on other players or dice:
-    # the app hides the action list until it is finished.
+    # On their turn everything; on anyone else's, Free actions only.
+    options: (offered = api_available_options(mine, my_turn)),
+    # True while a die roll waits on this player: the app hides the action
+    # list until it is rolled.
     busy: !!(mine && blocking_flow(mine)),
-    # Who an attack can target (enemies first), when it is this player's turn.
-    targets: (my_turn ? api_targets(mine) : []),
+    # Who an action can target (enemies first), whenever something is offered.
+    targets: (offered.empty? ? [] : api_targets(mine)),
     # Steps waiting on this player in any attack (their turn or not).
     prompts: my_prompts(acc),
     # This player's own attacks in progress.
     flows: (mine ? action_flows.active.select { |f| f.attacker_id == mine[:id] }.map { |f| flow_status_view(f) } : []),
     shared: api_in_combat? ? shared_actions(acc) : [],
-    requests: my_turn ? PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) } : []
+    requests: mine ? PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) } : []
   )
 end
 
@@ -354,16 +355,19 @@ post '/api/turn/requests' do
   acc = api_character!
   es  = encounter_state
   mine = api_my_combatant(acc)
-  api_error(409, 'not_your_turn') unless mine && api_in_combat? && es.acting_combatant_id == mine[:id]
+  api_error(409, 'not_your_turn') unless mine && api_in_combat?
+  my_turn = es.acting_combatant_id == mine[:id]
   body = (JSON.parse(request.body.read) rescue nil)
   api_error(400, 'invalid payload') unless body.is_a?(Hash)
 
-  # One action at a time while it waits on other players or dice.
+  # A die roll waiting on this player comes first.
   if (busy = blocking_flow(mine))
-    api_error(409, "finish your current action first (#{busy.summary})")
+    api_error(409, "roll your dice first (#{busy.summary})")
   end
   opt = api_turn_options(mine).find { |o| o[:key] == body['key'].to_s }
   api_error(422, 'unknown option') unless opt
+  # Off their turn, only a Free action (Rage…).
+  api_error(409, 'not_your_turn') unless api_available_options(mine, my_turn).any? { |o| o[:key] == opt[:key] }
   api_error(422, opt[:disabled_reason]) if opt[:disabled]
 
   # An attack runs as a step-by-step flow: target's defense, ally shields,

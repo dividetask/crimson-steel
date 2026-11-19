@@ -57,6 +57,13 @@ class PlayerRequests
     end
   end
 
+  # The acting Combatant's requests this turn (requests are only made on
+  # one's own turn), for the DM's notice.
+  def current(state)
+    id = state.acting_combatant_id
+    id ? for_turn(id, PlayerRequests.turn_key(state, id)) : []
+  end
+
   def clear!
     @mutex.synchronize { @entries.clear }
   end
