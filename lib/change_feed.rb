@@ -32,9 +32,19 @@ class ChangeFeed
   # Ctrl-C (or TERM) on the server: close every live connection at once, so
   # the web server's graceful stop has nothing left to wait for. Wraps the
   # web server's own handler; call once it has set it (after boot).
+  # A second Ctrl-C quits at once, whatever is still open.
   def self.close_on_signals!
+    return if @signals_installed # the web server may report "booted" more than once
+    @signals_installed = true
+    stopping = false
     %w[INT TERM].each do |sig|
       previous = Signal.trap(sig) do
+        if stopping
+          $stderr.syswrite("\n- Stopping now.\n")
+          exit!(0)
+        end
+        stopping = true
+        $stderr.syswrite("\n- Stopping (press Ctrl-C again to stop at once)\n")
         instance.close!
         previous.call if previous.respond_to?(:call)
       end
