@@ -52,4 +52,6 @@ On the Character Sheets page (`lib/routes/character_sheets.rb`):
 
 ## Android app
 
-The Android app ([android_app.md](android_app.md)) is a device like any browser: it receives the same `crimson_device_id` cookie on its first request, keeps it, and appears in the assignment table (its Browser column shows the app's HTTP client). Until the DM assigns it a Character, the app shows a waiting screen with the device's eight-character id so the DM can find the right row.
+The Android app ([android_app.md](android_app.md)) does not take a random id: it sends **its own per-phone id** in the `crimson_device_id` cookie — Android's per-app id, 16 hex digits, the same for every install of this app on that phone and different for other apps. The server accepts such an id (`DeviceRegistry::APP_ID`) as the device id, so a phone is always one device and never turns into a new one. The first time it connects with that id, the app also sends its old, server-issued id (`X-Crimson-Previous-Device`), and the server renames that row to the new id so its Character assignment carries over. It appears in the assignment table like any device (its Browser column shows the app's HTTP client). Until the DM assigns it a Character, the app shows a waiting screen with the device's eight-character id so the DM can find the right row.
+
+The DM can **Remove** any device on the Status page (except their own), or **Remove unassigned devices** in one go. A removed device that connects again simply appears again.

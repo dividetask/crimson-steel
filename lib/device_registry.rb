@@ -103,6 +103,47 @@ class DeviceRegistry
     assign_character(device_id, nil)
   end
 
+  # The Android app identifies itself with its own id, the same for every
+  # install on that phone (APP_ID). The first time it uses that id, its old
+  # server-issued id (+from+, if the app still had one) is renamed to it, so
+  # its Character assignment carries over; otherwise a fresh record.
+  APP_ID = /\A[0-9a-f]{16}\z/
+
+  def adopt(device_id, from: nil)
+    @lock.synchronize do
+      return find(device_id) if find(device_id)
+      old = from && find(from.to_s)
+      if old
+        old['device_id'] = device_id
+        persist!
+        old
+      else
+        create(device_id)
+      end
+    end
+  end
+
+  # Forget a device (the DM's Remove on the Status page). True when removed.
+  def remove(device_id)
+    @lock.synchronize do
+      before = @records.length
+      @records.reject! { |r| r['device_id'] == device_id }
+      persist! if @records.length != before
+      @records.length != before
+    end
+  end
+
+  # Forget every device with no Character, except +keep+ (the DM's own).
+  # Returns how many were removed.
+  def remove_unassigned(keep: nil)
+    @lock.synchronize do
+      before = @records.length
+      @records.reject! { |r| r['character_id'].nil? && r['device_id'] != keep }
+      persist! if @records.length != before
+      before - @records.length
+    end
+  end
+
   private
 
   def blank_record(device_id)

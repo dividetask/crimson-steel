@@ -39,10 +39,29 @@ object Session {
     /** Last sheet fetched — used for the character name and to label public rolls. */
     var sheet: Sheet? = null
 
+    /**
+     * This phone's own id: Android's per-app id (16 hex digits, the same for
+     * every install of this app on this phone, different for other apps). The
+     * server accepts it as the device id, so the phone is always the same
+     * device — never a new one. Null only if Android gives none; then the
+     * server-issued id is kept as before.
+     */
+    private val phoneId: String? by lazy {
+        runCatching {
+            android.provider.Settings.Secure.getString(appCtx.contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+        }.getOrNull()?.lowercase()?.takeIf { it.matches(Regex("[0-9a-f]{16}")) }
+    }
+
     private val cookieStore = object : CookieStore {
         override var deviceCookie: String?
-            get() = prefs.getString(KEY_COOKIE, null)
-            set(v) { prefs.edit().putString(KEY_COOKIE, v).apply() }
+            get() = phoneId ?: prefs.getString(KEY_COOKIE, null)
+            // With the phone's own id, a server-issued id is never adopted.
+            set(v) { if (phoneId == null) prefs.edit().putString(KEY_COOKIE, v).apply() }
+
+        // The id the server issued before (older app versions): sent until the
+        // server has carried its assignment over (see adopt()).
+        override val previousDevice: String?
+            get() = if (phoneId != null) prefs.getString(KEY_COOKIE, null)?.takeIf { it != phoneId } else null
     }
 
     private lateinit var appCtx: Context
@@ -115,6 +134,11 @@ object Session {
     private fun adopt(a: Api): Hello {
         val h = Hello.from(a.get("/api/hello"))
         h.diceColor?.let { diceColor = it }
+        // The server has seen the phone's own id (and carried over the old one): stop sending the old one.
+        if (phoneId != null && prefs.contains(KEY_COOKIE)) {
+            DebugLog.i(TAG, "device id is now this phone's own (${phoneId!!.take(8)})")
+            prefs.edit().remove(KEY_COOKIE).apply()
+        }
         api = a
         prefs.edit().putString(KEY_HOST, a.server.host).putInt(KEY_PORT, a.server.port).apply()
         return h
@@ -122,7 +146,7 @@ object Session {
 
     /** Server details for the Settings screen. */
     val serverAddress: String? get() = api?.server?.baseUrl ?: prefs.getString(KEY_HOST, null)?.let { "http://$it:${prefs.getInt(KEY_PORT, 4567)}" }
-    val deviceId: String? get() = if (::prefs.isInitialized) prefs.getString(KEY_COOKIE, null)?.take(8) else null
+    val deviceId: String? get() = if (::prefs.isInitialized) cookieStore.deviceCookie?.take(8) else null
 
     /** Drop the remembered server so the next search starts from discovery. Keeps the device id. */
     fun forgetServer() {

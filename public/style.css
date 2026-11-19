@@ -5010,3 +5010,4 @@ button.spell-school-badge { font-family: inherit; }
 .dm-notice:last-child { border-bottom: none; }
 .dm-notice-what { flex: 1 1 200px; }
 .af-fudge, .lr-fudge { font-size: 0.85em; margin-left: 6px; }
+.assignment-cleanup { margin: 4px 0 10px; } .assignment-remove { display: inline-block; margin-left: 6px; }

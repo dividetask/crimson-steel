@@ -11,6 +11,12 @@
 %>
 <div class="assignment-stub">
   <h2 class="assignment-heading">Devices</h2>
+  <% if devices.any? { |d| d['character_id'].nil? && d['device_id'] != current_id } %>
+    <form method="post" action="/devices/remove_unassigned" class="assignment-cleanup"
+          onsubmit="return confirm('Remove every device with no Character (except this one)? A device that connects again simply appears again.');">
+      <button type="submit">Remove unassigned devices</button>
+    </form>
+  <% end %>
   <% if devices.empty? %>
     <p class="assignment-empty">No devices have connected yet.</p>
   <% else %>
@@ -58,6 +64,13 @@
                 </select>
                 <button type="submit">Save</button>
               </form>
+              <% unless is_current %>
+                <form method="post" action="/devices/remove" class="assignment-form assignment-remove"
+                      onsubmit="return confirm('Remove this device? If it connects again it appears again.');">
+                  <input type="hidden" name="device_id" value="<%= h device_id %>">
+                  <button type="submit">Remove</button>
+                </form>
+              <% end %>
             </td>
           </tr>
         <% end %>

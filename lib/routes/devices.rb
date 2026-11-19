@@ -39,3 +39,18 @@ post '/dice_colors' do
   end
   redirect(request.referer || '/status')
 end
+
+# DM forgets a device (Status page → Remove). A device that connects again
+# simply appears again.
+post '/devices/remove' do
+  halt 403 unless dm_host?
+  DeviceRegistry.instance.remove(params[:device_id].to_s)
+  redirect(request.referer || '/status')
+end
+
+# DM forgets every device with no Character (not the DM's own).
+post '/devices/remove_unassigned' do
+  halt 403 unless dm_host?
+  DeviceRegistry.instance.remove_unassigned(keep: current_device_id)
+  redirect(request.referer || '/status')
+end

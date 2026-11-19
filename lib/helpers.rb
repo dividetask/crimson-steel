@@ -43,6 +43,11 @@ helpers do
   def current_device
     @current_device ||= begin
       device_id = request.cookies[DeviceRegistry::COOKIE]
+      if device_id.to_s.match?(DeviceRegistry::APP_ID) && !DeviceRegistry.instance.find(device_id)
+        # The Android app's own per-phone id: never replaced by a random one,
+        # so a phone stays one device. Its old id, if any, carries over.
+        DeviceRegistry.instance.adopt(device_id, from: request.env['HTTP_X_CRIMSON_PREVIOUS_DEVICE'])
+      end
       unless device_id && DeviceRegistry.instance.find(device_id)
         device_id = SecureRandom.uuid
         response.set_cookie(DeviceRegistry::COOKIE,

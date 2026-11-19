@@ -13,6 +13,8 @@ class ApiException(val status: Int, val error: String) : IOException("HTTP $stat
 /** Stores the device cookie between app launches. */
 interface CookieStore {
     var deviceCookie: String?
+    /** An older, server-issued id this phone had, sent once so its assignment carries over. */
+    val previousDevice: String? get() = null
 }
 
 /**
@@ -101,6 +103,7 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
         conn.instanceFollowRedirects = false
         conn.setRequestProperty("Accept", "application/json")
         cookies.deviceCookie?.let { conn.setRequestProperty("Cookie", "$COOKIE=$it") }
+        cookies.previousDevice?.let { conn.setRequestProperty(PREVIOUS_HEADER, it) }
         if (contentType != null) {
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", contentType)
@@ -161,6 +164,8 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
         }
 
         const val COOKIE = "crimson_device_id"
+        /** Sent with the phone's own id until the server has adopted the old one. */
+        const val PREVIOUS_HEADER = "X-Crimson-Previous-Device"
         private const val TAG = "http"
 
         /** The device id from a Set-Cookie header, or null if it is some other cookie. */
