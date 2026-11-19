@@ -26,7 +26,7 @@ helpers do
       case t['step']
       when 'defense'      then ['Choose your defense', what]
       when 'ally_defense' then ["Shield #{flow.name_of(flow.target_id)}?", what]
-      when /\Aluck:/      then ['Use your Luck?', what]
+      when /\Aluck:/      then ['Use your luck?', what]
       when /\Aroll:/      then ["Roll #{t.dig('roll', 'name')}", what]
       else [t['step'].to_s, what]
       end
@@ -34,7 +34,9 @@ helpers do
     # A DM roll not yet approved: the owner still sees their Roll button.
     status = visible ? t['status'] : 'waiting'
     view = { flow_id: flow.id, task_id: t['id'], kind: t['kind'], step: t['step'], title: title, body: body,
-             status: status, summary: visible ? t['summary'] : nil }
+             status: status, summary: visible ? t['summary'] : nil,
+             # "Garroth Vask Attacks Wolf with Great Sword" — the prompt's heading.
+             action_line: flow.title_line(viewer_ids), luck_remaining: t['luck_amount'] }
     if t['kind'] == 'roll'
       view[:roll] = t['roll'].slice('name', 'dice_count', 'tn', 'starting_value', 'positive_reroll', 'negative_reroll')
       view[:result] = t['value'] if t['value'] && visible
@@ -83,12 +85,27 @@ helpers do
   # builders open on the DM's page.
   def my_prompts(acc)
     mine = my_combatant_ids(acc)
-    action_flows.active.select(&:live?).flat_map do |f|
+    # A prompt stays until the builder moves on, closes, or the action ends —
+    # however long the player takes (a DM page in a background tab syncs
+    # less often, but its prompts stay).
+    action_flows.active.select { |f| f.stage == 'builder' }.flat_map do |f|
       tasks = f.tasks.select do |t|
         next false unless mine.include?(t['owner_id'])
         t['kind'] == 'choice' || (t['kind'] == 'roll' && t['claimed'])
       end
       tasks.map { |t| flow_prompt_view(f, t, mine) }
+    end
+  end
+
+  # Actions whose Rolls the DM shared (Confirm) in the last minutes: every
+  # phone in combat throws their dice once, as if just rolled.
+  def shared_actions(acc)
+    mine = my_combatant_ids(acc)
+    action_flows.recent_shared.map do |f|
+      { flow_id: f.id, version: f.shared_version, action_line: f.title_line(mine),
+        rolls: f.public_roll_overview(mine).select { |r| r[:final] }.map do |r|
+          r.except(:claimed, :by).merge(color: roll_color(r[:owner_id]))
+        end }
     end
   end
 
@@ -292,6 +309,21 @@ post '/encounter/live/sync' do
   # A builder the DM closed without committing: nothing was spent.
   f.cancel! if s['idle'] && f.dm_started?
   JSON.generate(ok: true, **f.builder_view)
+end
+
+# The DM's Encounter page just loaded: no builder is open yet, so drop what
+# the previous page's builders were asking (an action the DM started there is
+# gone; a player's request waits in the panel to be opened again).
+post '/encounter/live/reset' do
+  live_json!
+  open = action_flows.active.select { |f| f.stage == 'builder' }
+  action_flows.synchronize do
+    open.each do |f|
+      f.sync!({ 'idle' => true }, claimed: ->(_) { false })
+      f.cancel! if f.dm_started?
+    end
+  end
+  JSON.generate(ok: true)
 end
 
 # DM rolls a player's Roll for them (only the DM sees it until approved).

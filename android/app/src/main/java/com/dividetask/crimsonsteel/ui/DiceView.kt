@@ -39,6 +39,8 @@ class DiceView(context: Context) : View(context) {
         var lastFaceSwap: Float = -1f,
         /** Stays where it is while the others roll (a die Luck did not reroll). */
         val still: Boolean = false,
+        /** '↻' rerolled, '±' nudged: a small badge on the die. */
+        val mark: Char? = null,
     )
 
     private var dice: List<Die> = emptyList()
@@ -69,6 +71,7 @@ class DiceView(context: Context) : View(context) {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
+    private val markPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val outline = Path()
     private val face = Path()
     private val edges = Path()
@@ -87,11 +90,14 @@ class DiceView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** Dice already rolled, shown settled (no animation). */
-    fun show(values: List<Int>, tn: Int) {
+    /**
+     * Dice already rolled, shown settled (no animation). [marks]: per die,
+     * '↻' for a Luck reroll or '±' for a nudge.
+     */
+    fun show(values: List<Int>, tn: Int, marks: List<Char?> = emptyList()) {
         animator?.cancel()
         this.tn = tn
-        dice = values.map { Die(it, 0f, 0f, 0f, 0f, 0f, it, still = true) }
+        dice = values.mapIndexed { i, v -> Die(v, 0f, 0f, 0f, 0f, 0f, v, still = true, mark = marks.getOrNull(i)) }
         progress = 1f
         requestLayout()
         invalidate()
@@ -190,6 +196,17 @@ class DiceView(context: Context) : View(context) {
             }
             val value = if (settled) d.finalValue else d.face
             drawDie(canvas, x, y, size * scale, angle, value, settled, lift = bounce / cell)
+            if (settled) d.mark?.let { m ->
+                val br = size * 0.34f
+                val bx = x + size * 0.78f; val by = y - size * 0.78f
+                markPaint.color = Ui.GOLD
+                canvas.drawCircle(bx, by, br, markPaint)
+                numberPaint.color = Color.BLACK
+                val ts = numberPaint.textSize
+                numberPaint.textSize = br * 1.3f
+                canvas.drawText(m.toString(), bx, by - (numberPaint.descent() + numberPaint.ascent()) / 2f, numberPaint)
+                numberPaint.textSize = ts
+            }
         }
     }
 

@@ -65,10 +65,11 @@ object RollTable {
     fun throwDice(
         activity: Activity, flowId: String, zones: List<Zone>, key: String,
         initial: List<Int>, rerolled: List<Int?>?, final: List<Int>, tn: Int, startingValue: Int,
-        onDone: () -> Unit = {},
+        title: String? = null, onDone: () -> Unit = {},
     ) {
         val t = table?.takeIf { it.flowId == flowId && it.isAttachedToWindow } ?: open(activity, flowId)
         t.setZones(zones)
+        if (title != null) t.title = title
         t.throwInto(key, initial, rerolled, final, tn, startingValue, onDone)
     }
 
@@ -86,6 +87,8 @@ object RollTable {
         var angle: Float, var spin: Float,
         var face: Int, var target: Int,
         var travelled: Float = 0f, var moving: Boolean = true,
+        /** Shown on the die once it has changed after the first throw: '↻' rerolled, '±' nudged. */
+        var mark: Char? = null,
     )
 
     /** A band's throw in progress: its dice and what happens when they stop. */
@@ -102,6 +105,9 @@ object RollTable {
         private val throws = mutableMapOf<String, Throw>()
         private var lastFrame = 0L
         private var running = false
+        /** The action, at the top of the screen ("Garroth Vask Attacks Wolf with Great Sword"). */
+        var title: String? = null
+            set(v) { field = v; invalidate() }
 
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeJoin = Paint.Join.ROUND }
@@ -259,17 +265,24 @@ object RollTable {
             val now = System.currentTimeMillis()
             if (t.stoppedAt == 0L) { t.stoppedAt = now; return }
             if (now - t.stoppedAt < 450) return
+            // After the first throw has stopped: the Luck rerolls are thrown
+            // again, and a nudged die (its final value differs with no reroll)
+            // hops onto its new value. Both are marked.
             val again = t.rerolled.orEmpty().indices.filter { t.rerolled!![it] != null }
-            if (t.phase == 0 && again.isNotEmpty()) {
+            val nudged = t.dice.indices.filter { i ->
+                i !in again && i < t.final.size && t.dice[i].target != t.final[i]
+            }
+            if (t.phase == 0 && (again.isNotEmpty() || nudged.isNotEmpty())) {
                 t.phase = 1
                 t.stoppedAt = 0
-                for (i in again) {
+                for (i in again + nudged) {
                     val d = t.dice.getOrNull(i) ?: continue
-                    val speed = (900f + rnd.nextFloat() * 600f) * density
+                    val speed = (if (i in again) 900f + rnd.nextFloat() * 600f else 260f) * density
                     val dir = rnd.nextDouble() * Math.PI * 2
                     d.vx = (cos(dir) * speed).toFloat(); d.vy = (sin(dir) * speed).toFloat()
-                    d.spin = (rnd.nextFloat() - 0.5f) * 1200f
+                    d.spin = (rnd.nextFloat() - 0.5f) * (if (i in again) 1200f else 300f)
                     d.target = t.final[i]
+                    d.mark = if (i in again) '\u21bb' else '\u00b1'
                     d.moving = true
                 }
                 return
@@ -304,6 +317,11 @@ object RollTable {
                 val y = top.coerceIn(20 * density, height - 8 * density)
                 canvas.drawText(textLine, x, y, label)
             }
+            title?.let {
+                label.textAlign = Paint.Align.CENTER
+                canvas.drawText(it, width / 2f, 34 * density, label)
+                label.textAlign = Paint.Align.LEFT
+            }
             if (throws.isNotEmpty() && throws.values.all { it.done }) {
                 small.textAlign = Paint.Align.CENTER
                 canvas.drawText("Tap anywhere to clear the dice", width / 2f, height - 18 * density, small)
@@ -334,6 +352,17 @@ object RollTable {
             val ty = r * 0.05f - (text.descent() + text.ascent()) / 2f
             canvas.drawText(d.face.toString(), 0f, ty, text)
             canvas.restore()
+            // A rerolled / nudged die: a small gold badge at its top right (not rotated).
+            d.mark?.let { m ->
+                val bx = d.x + r * 0.78f; val by = d.y - r * 0.78f; val br = r * 0.34f
+                fill.color = Ui.GOLD
+                canvas.drawCircle(bx, by, br, fill)
+                stroke.color = 0xCC000000.toInt(); stroke.strokeWidth = r * 0.05f
+                canvas.drawCircle(bx, by, br, stroke)
+                text.textSize = br * 1.3f
+                text.color = Color.BLACK
+                canvas.drawText(m.toString(), bx, by - (text.descent() + text.ascent()) / 2f, text)
+            }
         }
 
         private fun shade(c: Int, f: Float) =

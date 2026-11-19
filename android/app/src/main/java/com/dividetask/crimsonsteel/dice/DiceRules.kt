@@ -45,6 +45,20 @@ enum class Outcome(val label: String) {
 
 object DiceRules {
 
+    /**
+     * What each die went through after the first throw, for its badge:
+     * '↻' rerolled by Luck, '±' nudged (its final value differs with no
+     * reroll), null untouched.
+     */
+    fun marksOf(initial: List<Int>?, rerolled: List<Int?>?, final: List<Int>): List<Char?> =
+        final.indices.map { i ->
+            when {
+                rerolled?.getOrNull(i) != null -> '\u21bb'
+                initial != null && i < initial.size && initial[i] != final[i] -> '\u00b1'
+                else -> null
+            }
+        }
+
     /** Prowess -> {dice_cap, bonus_penalty}. Uses floor division, as the design requires. */
     fun translateProwess(prowess: Int): RollInputs {
         val bonus = Math.floorDiv(prowess, DiceConfig.DICE_COUNT_RANGE)

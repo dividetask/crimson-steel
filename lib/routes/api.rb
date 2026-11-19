@@ -344,6 +344,7 @@ get '/api/initiative' do
     prompts: my_prompts(acc),
     # This player's own attacks in progress.
     flows: (mine ? action_flows.active.select { |f| f.attacker_id == mine[:id] }.map { |f| flow_status_view(f) } : []),
+    shared: api_in_combat? ? shared_actions(acc) : [],
     requests: my_turn ? PlayerRequests.instance.for_turn(mine[:id], key).map { |r| api_request_view(r) } : []
   )
 end

@@ -240,6 +240,8 @@ data class TargetChoice(val combatantId: Int, val name: String, val enemy: Boole
 data class PromptOption(
     val value: String, val label: String, val summary: String,
     val group: String, val groupLabel: String, val dice: Int?, val disabled: Boolean,
+    /** Luck: "help" (a reroll for them) or "hinder" (against them); null otherwise. */
+    val tone: String? = null,
 )
 
 /** The dice a roll prompt asks for, already worked out by the server (TN after both sides' bonuses). */
@@ -265,6 +267,21 @@ data class RollLine(
 private fun JSONArray?.ints(): List<Int>? = this?.let { a -> (0 until a.length()).map { a.optInt(it) } }
 private fun JSONArray?.intsOrNull(): List<Int?>? = this?.let { a -> (0 until a.length()).map { if (a.isNull(it)) null else a.optInt(it) } }
 
+/** One Roll of an action as the server sends it (a roll prompt's all_rolls, or a shared action). */
+fun rollLine(it: JSONObject) = RollLine(it.optString("task_id"), it.optString("owner"), it.optString("name"), it.optInt("dice_count"),
+    it.optInt("tn"), it.optInt("starting_value"), it.optInt("positive_reroll"), it.optInt("negative_reroll"),
+    it.optString("status"), it.optStringOrNull("summary"),
+    what = it.optString("what"), bonus = it.optInt("bonus"),
+    dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
+    final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
+    color = com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")))
+
+/**
+ * An action whose Rolls the DM just shared (Confirm): every phone in combat
+ * throws them once. [version] goes up each time the DM shares again.
+ */
+data class SharedAction(val flowId: String, val version: Int, val actionLine: String, val rolls: List<RollLine>)
+
 /**
  * A step of an attack waiting on this player (docs/project/action_flow.md):
  * choose a defense, shield an ally, use Luck, or roll. [status] is "waiting"
@@ -278,6 +295,10 @@ data class Prompt(
     val allRolls: List<RollLine> = emptyList(),
     /** Roll prompts: the action from this player's side, e.g. "Casting Fire Dart at Wolf". */
     val headline: String? = null,
+    /** The prompt's heading: "Garroth Vask Attacks Wolf with Great Sword". */
+    val actionLine: String? = null,
+    /** Luck prompts: how much Luck the player has. */
+    val luckRemaining: Int? = null,
 ) {
     val waiting: Boolean get() = status == "waiting"
 
@@ -289,22 +310,17 @@ data class Prompt(
                 status = p.optString("status"), summary = p.optStringOrNull("summary"),
                 options = p.optJSONArray("options").mapObjects {
                     PromptOption(it.optString("value"), it.optString("label"), it.optString("summary"),
-                        it.optString("group"), it.optString("group_label"), it.optIntOrNull("dice"), it.optBoolean("disabled"))
+                        it.optString("group"), it.optString("group_label"), it.optIntOrNull("dice"), it.optBoolean("disabled"),
+                        it.optStringOrNull("tone"))
                 },
                 roll = p.optJSONObject("roll")?.let {
                     PromptRoll(it.optString("name"), it.optInt("dice_count"), it.optInt("tn"), it.optInt("starting_value"),
                         it.optInt("positive_reroll"), it.optInt("negative_reroll"))
                 },
-                allRolls = p.optJSONArray("all_rolls").mapObjects {
-                    RollLine(it.optString("task_id"), it.optString("owner"), it.optString("name"), it.optInt("dice_count"),
-                        it.optInt("tn"), it.optInt("starting_value"), it.optInt("positive_reroll"), it.optInt("negative_reroll"),
-                        it.optString("status"), it.optStringOrNull("summary"),
-                        what = it.optString("what"), bonus = it.optInt("bonus"),
-                        dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
-                        final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
-                        color = com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")))
-                },
+                allRolls = p.optJSONArray("all_rolls").mapObjects { rollLine(it) },
                 headline = p.optStringOrNull("headline"),
+                actionLine = p.optStringOrNull("action_line"),
+                luckRemaining = p.optIntOrNull("luck_remaining"),
             )
         }
     }
@@ -351,6 +367,8 @@ data class Initiative(
     val flows: List<FlowStatus> = emptyList(),
     /** One of the player's actions waits on other players or dice: hide the action list until it is finished. */
     val busy: Boolean = false,
+    /** Actions the DM just shared the Rolls of: thrown on the dice table once each. */
+    val shared: List<SharedAction> = emptyList(),
 ) {
     companion object {
         fun from(j: JSONObject): Initiative {
@@ -400,6 +418,10 @@ data class Initiative(
                 },
                 prompts = Prompt.list(j.optJSONArray("prompts")),
                 busy = j.optBoolean("busy"),
+                shared = j.optJSONArray("shared").mapObjects { a ->
+                    SharedAction(a.optString("flow_id"), a.optInt("version"), a.optString("action_line"),
+                        a.optJSONArray("rolls").mapObjects { rollLine(it) })
+                },
                 flows = j.optJSONArray("flows").mapObjects { f ->
                     FlowStatus(f.optString("flow_id"), f.optString("stage"), f.optString("summary"), f.optInt("pool_cost"),
                         f.optJSONArray("tasks").mapObjects {

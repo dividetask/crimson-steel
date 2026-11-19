@@ -52,12 +52,22 @@ class MainActivity : Activity() {
     private var resumed = false
     private var searching = false
     private var lastMessage: String? = null
+    /** The Character on screen, and when the assignment was last checked while playing. */
+    private var playingId: Int? = null
+    private var lastAssignmentCheck = 0L
 
     private val poll = object : Runnable {
         override fun run() {
             if (!resumed) return
             if (playing) {
                 screen?.refresh()
+                // The DM may move this device to another Character at any time:
+                // check every few seconds and switch without a restart.
+                val now = System.currentTimeMillis()
+                if (now - lastAssignmentCheck >= ASSIGNMENT_CHECK_MS) {
+                    lastAssignmentCheck = now
+                    checkAssignment()
+                }
                 if (current != Tab.INITIATIVE) checkPrompts()
             } else checkAssignment()
             handler.postDelayed(this, if (playing) minOf(current.pollMs, 3000) else 3000)
@@ -152,7 +162,16 @@ class MainActivity : Activity() {
                 "Waiting for the DM to assign this device a character.\n\n" +
                     "DM: open the Status page on the server and assign device “${h.device}”.")
         } else if (!playing) {
+            playingId = c.id
             showPlaying(c.name)
+        } else if (c.id != playingId) {
+            // Assigned another Character: start over as them, on the same tab.
+            DebugLog.i(TAG, "device moved to ${c.name} (#${c.id})")
+            playingId = c.id
+            Session.sheet = null
+            android.widget.Toast.makeText(this, "You are now ${c.name}", android.widget.Toast.LENGTH_SHORT).show()
+            showPlaying(c.name)
+            return
         } else {
             headerName?.text = c.name
         }
@@ -267,6 +286,7 @@ class MainActivity : Activity() {
 
     private companion object {
         const val KEY_TAB = "tab"
+        const val ASSIGNMENT_CHECK_MS = 4000L
         const val TAG = "main"
     }
 }

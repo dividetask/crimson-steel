@@ -110,8 +110,13 @@ class ActionFlow
   # The action's own name, without dice or target: "Fire Dart", "+1 Rapier",
   # "Bardic Inspiration".
   def action_name
+    d = @declare.to_h.merge(@choices)
+    # An attack reads by its weapon type ("Great Sword", not "+2 Vicious
+    # Great sword"): the action's value is "<weapon type>|<dice>".
+    if @kind == 'attack' && (type = d['action'].to_s.split('|').first.to_s) != '' && type != 'spiritual_weapon'
+      return type.split(/[\s_]+/).map(&:capitalize).join(' ')
+    end
     return @live_label.to_s if @dm_started || @declare.empty?
-    d = @declare.to_h
     case @kind
     when 'attack'
       opt = raw_options('action').find { |o| o[:value].to_s == d['action'] }
@@ -133,6 +138,21 @@ class ActionFlow
          else " at #{name_of(target_id)}"
          end
     "#{@actor_name} #{gerund.downcase} #{action_name}#{at}"
+  end
+
+  # The action in a line for a prompt, from the viewer's side:
+  # "Garroth Vask Attacks Wolf with Great Sword", "Ash Casts Fire Dart at You".
+  def title_line(viewer_ids)
+    actor = viewer_ids.include?(@actor_id) ? 'You' : @actor_name.to_s
+    tgt = if target_id.nil? then nil
+          elsif viewer_ids.include?(target_id) then 'You'
+          else name_of(target_id)
+          end
+    case @kind
+    when 'attack' then "#{actor} Attack#{actor == 'You' ? '' : 's'} #{tgt || 'a target'} with #{action_name}"
+    when 'cast' then "#{actor} Cast#{actor == 'You' ? '' : 's'} #{action_name}#{tgt ? " at #{tgt}" : ''}"
+    else "#{actor} Use#{actor == 'You' ? '' : 's'} #{action_name}#{tgt ? " on #{tgt}" : ''}"
+    end
   end
 
   # Whether this action holds up the actor's other actions while it is in
@@ -224,6 +244,7 @@ class ActionFlow
           t = choice_tasks.find { |x| x['step'] == key && x['owner_id'] == owner } ||
               new_task('builder', key, owner, 'kind' => 'choice')
           t['options'] = step['luck'] ? luck_options(step['luck']) : normalize_options(step['options'])
+          t['luck_amount'] = step.dig('luck', 'source', 'amount')&.to_i
           keep << t
         end
       end
@@ -251,7 +272,13 @@ class ActionFlow
   # Confirm in the builder: every claimed Roll with dice is approved, and the
   # unclaimed Rolls the builder rolled (+rolls+: { roll_id => { dice,
   # rerolled, final } }) are scored and shared.
+  # When the DM last shared the Rolls (Confirm), and how many times: every
+  # phone in combat shows them then (the dice thrown as if just rolled).
+  attr_reader :shared_at, :shared_version
+
   def share!(rolls = {})
+    @shared_at = Time.now.to_f
+    @shared_version = @shared_version.to_i + 1
     roll_tasks.each do |t|
       rid = t['roll']['roll_id']
       if t['claimed']
@@ -482,14 +509,15 @@ class ActionFlow
       cap = tgt['cap'].to_i
       next unless cap.positive?
       who = tgt['label'].to_s
+      dice = ->(n) { "#{n} #{n == 1 ? 'die' : 'dice'}" }
       (1..cap).each do |n|
-        out << { value: "#{sid}|pos|#{n}|#{rid}", label: "+#{n}", summary: "#{src['label']}: +#{n} reroll on #{who}",
-                 group: "pos:#{rid}", group_label: "Help #{who} (reroll low dice)", dice: n, disabled: false }
+        out << { value: "#{sid}|pos|#{n}|#{rid}", label: "+#{n}", summary: "Help #{who} \u2014 reroll #{dice.call(n)}",
+                 group: "pos:#{rid}", group_label: "Help #{who}", dice: n, disabled: false, tone: 'help' }
       end
       next unless src['penalty']
       (1..cap).each do |n|
-        out << { value: "#{sid}|neg|#{n}|#{rid}", label: "−#{n}", summary: "#{src['label']}: −#{n} reroll on #{who}",
-                 group: "neg:#{rid}", group_label: "Hinder #{who} (reroll high dice)", dice: n, disabled: false }
+        out << { value: "#{sid}|neg|#{n}|#{rid}", label: "−#{n}", summary: "Hinder #{who} \u2014 reroll #{dice.call(n)}",
+                 group: "neg:#{rid}", group_label: "Hinder #{who}", dice: n, disabled: false, tone: 'hinder' }
       end
     end
     out
@@ -577,6 +605,12 @@ class ActionFlows
   def add(flow) = @mutex.synchronize { @flows << flow; flow }
   def find(id) = @mutex.synchronize { @flows.find { |f| f.id == id.to_s } }
   def active = @mutex.synchronize { @flows.select(&:active?) }
+  # Not cancelled, with Rolls shared in the last +seconds+ (done ones too: a
+  # commit right after Confirm must not hide them).
+  def recent_shared(seconds = 120)
+    now = Time.now.to_f
+    @mutex.synchronize { @flows.select { |f| f.status != 'cancelled' && f.shared_at && now - f.shared_at < seconds } }
+  end
   def synchronize(&block) = @mutex.synchronize(&block)
   def clear! = @mutex.synchronize { @flows.clear }
 end

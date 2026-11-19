@@ -485,6 +485,13 @@ body {
   background: #1d4ed8;
 }
 
+/* The Damage Riders' Roll / Confirm (turnAttack.js) share the header slot:
+   same look as the builder's own Roll All / Confirm. */
+.ta-rider-roll { background: #1f1f1f; }
+.ta-rider-roll:hover { background: #000; }
+.ta-rider-confirm { background: #2563eb; }
+.ta-rider-confirm:hover { background: #1d4ed8; }
+
 /* === Roll table === */
 
 .stub-table {

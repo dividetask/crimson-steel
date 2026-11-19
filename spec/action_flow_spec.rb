@@ -127,6 +127,25 @@ RSpec.describe ActionFlow do
     expect(f.options_for(t).map { |o| o[:value] }).to eq(['7|none', '7|pos|1|attacker', '7|pos|2|attacker', '7|neg|1|attacker', '7|neg|2|attacker'])
   end
 
+  it 'reads an attack by its weapon type, from the viewer’s side' do
+    f = dm_flow
+    f.sync!({ 'choices' => { 'target' => '1', 'action' => 'Great sword|7' }, 'target_id' => 1,
+              'action_label' => '+2 Vicious Great sword' }, claimed: claimed)
+    expect(f.title_line([7])).to eq('Goblin Attacks Ash with Great Sword')
+    expect(f.title_line([1])).to eq('Goblin Attacks You with Great Sword')
+  end
+
+  it 'labels Luck as Help / Hinder each Roll, with how much Luck is left' do
+    f = dm_flow
+    luck = { 'key' => 'luck:7', 'luck' => { 'source' => { 'id' => 7, 'sid' => '7', 'label' => 'Lira', 'amount' => 3, 'penalty' => true },
+                                            'targets' => [{ 'roll_id' => 'attacker', 'label' => 'Goblin’s Attack', 'cap' => 1 }] } }
+    f.sync!({ 'choices' => {}, 'step' => luck }, claimed: claimed)
+    t = f.choice_tasks.first
+    expect(t['luck_amount']).to eq(3)
+    expect(f.options_for(t).map { |o| [o[:group_label], o[:tone]] })
+      .to eq([['No luck', nil], ['Help Goblin’s Attack', 'help'], ['Hinder Goblin’s Attack', 'hinder']])
+  end
+
   describe 'rolls' do
     def rolling(f)
       f.sync!({ 'choices' => { 'target' => '1', 'dice' => '3|arcana' }, 'step' => nil,
@@ -168,6 +187,17 @@ RSpec.describe ActionFlow do
       f.submit(t['id'], { 'dice' => [9, 9] })
       f.sync!({ 'choices' => {}, 'rolls' => [roll('attacker'), roll('defender', n: 3)] }, claimed: claimed)
       expect(f.roll_tasks.last).to include('status' => 'waiting', 'value' => nil)
+    end
+
+    it 'counts each Confirm, so every phone throws the shared rolls once' do
+      store = ActionFlows.new
+      f = store.add(dm_flow)
+      rolling(f)
+      expect(store.recent_shared).to be_empty
+      f.share!('attacker' => { 'dice' => [1, 3, 7], 'rerolled' => [6, nil, nil], 'final' => [6, 3, 7] })
+      expect(f.shared_version).to eq(1)
+      expect(store.recent_shared).to eq([f])
+      expect(f.public_roll_overview([5]).first).to include(dice: [1, 3, 7], rerolled: [6, nil, nil], final: [6, 3, 7])
     end
 
     it 'shares every roll on Confirm, scoring the ones the builder rolled' do

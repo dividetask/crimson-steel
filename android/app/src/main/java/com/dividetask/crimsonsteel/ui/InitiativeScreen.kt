@@ -16,12 +16,11 @@ import com.dividetask.crimsonsteel.net.Session
 /**
  * Combat screen. Top to bottom:
  *  - anything waiting on this player (a defense, Luck, a roll), on anyone's turn;
- *  - **Status**: the player's own row, and the acting Combatant's when it is
- *    someone else's turn — the name in its Tier colour, the Combat Pool dice,
- *    and *Acted* or *Waiting*. Tap a row to open it over the others: HP, Mana,
- *    Combat Pool and Conditions ("?" for what players may not see). Tap again
- *    to close it;
- *  - **Initiative**: "<name>'s Turn"; tap for the whole order, tap again to close;
+ *  - **Status**: the player's own row — the name in its Tier colour, the
+ *    Combat Pool dice, and *Acted* or *Waiting*. Tap it to open HP, Mana,
+ *    Combat Pool and Conditions; tap again to close it;
+ *  - **Initiative**: "<name>'s Turn" with that Combatant's Combat Pool dice
+ *    under it; tap for the whole order, tap again to close;
  *  - **Actions** (on the player's turn): Melee, Ranged, Spell, Item, Move,
  *    Special and End Turn. Tap one to open its options.
  *
@@ -45,6 +44,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     override fun fetch(done: (Result<Pair<Initiative, String>>) -> Unit) = Session.initiative { r ->
         r.onSuccess { (d, _) ->
+            throwShared(d)
             // A new turn starts with everything closed and nothing selected.
             if (d.myTurn && !wasMyTurn) { orderOpen = false; openGroup = null; clearSelection() }
             wasMyTurn = d.myTurn
@@ -86,14 +86,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     // --- Status -------------------------------------------------------------------
 
     private fun statusSection(col: LinearLayout, d: Initiative) {
+        val me = d.order.find { it.isYou } ?: return
         col.addView(Ui.sectionHeader(ctx, "Status"))
-        val me = d.order.find { it.isYou }
-        val acting = d.order.find { it.acting && !it.isYou }
-        val rows = listOfNotNull(me, acting)
-        // An opened row covers the others.
-        val open = rows.find { it.combatantId == statusOpen }
-        if (open == null) statusOpen = null
-        for (e in if (open != null) listOf(open) else rows) col.addView(statusRow(d, e, e == open), Ui.matchWidth(Ui.dp(ctx, 6)))
+        col.addView(statusRow(d, me, statusOpen == me.combatantId), Ui.matchWidth(Ui.dp(ctx, 6)))
     }
 
     /** The Combat Pool a row shows: the player's own less what this turn's requests would spend. */
@@ -150,10 +145,10 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private fun initiativeSection(col: LinearLayout, d: Initiative) {
         col.addView(Ui.sectionHeader(ctx, "Initiative \u2014 ${d.roundLabel}"))
         val acting = d.order.find { it.acting }
-        val head = Ui.horizontal(ctx).apply {
-            setPadding(Ui.dp(ctx, 12), Ui.dp(ctx, 12), Ui.dp(ctx, 12), Ui.dp(ctx, 12))
+        val card = Ui.vertical(ctx, 12).apply {
             background = Ui.rounded(Ui.SURFACE, Ui.dpf(ctx, 10f), if (orderOpen) Ui.GOLD else null, Ui.dp(ctx, 1))
         }
+        val head = Ui.horizontal(ctx)
         val who = when {
             acting == null -> "Nobody's turn yet"
             acting.isYou -> "Your Turn"
@@ -161,8 +156,13 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
         head.addView(Ui.text(ctx, who, 16f, if (acting?.isYou == true) Ui.GOLD else Ui.TEXT, bold = true), Ui.weighted())
         head.addView(Ui.text(ctx, if (orderOpen) "\u25b4" else "\u25be", 16f, Ui.TEXT_DIM))
-        Ui.makeTappable(head, ctx) { orderOpen = !orderOpen; render() }
-        col.addView(head, Ui.matchWidth())
+        card.addView(head, Ui.matchWidth())
+        // The acting Combatant's Combat Pool dice (the player's own are in Status).
+        acting?.takeIf { !it.isYou }?.pool?.takeIf { !it.hidden }?.let { pool ->
+            card.addView(PoolView(ctx).apply { max = pool.max; remaining = pool.current }, Ui.matchWidth(Ui.dp(ctx, 6)))
+        }
+        Ui.makeTappable(card, ctx) { orderOpen = !orderOpen; render() }
+        col.addView(card, Ui.matchWidth())
         if (orderOpen) fullOrder(col, d)
     }
 
@@ -494,42 +494,65 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         for (p in d.prompts) col.addView(promptCard(p), Ui.matchWidth(Ui.dp(ctx, 6)))
     }
 
+    /**
+     * A choice waiting on the player (a defense, an ally's shield, Luck):
+     *
+     *   Garroth Vask Attacks Wolf with Great Sword        (the action)
+     *   Use your luck?  3 Luck remaining                  (the question)
+     *   Help Garroth Vask's Attack      [dice]            (each group, bold,
+     *   Hinder Garroth Vask's Attack    [dice]             with its dice)
+     *   …
+     *   [ Help Garroth Vask's Attack — reroll 2 dice ]    (green to help, red to hinder)
+     */
     private fun promptCard(p: com.dividetask.crimsonsteel.data.Prompt): View {
         if (p.kind == "roll" && p.roll != null) return rollCard(p)
         val card = Ui.vertical(ctx, 12).apply {
             background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), if (p.waiting) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 2))
         }
-        card.addView(Ui.text(ctx, p.title, 17f, Ui.GOLD, bold = true))
-        card.addView(Ui.text(ctx, p.body, 13f, Ui.TEXT), Ui.matchWidth(Ui.dp(ctx, 2)))
+        card.addView(Ui.text(ctx, p.actionLine ?: p.body, 20f, Ui.TEXT, bold = true))
+        val question = Ui.horizontal(ctx).apply { gravity = Gravity.BOTTOM }
+        question.addView(Ui.text(ctx, p.title, 17f, Ui.GOLD, bold = true))
+        p.luckRemaining?.let {
+            question.addView(Ui.text(ctx, "   $it Luck remaining", 14f, Ui.TEXT_DIM))
+        }
+        card.addView(question, Ui.matchWidth(Ui.dp(ctx, 4)))
         if (!p.waiting) {
             card.addView(Ui.text(ctx, "Sent: ${p.summary ?: ""} \u2014 waiting for the DM.", 13f, Ui.TEXT_DIM),
                 Ui.matchWidth(Ui.dp(ctx, 8)))
             return card
         }
 
-        // A choice: options grouped as on the DM's builder (No defense, Dodge, Parry…).
+        // The groups with dice, each under its bold name (Help / Hinder …, Dodge,
+        // Parry…), then the plain choices (No luck, No defense) last.
         val picked = promptPick[p.taskId]
-        for ((group, opts) in p.options.groupBy { it.group }) {
+        val groups = p.options.groupBy { it.group }
+        for ((_, opts) in groups) {
             val withDice = opts.filter { it.dice != null }
-            if (withDice.isEmpty()) {
-                for (o in opts) card.addView(choiceChip(o.summary, o.value == picked, !o.disabled) {
-                    promptPick[p.taskId] = o.value; render()
-                }, Ui.matchWidth(Ui.dp(ctx, 6)))
-            } else {
-                card.addView(Ui.text(ctx, opts.first().groupLabel, 14f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
-                val chosen = withDice.find { it.value == picked }?.dice ?: 0
-                card.addView(Ui.diceStrip(ctx, withDice.map { o ->
-                    Triple(o.dice!!, !o.disabled) { promptPick[p.taskId] = o.value; render() }
-                }, chosen), Ui.matchWidth(Ui.dp(ctx, 4)))
-                if (group.isNotEmpty() && withDice.all { it.disabled }) {
-                    card.addView(Ui.text(ctx, "Not enough Combat Pool.", 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 2)))
-                }
+            if (withDice.isEmpty()) continue
+            card.addView(Ui.text(ctx, opts.first().groupLabel, 15f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 12)))
+            val chosen = withDice.find { it.value == picked }?.dice ?: 0
+            card.addView(Ui.diceStrip(ctx, withDice.map { o ->
+                Triple(o.dice!!, !o.disabled) { promptPick[p.taskId] = o.value; render() }
+            }, chosen), Ui.matchWidth(Ui.dp(ctx, 4)))
+            if (withDice.all { it.disabled }) {
+                card.addView(Ui.text(ctx, "Not enough Combat Pool.", 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 2)))
             }
+        }
+        for ((_, opts) in groups) {
+            if (opts.any { it.dice != null }) continue
+            for (o in opts) card.addView(choiceChip(o.summary, o.value == picked, !o.disabled) {
+                promptPick[p.taskId] = o.value; render()
+            }, Ui.matchWidth(Ui.dp(ctx, 10)))
         }
         val pick = p.options.find { it.value == picked }
         card.addView(Button(ctx).apply {
             text = pick?.summary ?: "Choose one"
             isEnabled = pick != null && !busy
+            // Helping is green, hindering red.
+            when (pick?.tone) {
+                "help" -> { setBackgroundColor(Ui.NUM_SUCCESS); setTextColor(android.graphics.Color.WHITE) }
+                "hinder" -> { setBackgroundColor(Ui.NUM_FAIL); setTextColor(android.graphics.Color.WHITE) }
+            }
             setOnClickListener {
                 busy = true
                 render()
@@ -539,9 +562,36 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                     afterChange(r)
                 }
             }
-        }, Ui.matchWidth(Ui.dp(ctx, 10)))
+        }, Ui.matchWidth(Ui.dp(ctx, 12)))
         return card
     }
+
+    /**
+     * An action the DM just shared (Confirm): throw every Roll this phone has
+     * not thrown yet onto the dice table — the first throw as rolled, then
+     * the Luck rerolls and nudges, marked — with the action as its title.
+     */
+    private fun throwShared(d: Initiative) {
+        val act = ctx as? android.app.Activity ?: return
+        val myName = Session.sheet?.name
+        for (a in d.shared) {
+            val fresh = a.rolls.filter { r -> r.final != null && "${r.taskId}:${r.final}" !in thrownShared && r.taskId !in shownRolling }
+            if (fresh.isEmpty()) continue
+            val zones = a.rolls.mapIndexed { i, r ->
+                val who = if (r.owner == myName) "You" else r.owner
+                RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", r.color ?: RollTable.colorFor(i))
+            }
+            for (r in fresh) {
+                thrownShared += "${r.taskId}:${r.final}"
+                shownRolling += r.taskId
+                RollTable.throwDice(act, a.flowId, zones, r.taskId, r.dice ?: r.final!!, r.rerolled, r.final!!, r.tn, r.startingValue,
+                    title = a.actionLine)
+            }
+        }
+    }
+
+    /** Shared Rolls already thrown here ("task id:final dice"). */
+    private val thrownShared = mutableSetOf<String>()
 
     // --- Rolls ----------------------------------------------------------------------
 
@@ -591,7 +641,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
             val final = line.final
             if (final != null) {
-                dice.show(final, line.tn)
+                dice.show(final, line.tn, com.dividetask.crimsonsteel.dice.DiceRules.marksOf(line.dice, line.rerolled, final))
                 result.text = resultText(line, final)
                 // Someone else's dice just arrived: throw them on the dice table in their colour.
                 if (line.taskId !in shownRolling) {
@@ -647,7 +697,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         result.text = "Rolling\u2026"
         val act = ctx as? android.app.Activity ?: return
         RollTable.throwDice(act, p.flowId, zonesFor(p), line.taskId, initial, rerolled, final, line.tn, line.startingValue) {
-            view.show(final, line.tn)
+            view.show(final, line.tn, com.dividetask.crimsonsteel.dice.DiceRules.marksOf(initial, rerolled, final))
             result.text = resultText(line, final) + " \u2014 sending to the DM\u2026"
             Session.submitRoll(p.flowId, p.taskId, initial, rerolled, final) { r ->
                 if (r.isFailure) shownRolling -= line.taskId // not sent: let them try again

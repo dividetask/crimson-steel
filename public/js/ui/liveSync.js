@@ -51,7 +51,11 @@ function inPlay(g) { return !g.classList.contains('roll-group-excluded') && !g.h
 function activeStep(root) {
   return root._cb.steps.find((s) => root.querySelector('.step-controls[data-step="' + CSS.escape(s.key) + '"][data-state="active"], .step-body[data-step="' + CSS.escape(s.key) + '"][data-state="active"]'));
 }
-function diceUp(root) { return !!root.querySelector('[data-step="__dice"][data-state="active"]'); }
+// The dice are up — and stay up after Confirm, while the Damage Riders are
+// rolled (turnAttack.js marks the dice step complete then).
+function diceUp(root) {
+  return !!root.querySelector('.step-controls[data-step="__dice"][data-state="active"], .step-controls[data-step="__dice"][data-state="complete"]');
+}
 
 function stepState(root, step) {
   if (step.dynamic === 'luck') {
@@ -59,8 +63,11 @@ function stepState(root, step) {
     const targets = ((step.luck || {}).targets || []).map((t) => {
       const g = root.querySelector('.roll-group[data-roll-id="' + CSS.escape(t.roll_id) + '"]');
       const dice = g && inPlay(g) ? (cfgOf(g).dice_count || 0) : 0;
-      return { roll_id: t.roll_id, label: ActionBuilder._rollLabel(root, t.roll_id) || t.label || t.roll_id,
-               cap: Math.min(src.amount || 0, dice) };
+      // "Garroth Vask's Attack", "Wolf's Dodge".
+      const who = g ? textOnly(g.querySelector('.creature-name')) : '';
+      const what = g && g.querySelector('.roll-name') ? g.querySelector('.roll-name').textContent.replace(/[()]/g, '').trim() : '';
+      const label = who && who !== '—' && what ? who + '’s ' + what : (ActionBuilder._rollLabel(root, t.roll_id) || t.label || t.roll_id);
+      return { roll_id: t.roll_id, label, cap: Math.min(src.amount || 0, dice) };
     });
     return { key: step.key, luck: { source: src, targets } };
   }
@@ -280,4 +287,11 @@ document.addEventListener('action:confirmed', (e) => {
     .then((res) => { if (res && res.ok !== false) applyRolls(root, res.flow_id, res.rolls); });
 });
 
-setInterval(tick, SYNC_MS);
+// A fresh page has no builder open yet: drop what the last page's builders
+// were asking the phones, then start syncing.
+post('/encounter/live/reset').then(() => {
+  setInterval(tick, SYNC_MS);
+  tick();
+});
+// Back from a background tab (where timers run slowly): catch up at once.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });

@@ -29,16 +29,21 @@ Either way, everything below happens in the builder.
   - **Confirm** shares every Roll with the players: the unclaimed ones Roll All rolled, and any claimed Roll with dice not yet approved.
   - Until then, a Roll the players may not see looks exactly like one nobody has rolled. The players are never told whether the DM rolled more than once.
   - If the DM changes a step that changes a Roll's dice or TN, that Roll is rolled again.
-- **Every phone in the action sees every Roll** once it is shared: the dice are thrown on its dice table as if just rolled (below).
+- **When the DM confirms, every phone in combat sees it**: the action as a title (*Garroth Vask Attacks Wolf with Great Sword*) and every Roll thrown on its dice table as if just rolled — first as rolled, then the Luck rerolls thrown again and any nudged die hopping to its new value (below). Each phone throws each Roll once.
 - **Nothing is spent until the DM commits** from the usual damage screen. The commit closes the action.
 - **One action at a time while it waits.** While one of a player's actions is in progress — an Attack, a Spell or Item that rolls a check, a channeled Ability, or anything the DM is running in the builder for them — their other actions are hidden on the phone (End Turn included), and the server refuses new requests, until the DM commits or cancels it. An action that waits on nothing (Rage, a buff, a Reservoir pour) does not hold anything up: a player may Rage and then attack.
 - **There is no time limit.**
-- A builder the DM closes (another action picked) takes its prompts off the phones. An action the DM started is dropped; a player's request stays in the Player actions panel with **Open in … builder**, as it does after a page reload.
+- **A prompt stays until it is answered** or the builder moves on — however long the player takes. (A DM page in a background tab checks in less often, so answers can take longer to show up there; switching back to it catches up at once.)
+- A builder the DM closes (another action picked), or a reload of the Encounter page, takes its prompts off the phones. An action the DM started is dropped; a player's request stays in the Player actions panel with **Open in … builder**, as it does after a page reload.
 
 ## On the phone
 
 - **Spell / Item:** a Spell aimed at a creature asks for a **Target** too — enemies, allies, and the player themselves last (e.g. a heal); the button reads *Cast \<spell\> on \<target\>* (or *on yourself*). A self, object or area Spell says so instead of asking. An area Spell is placed on the map by the DM. **Attack:** a **Target** (enemies first), then the dice; the button reads *Attack \<target\> with \<weapon\>*.
-- **Your move:** a choice waiting on the player appears at the top of the Initiative screen, on anyone's turn: the title (*Choose your defense*, *Shield \<ally\>?*, *Use your Luck?*), who is doing what to whom, and the choices — grouped like the builder's, with the same dice picker as actions.
+- **Your move:** a choice waiting on the player appears at the top of the Initiative screen, on anyone's turn:
+  - the action as a heading — *Garroth Vask Attacks Wolf with Great Sword* (an attack by its weapon type, not the item's full name; *You* when it is the player);
+  - the question — *Choose your defense*, *Shield \<ally\>?*, *Use your luck?* with *3 Luck remaining*;
+  - the choices, each group under its bold name with the same dice picker as actions. Luck: *Help Garroth Vask's Attack*, *Hinder Garroth Vask's Attack*, *Help Wolf's Dodge*, *Hinder Wolf's Dodge* (Hinder only for a source that may hinder); then *No luck*;
+  - the button with the choice (*Help Garroth Vask's Attack — reroll 2 dice*): green to help, red to hinder.
 - **From any tab:** when a step is waiting, the Initiative tab shows a badge (●) and the phone says *Your move: …* once.
 - **Roll card** — the action as a header from the player's side (*Casting Fire Dart at Wolf*; a target sees *Ash Windmere casting Fire Dart at you*), then every Roll of the action:
   - a bold label: the player's own roll by skill and bonus (*Arcana +3*), the others by name, what they roll and their bonus (*Wolf Dodging +2*, *Garroth Vask Wisdom save +1*);
@@ -56,7 +61,7 @@ The phone throws the dice, shows them tumbling, then — when Luck applies — r
 
 The dice are thrown right over the screen — no backdrop, no box; only the screen's edges stop them, and the Initiative screen stays visible underneath. Each die flies in from a side of the screen, bounces off the edges and the other dice (everyone's), spins and slows down, flickers through faces while it tumbles, and stops on its real value (about a second and a half). Luck rerolls are thrown again once the first throw has stopped.
 
-Each Roll of the action has its own part of the screen — two rolls, two halves; three rolls, three thirds — the player's own first. Its dice are thrown into that part and gently pulled back if they wander; no line is drawn. Each Roll is in its roller's own dice colour, the same on every phone ([dice_colors.md](dice_colors.md)), with a label floating just above its dice (*You — Arcana +3*, *Wolf — Dodging +2*). When another Roll is shared, its dice are thrown into its part of the screen, whether or not the player's own dice are already there. A stopped die's number shows what it counts for: dark green for a Success, deep blue for a Critical Success, dark red for a 1, dark grey for no effect. Each label adds its Successes when its dice stop. **The dice stay on the screen until the player taps it.**
+Each Roll of the action has its own part of the screen — two rolls, two halves; three rolls, three thirds — the player's own first. Its dice are thrown into that part and gently pulled back if they wander; no line is drawn. Each Roll is in its roller's own dice colour, the same on every phone ([dice_colors.md](dice_colors.md)), with a label floating just above its dice (*You — Arcana +3*, *Wolf — Dodging +2*). When another Roll is shared, its dice are thrown into its part of the screen, whether or not the player's own dice are already there. A stopped die's number shows what it counts for: dark green for a Success, deep blue for a Critical Success, dark red for a 1, dark grey for no effect. A die rerolled by Luck carries a small gold **↻** badge, a nudged die a **±** badge — on the dice table and on the roll card. Each label adds its Successes when its dice stop. **The dice stay on the screen until the player taps it.**
 
 ## On the DM's Encounter page
 
@@ -66,6 +71,7 @@ Each Roll of the action has its own part of the screen — two rolls, two halves
 ## Implementation
 
 - `lib/action_flow.rb` — the action: `declare` (a player's request) → `builder`. The builder's state mirrored onto the phones (`sync!`): choice tasks for player steps, roll tasks for every Roll (claimed when the owner has a phone), who sees which roll, Luck → rerolls, server-side scoring, and the request's choices for opening the builder.
+- `GET /api/initiative` → `shared`: the actions whose Rolls the DM shared in the last two minutes, from the viewer's side, with every Roll's first dice, rerolls and final dice. `POST /encounter/live/reset` — the Encounter page loaded: no builder is open, so the last page's prompts are dropped.
 - `public/js/ui/liveSync.js` — every builder on screen sends its state about once a second (`POST /encounter/live/sync`, which creates the action for a builder the DM opened), picks a phone's answer, shows the phone Rolls' rows, and shares the Rolls on Confirm (`POST /encounter/live/:id/share`). `POST /encounter/live/:id/rolls/:task_id/{roll,approve}` — the DM's Roll for / Approve.
 - `public/js/ui/flowsPanel.js` and `views/_action_flows.erb` — the Player actions panel; opens the builder for an approved request and replays the player's choices (`GET /encounter/flows/:id/prefill`).
 - Player prompts: `GET /api/prompts`, `POST /api/prompts/:flow_id/:task_id`. `POST /api/turn/requests` with an `attack:`, `cast:`, `item:` or `special:` key (and a `target_id` when one is needed) starts a request; `GET /api/initiative` carries `targets`, `prompts` and the player's `flows`.

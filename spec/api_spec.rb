@@ -412,6 +412,29 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(dm_sync(flow_id: flow.id, idle: true)['status']).to eq('cancelled')
     end
 
+    it 'drops the last page’s prompts when the DM’s page loads again' do
+      mine = start_combat_on_my_turn!
+      enemy = Encounter.state.combatants.find { |c| c[:id] != mine[:id] }
+      res = dm_sync(kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s }, target_id: mine[:id], step: defense_step)
+      expect(api_get('/api/prompts')['prompts'].length).to eq(1)
+      dm_json('/encounter/live/reset')
+      expect(api_get('/api/prompts')['prompts']).to eq([])
+      expect(ActionFlows.instance.find(res['flow_id']).status).to eq('cancelled')
+    end
+
+    it 'shows every phone in combat the rolls the DM shared' do
+      mine = start_combat_on_my_turn!
+      enemy = Encounter.state.combatants.find { |c| c[:id] != mine[:id] }
+      rolls = [{ id: 'attacker', side: 'supporting', creature_name: 'x', roll_name: 'Attack', dice_count: 2, tn: 7 }]
+      res = dm_sync(kind: 'attack', actor_id: enemy[:id], choices: { target: mine[:id].to_s, action: 'Claws|2' },
+                    target_id: mine[:id], rolls: rolls)
+      expect(api_get('/api/initiative')['shared']).to eq([])
+      dm_json("/encounter/live/#{res['flow_id']}/share", rolls: { attacker: { dice: [3, 9], final: [3, 9] } })
+      shared = api_get('/api/initiative')['shared']
+      expect(shared.first["action_line"]).to eq("#{ActionFlows.instance.find(res["flow_id"]).actor_name} Attacks You with Claws")
+      expect(shared.first['rolls'].first).to include('final' => [3, 9], 'successes' => 1)
+    end
+
     it 'keeps the live builder DM-only' do
       post '/encounter/live/sync', JSON.generate(kind: 'attack', actor_id: 1), player_env.merge('CONTENT_TYPE' => 'application/json')
       expect(last_response.status).to eq(403)

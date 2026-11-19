@@ -21,7 +21,7 @@ The server and the phone must be on the same network. Guest networks with "clien
 
 ## Which Character the app shows
 
-The app is identified exactly like a browser, by the server-issued `crimson_device_id` cookie ([device_assignment.md](device_assignment.md)), which it saves and sends on every request. Until the DM assigns the device a Character on the web **Status** page, the app shows *Waiting for the DM to assign this device a character* with the device's short id. It re-checks every few seconds.
+The app is identified exactly like a browser, by the server-issued `crimson_device_id` cookie ([device_assignment.md](device_assignment.md)), which it saves and sends on every request. Until the DM assigns the device a Character on the web **Status** page, the app shows *Waiting for the DM to assign this device a character* with the device's short id. It re-checks every few seconds. While playing, it checks every 4 seconds too: when the DM assigns the device another Character, the app switches to them by itself (*You are now \<name\>*), on the same tab — no restart needed.
 
 A request from the app is never the DM: it does not come from the server host's loopback address.
 
@@ -82,8 +82,8 @@ Top to bottom:
 
 Anything waiting on the player (a defense, Luck, a roll — [action_flow.md](action_flow.md)) comes first, on anyone's turn. Then:
 
-1. **Status** — the player's own row, and the acting Combatant's row when it is someone else's turn. Each row: the name in its Tier colour, the Combat Pool as a row of small d10s, and **Acted** (their turn is over this Round) or **Waiting**. Tapping a row opens it over the other row: HP, Mana, Combat Pool, Conditions (and, for the player, Main Actions left) — "?" for a value players may not see. Tapping it again closes it. The player's own pool and Mana subtract this turn's pending requests. In the dice row, remaining dice are filled and spent dice are hollow; the fill colour shows how much is left (more than half green, a quarter to a half amber, under a quarter red), and while choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
-2. **Initiative** — one row, *\<name\>'s Turn* (*Your Turn* on the player's own). Tapping it shows the whole order (each with Turn / Acted / Waiting); tapping again closes it.
+1. **Status** — the player's own row: the name in its Tier colour, the Combat Pool as a row of small d10s, and **Acted** (their turn is over this Round) or **Waiting**. Tapping it opens HP, Mana, Combat Pool, Conditions and Main Actions left; tapping it again closes it. The player's own pool and Mana subtract this turn's pending requests. In the dice row, remaining dice are filled and spent dice are hollow; the fill colour shows how much is left (more than half green, a quarter to a half amber, under a quarter red), and while choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
+2. **Initiative** — one row, *\<name\>'s Turn* (*Your Turn* on the player's own), with that Combatant's Combat Pool dice under it (on the player's own turn the dice are in Status). Tapping it shows the whole order (each with Turn / Acted / Waiting) — no HP or other vitals; tapping again closes it.
 3. **Actions** (player's turn only) — **Melee**, **Ranged**, **Spell**, **Item**, **Move**, **Special** and **End Turn**; a group with nothing in it is not shown. Tapping a group opens its options (one option opens straight onto it); tapping again closes it. Melee and Ranged split the weapon attacks by whether the weapon is ranged; Special holds the Abilities and active Spells.
 
 "The player's turn" means the party's Phase is Combat, combat is running, and the player's Combatant is the acting one. When there is no combat the screen says so.
