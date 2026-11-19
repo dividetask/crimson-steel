@@ -76,6 +76,7 @@ Luck rerolls then apply as usual. If the band cannot be reached at all (e.g. a l
   - under the player's own dice, the **Roll** button.
 
   Pressing **Roll** throws the player's dice on the **dice table** (below); when they stop, the result goes to the DM. The card stays until the DM commits the action.
+- **One card per action.** When several Rolls of one action are the player's (their attack roll, then its Damage Riders), they are all on that action's card, each with its own **Roll** button.
 - **In play** — every other action with dice on the table, for **every** player on the Initiative screen, whether or not they roll in it: the same card, read-only, until a couple of minutes after the DM confirms it. Each Roll shows once it is shared.
 - Under an action, the dice show the roll in one row, each with its final value; a die a Luck reroll changed has a small die at its **top left** showing the value it was first thrown at, and a nudged die a small die at its **top right** with its value before the nudge (the same small dice as on the dice table). The other dice are coloured by what each counts for (soft green a Success, blue a Critical Success, red a 1, grey no effect) for easy reading; the roller's own dice colour is for dice thrown on the dice table.
 - **Repeat**, at the bottom of a card with dice: throws all of its dice again on the dice table — the same results (first throw, then rerolls and nudges), a fresh throw.

@@ -526,9 +526,20 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     }
 
     /** Steps waiting on this player: defense, ally shield, Luck, or a roll. */
+    /** Every roll this player owns in the actions on screen (task ids): "You", Roll buttons. */
+    private var myRollTasks: Set<String> = emptySet()
+
     private fun promptsSection(col: LinearLayout, d: Initiative) {
         col.addView(Ui.sectionHeader(ctx, "Your move"))
-        for (p in d.prompts) col.addView(promptCard(p), Ui.matchWidth(Ui.dp(ctx, 6)))
+        val rolls = d.prompts.filter { it.kind == "roll" && it.roll != null }
+        myRollTasks = rolls.map { it.taskId }.toSet()
+        for (p in d.prompts.filter { it !in rolls }) col.addView(promptCard(p), Ui.matchWidth(Ui.dp(ctx, 6)))
+        // One card per action, however many of its rolls are this player's
+        // (the attack roll, then its Damage Riders…): a Roll button under each.
+        for ((_, own) in rolls.groupBy { it.flowId }) {
+            val primary = own.firstOrNull { it.waiting } ?: own.last()
+            col.addView(rollCard(primary, own), Ui.matchWidth(Ui.dp(ctx, 6)))
+        }
     }
 
     /**
@@ -639,17 +650,17 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private val shownRolling = mutableSetOf<String>()
     /** The dice table's parts of the screen for an action: one per Roll, the player's own first. */
     private fun zonesFor(p: com.dividetask.crimsonsteel.data.Prompt): List<RollTable.Zone> {
-        val mine = p.allRolls.filter { it.taskId == p.taskId }
-        val others = p.allRolls.filter { it.taskId != p.taskId }
+        val mine = p.allRolls.filter { it.taskId in myRollTasks || it.taskId == p.taskId }
+        val others = p.allRolls.filter { it !in mine }
         return (mine + others).mapIndexed { i, r ->
-            val who = if (r.taskId == p.taskId) "You" else r.owner
+            val who = if (r in mine) "You" else r.owner
             RollTable.Zone(r.taskId, "$who \u2014 ${r.what.ifBlank { r.name }} ${Ui.signed(r.bonus)}", diceColorOf(p, r, i))
         }
     }
 
     /** Each roller's own dice colour, as the server sends it (the same on every phone). */
     private fun diceColorOf(p: com.dividetask.crimsonsteel.data.Prompt, r: com.dividetask.crimsonsteel.data.RollLine, i: Int): Int =
-        r.color ?: if (r.taskId == p.taskId) com.dividetask.crimsonsteel.net.Session.diceColor else RollTable.colorFor(i)
+        r.color ?: if (r.taskId in myRollTasks || r.taskId == p.taskId) com.dividetask.crimsonsteel.net.Session.diceColor else RollTable.colorFor(i)
 
     /**
      * The roll card: the action as a header ("Casting Fire Dart"), then each
@@ -665,7 +676,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         actionLine = a.actionLine,
     )
 
-    private fun rollCard(p: com.dividetask.crimsonsteel.data.Prompt): View {
+    private fun rollCard(p: com.dividetask.crimsonsteel.data.Prompt,
+                         own: List<com.dividetask.crimsonsteel.data.Prompt> = listOf(p)): View {
+        val ownById = own.associateBy { it.taskId }
         val card = Ui.vertical(ctx, 12).apply {
             background = Ui.rounded(Ui.CRIMSON_DARK, Ui.dpf(ctx, 10f), if (p.waiting) Ui.GOLD else Ui.SURFACE_HI, Ui.dp(ctx, 2))
         }
@@ -676,7 +689,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 r.positiveReroll, r.negativeReroll, p.status, p.summary, what = r.name))
         }
         for (line in lines) {
-            val mine = line.taskId == p.taskId
+            val mineP = ownById[line.taskId]
+            val mine = mineP != null
             val label = (if (mine) "" else "${line.owner} ") + listOf(line.what.ifBlank { line.name }, Ui.signed(line.bonus)).joinToString(" ")
             card.addView(Ui.text(ctx, label, 16f, if (mine) Ui.TEXT else Ui.TEXT_DIM, bold = true), Ui.matchWidth(Ui.dp(ctx, 12)))
             card.addView(Ui.text(ctx, RollFlow.paramsLine(line.diceCount, line.tn, line.startingValue) +
@@ -709,11 +723,11 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                     mine -> ""
                     else -> "waiting to roll"
                 }
-                if (mine && p.waiting && !inFlight) {
+                if (mineP != null && mineP.waiting && !inFlight) {
                     card.addView(Button(ctx).apply {
                         text = "Roll"
                         isEnabled = !busy
-                        setOnClickListener { isEnabled = false; rollMine(p, line, dice, result) }
+                        setOnClickListener { isEnabled = false; rollMine(mineP, line, dice, result) }
                     }, Ui.matchWidth(Ui.dp(ctx, 6)))
                 }
             }
