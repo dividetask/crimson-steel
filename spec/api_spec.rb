@@ -155,6 +155,19 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(cast['name']).not_to start_with('Cast')
     end
 
+    it 'ties a sound to an action listed in config/action_sounds.yml, and serves it' do
+      start_combat_on_my_turn!
+      garroth = Creatures.player_controlled.find { |c| c[:name].start_with?('Garroth') }
+      skip 'no Garroth in this campaign' unless garroth
+      c = Encounter.state.combatants.find { |x| x[:creature_id].to_s == garroth[:id].to_s }
+      opts = Sinatra::Application.new!.send(:api_turn_options, c)
+      expect(opts.find { |o| o[:name] == 'Rage' }[:sound]).to eq('/sounds/RAGE_AGAIN.mp3')
+      expect(opts.find { |o| o[:kind] == 'attack' }).not_to have_key(:sound)
+      get '/sounds/RAGE_AGAIN.mp3', {}, player_env
+      expect(last_response.status).to eq(200)
+      expect(last_response.content_type).to include('audio/mpeg')
+    end
+
     it 'offers no options when it is not their turn' do
       j = api_get('/api/initiative')
       expect(j['my_turn']).to be false

@@ -363,6 +363,13 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                         Ui.matchWidth(Ui.dp(ctx, 4)))
                 }
             }
+            // A sound tied to this action: play it on this device.
+            opt.sound?.let { snd ->
+                card.addView(Button(ctx).apply {
+                    text = if (SoundPlayer.playing == snd) "\u25A0  Stop sound" else "\u25B6  Play ${opt.name} sound"
+                    setOnClickListener { SoundPlayer.toggle(snd) { render() } }
+                }, Ui.matchWidth(Ui.dp(ctx, 8)))
+            }
             val needsDice = opt.dice.isNotEmpty() && selectedDice == null
             val needsTarget = opt.needsTarget && targetsFor(d, opt).none { it.combatantId == selectedTarget }
             val blocker = blocker(d, opt, selectedDice)

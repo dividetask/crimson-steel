@@ -206,6 +206,12 @@ helpers do
 
     out << end_turn
     out.each { |o| o[:disabled] = !o[:disabled_reason].nil? }
+    # A sound tied to the action (config/action_sounds.yml): the app offers a
+    # button to play it on the device.
+    out.each do |o|
+      next unless %w[special cast item].include?(o[:kind])
+      (snd = ActionSounds.path_for(o[:name])) && o[:sound] = snd
+    end
   end
 
   # In Combat as the players see it: combat running and the party's Phase is

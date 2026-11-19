@@ -70,6 +70,7 @@ require_relative 'lib/player_requests'
 require_relative 'lib/action_flow'
 require_relative 'lib/dice_colors'
 require_relative 'lib/change_feed'
+require_relative 'lib/action_sounds'
 
 %w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation api action_flows live_events].each do |name|
   require_relative "lib/routes/#{name}"

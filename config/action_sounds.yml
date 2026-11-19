@@ -1,0 +1,10 @@
+# Sounds for actions (docs/project/action_sounds.md). When a player picks one
+# of these actions on the Android app, a button plays its sound on their
+# device.
+#
+#   <Ability or Spell name, as the app lists it>: <mp3 file in public/sounds/>
+#
+# Names are matched ignoring case, spaces and punctuation. Add a sound by
+# dropping the mp3 into public/sounds/ and adding a line here (no restart
+# needed).
+Rage: RAGE_AGAIN.mp3

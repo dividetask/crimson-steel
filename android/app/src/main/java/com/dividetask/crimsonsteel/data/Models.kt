@@ -195,6 +195,8 @@ data class TurnOption(
     val disabledReason: String?,
     /** Attacks: a ranged weapon (listed under Ranged, not Melee). */
     val ranged: Boolean = false,
+    /** A sound tied to the action (e.g. "/sounds/RAGE_AGAIN.mp3"), played on the device by a button. */
+    val sound: String? = null,
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
 
@@ -415,6 +417,7 @@ data class Initiative(
                         manaCost = o.optInt("mana_cost"),
                         disabledReason = o.optStringOrNull("disabled_reason"),
                         ranged = o.optBoolean("ranged"),
+                        sound = o.optStringOrNull("sound"),
                     )
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),
