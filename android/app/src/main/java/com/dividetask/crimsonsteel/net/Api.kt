@@ -62,6 +62,7 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
 
     /** Download [path] (e.g. a sound) into [to], with this device's cookie. */
     fun download(path: String, to: java.io.File) {
+        dropCookieHandler()
         val conn = URI(server.baseUrl + path).toURL().openConnection() as HttpURLConnection
         conn.connectTimeout = 4000
         conn.readTimeout = 20_000
@@ -81,6 +82,7 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
      * longer than that means the connection is gone.
      */
     fun openEvents(): HttpURLConnection {
+        dropCookieHandler()
         val conn = URI(server.baseUrl + "/api/events").toURL().openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.connectTimeout = 4000
@@ -91,6 +93,7 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
     }
 
     private fun open(method: String, path: String, contentType: String?): HttpURLConnection {
+        dropCookieHandler()
         val conn = URI(server.baseUrl + path).toURL().openConnection() as HttpURLConnection
         conn.requestMethod = method
         conn.connectTimeout = 4000
@@ -143,6 +146,20 @@ class Api(val server: ServerInfo, private val cookies: CookieStore) {
     }
 
     companion object {
+        /**
+         * The app sends its device id itself. Android's media player, the
+         * first time it streams a URL, installs a cookie manager for the
+         * whole app — which then replaces that Cookie header, so the server
+         * no longer recognises the device and issues new ids (the device
+         * looks unassigned). Remove any such manager before each request.
+         */
+        fun dropCookieHandler() {
+            if (java.net.CookieHandler.getDefault() != null) {
+                java.net.CookieHandler.setDefault(null)
+                DebugLog.i(TAG, "removed a cookie manager that would replace the device id")
+            }
+        }
+
         const val COOKIE = "crimson_device_id"
         private const val TAG = "http"
 
