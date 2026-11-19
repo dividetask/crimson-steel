@@ -1275,6 +1275,7 @@ post '/encounter/resolve_cast' do
     result = result.merge(item_consumed: consumed) if consumed
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('caster', 'id').to_i) # Cast is a Main Action
+    ActionFlows.instance.find(payload['flow_id'])&.done! if payload['flow_id'] # a player-driven cast / item
   end
   encounter_response(result)
 end
@@ -1302,6 +1303,7 @@ post '/encounter/use_special' do
   return encounter_error(400, cap_err) if cap_err
   result = encounter_state.use_special_payload(payload)
   Conditions.store.persist! if result[:ok]
+  ActionFlows.instance.find(payload['flow_id'])&.done! if result[:ok] && payload['flow_id'] # a player-driven Ability
   encounter_response(result)
 end
 

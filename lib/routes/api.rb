@@ -107,6 +107,16 @@ helpers do
     { name: name.to_s, dice: dice_cap.to_i, bonus: (competency ? competency[1].to_i : 0) }
   end
 
+  # The dice counts the Special builder offers for a channeled Ability.
+  def special_dice_counts(combatant, ability)
+    blob = special_builder_blob(combatant, ability)
+    step = blob[:steps].find { |st| st[:key] == 'dice' } or return []
+    opts = step[:options] || Array((step[:options_map] || {}).values.first)
+    opts.reject { |o| o[:kind] == 'info' }.map { |o| o[:value].to_i }.uniq.sort
+  rescue StandardError
+    []
+  end
+
   def api_dice_choices(range, pool, speed: 0)
     range.map { |n| { dice: n, pool_cost: speed + n, affordable: speed + n <= pool } }
   end
@@ -156,7 +166,14 @@ helpers do
               skill: (rolled ? api_skill_view(skill, cap, sp[:competency]) : nil), speed: 0,
               category: api_category_for_cost(min), detail: parts.join(" \u00b7 "),
               dice: rolled ? api_dice_choices(min..[cap, min - 1].max, pool) : [],
-              pool_cost: rolled ? nil : min, mana_cost: sp[:mana_cost].to_i }
+              pool_cost: rolled ? nil : min, mana_cost: sp[:mana_cost].to_i,
+              # What the player must point it at: a creature (target picker),
+              # themselves, an object, or an area the DM places on the map.
+              target: (if sp[:area] then 'area'
+                       elsif sp[:object_target] then 'object'
+                       elsif sp[:self_only] then 'self'
+                       else 'creature'
+                       end) }
       opt[:disabled_reason] = 'not enough Mana' unless sp[:affordable]
       opt[:disabled_reason] ||= "Dice Cap #{cap} is below the #{min}-dice minimum" if rolled && cap < min
       opt
@@ -169,9 +186,12 @@ helpers do
 
     Array((es.special_options(combatant[:id]) rescue [])).each do |s|
       cost = s[:action_cost].to_i
+      # A channeled Ability (Bardic Performance) offers the DM's Special
+      # builder's dice counts (its Performance Dice Cap / Combat Pool bound).
+      channel = s[:channeled] ? special_dice_counts(combatant, s[:name]) : []
       opt = { key: "special:#{s[:name]}", label: s[:label].to_s, name: s[:label].to_s, kind: 'special', category: s[:activation].to_s,
               detail: s[:summary].to_s, mana_cost: s[:mana_cost].to_i,
-              dice: s[:channeled] ? api_dice_choices(cost..[pool, cost].max, pool) : [],
+              dice: channel.map { |n| { dice: n, pool_cost: n, affordable: n <= pool } },
               pool_cost: s[:channeled] ? nil : cost }
       opt[:category] = 'main' unless %w[main bonus free].include?(opt[:category])
       opt[:disabled_reason] = s[:disabled_reason] if s[:disabled]
@@ -196,13 +216,16 @@ helpers do
 
   # Attack targets for the player's target picker: every other Combatant,
   # enemies (the other side of the PC / non-PC line) first.
+  # The player's own entry (self: true) comes last; it is offered for Spells
+  # and Items (e.g. a heal), never for an Attack.
   def api_targets(mine)
     mine_pc = creature_is_pc?(mine[:creature_id])
-    encounter_state.combatants.reject { |c| c[:id] == mine[:id] }.map do |c|
+    encounter_state.combatants.map do |c|
       pc = creature_is_pc?(c[:creature_id])
-      { combatant_id: c[:id], name: tracker_name(c), enemy: pc != mine_pc,
-        dying: !!(encounter_state.creature_dying?(c[:id]) rescue false) }
-    end.sort_by { |t| [t[:enemy] ? 0 : 1, t[:name]] }
+      me = c[:id] == mine[:id]
+      { combatant_id: c[:id], name: me ? "#{tracker_name(c)} (you)" : tracker_name(c), enemy: !me && pc != mine_pc,
+        self: me, dying: !!(encounter_state.creature_dying?(c[:id]) rescue false) }
+    end.sort_by { |t| [t[:self] ? 2 : (t[:enemy] ? 0 : 1), t[:name]] }
   end
 
   def api_my_combatant(acc)
@@ -293,6 +316,18 @@ post '/api/turn/requests' do
   if opt[:kind] == 'attack'
     api_error(422, 'choose a target') if body['target_id'].to_s.empty?
     flow, err = start_attack_flow(mine, opt[:key].sub('attack:', ''), body['dice'], body['target_id'])
+    api_error(422, err) if err
+    api_json(ok: true, flow: flow_status_view(flow))
+  end
+  # Spells, Potions / Scrolls and Special Abilities run the same way
+  # (docs/project/action_flow.md).
+  if %w[cast item].include?(opt[:kind])
+    flow, err = start_cast_flow(mine, opt, body['dice'], body['target_id'])
+    api_error(422, err) if err
+    api_json(ok: true, flow: flow_status_view(flow))
+  end
+  if opt[:kind] == 'special'
+    flow, err = start_special_flow(mine, opt, body['dice'])
     api_error(422, err) if err
     api_json(ok: true, flow: flow_status_view(flow))
   end

@@ -21,14 +21,14 @@ helpers do
 
   # A prompt for a phone: what is asked, the options (grouped), or the roll.
   def flow_prompt_view(flow, t)
-    attack = flow.stage_tasks('declare').first['summary']
+    what = "#{flow.actor_name} #{flow_verb(flow)}: #{flow.summary}."
     title, body =
       case t['step']
-      when 'defense'      then ['Choose your defense', "#{flow.attacker_name} attacks you: #{attack}."]
-      when 'ally_defense' then ["Shield #{flow.name_of(flow.target_id)}?", "#{flow.attacker_name} attacks #{flow.name_of(flow.target_id)}: #{attack}."]
-      when /\Aluck:/      then ['Use your Luck?', "#{flow.attacker_name} attacks #{flow.name_of(flow.target_id)}: #{attack}."]
-      when /\Aroll:/      then ["Roll #{t.dig('roll', 'name')}", "#{flow.attacker_name}'s attack: #{attack}."]
-      else [t['step'].to_s, attack]
+      when 'defense'      then ['Choose your defense', what]
+      when 'ally_defense' then ["Shield #{flow.name_of(flow.target_id)}?", what]
+      when /\Aluck:/      then ['Use your Luck?', what]
+      when /\Aroll:/      then ["Roll #{t.dig('roll', 'name')}", what]
+      else [t['step'].to_s, what]
       end
     view = { flow_id: flow.id, task_id: t['id'], kind: t['kind'], step: t['step'], title: title, body: body,
              status: t['status'], summary: t['summary'] }
@@ -43,7 +43,7 @@ helpers do
 
   # One line per stage task for the attacker's own status view.
   def flow_status_view(flow)
-    { flow_id: flow.id, stage: flow.stage, summary: flow.stage_tasks('declare').first['summary'],
+    { flow_id: flow.id, kind: flow.kind, stage: flow.stage, summary: flow.summary,
       pool_cost: flow.declared_pool_cost,
       tasks: flow.stage_tasks.map { |t| { step: t['step'], owner: t['owner_name'], status: t['status'], summary: t['summary'] } } }
   end
@@ -76,6 +76,81 @@ helpers do
       session[:flow_error] = e.message
     end
     redirect(request.referer || '/encounter')
+  end
+
+  # Create a Cast or Item flow from a player's request (+opt+ is the turn
+  # option). Returns [flow, error].
+  def start_cast_flow(combatant, opt, dice, target_id)
+    item = opt[:kind] == 'item'
+    blob = item ? item_builder_blob(combatant) : cast_builder_blob(combatant)
+    spell_key = opt[:key].sub(/\A(cast|item):/, '')
+    step = ->(k) { blob[:steps].find { |st| st[:key] == k } }
+    spell = Array(step.call('spell')[:options]).find { |o| o[:value].to_s == spell_key && o[:kind] != 'info' }
+    return [nil, 'unknown spell'] unless spell
+    return [nil, 'not enough Mana'] if spell[:disabled]
+
+    dice_opts = Array(step.call('dice')[:options_map][spell_key]).reject { |o| o[:kind] == 'info' }
+    n = opt[:dice].empty? ? opt[:pool_cost].to_i : dice.to_i
+    dice_opt = dice_opts.find { |o| o[:value].to_s.split('|').last.to_i == n } ||
+               (opt[:dice].empty? ? dice_opts.first : nil)
+    return [nil, 'choose a dice count'] unless dice_opt
+    return [nil, 'not enough Combat Pool'] if dice_opt[:disabled]
+
+    target_opts = Array(step.call('target')[:options_map][spell_key])
+    target =
+      case opt[:target]
+      when 'creature'
+        t = target_opts.find { |o| o[:value].to_s == target_id.to_s }
+        return [nil, 'choose a target'] unless t
+        t[:value].to_s
+      else
+        (target_opts.first || {})[:value].to_s
+      end
+    where = case opt[:target]
+            when 'creature' then " at #{flow_names[target.to_i]}"
+            when 'self' then ' on yourself'
+            when 'object' then ' on an object'
+            when 'area' then ' (the DM places it on the map)'
+            else ''
+            end
+    n_text = opt[:dice].empty? ? '' : " \u2014 #{n} dice"
+    flow = ActionFlow.new(kind: opt[:kind], actor_id: combatant[:id], actor_name: tracker_name(combatant),
+                          turn_key: PlayerRequests.turn_key(encounter_state, combatant[:id]), blob: blob,
+                          declare: [['spell', spell[:value]], ['dice', dice_opt[:value]], ['target', target]],
+                          summary: "#{opt[:name]}#{n_text}#{where}", pool_cost: n, names: flow_names)
+    [action_flows.add(flow), nil]
+  end
+
+  # Create a Special Ability flow. A channeled Ability (Bardic Performance)
+  # rolls its check on the performer's phone; any other (e.g. Rage) is just
+  # approved and confirmed by the DM. Returns [flow, error].
+  def start_special_flow(combatant, opt, dice)
+    name = opt[:key].sub('special:', '')
+    declare = []
+    blob = nil
+    cost = opt[:pool_cost].to_i
+    summary = opt[:name]
+    unless opt[:dice].empty?
+      blob = special_builder_blob(combatant, name)
+      perf = blob[:steps].find { |st| st[:key] == 'performance' }
+      declare << ['performance', perf[:options].first[:value]] if perf
+      n = dice.to_i
+      choice = opt[:dice].find { |d| d[:dice] == n }
+      return [nil, 'choose a dice count'] unless choice
+      return [nil, 'not enough Combat Pool'] unless choice[:affordable]
+      declare << ['dice', n]
+      cost = n
+      summary = "#{opt[:name]} \u2014 #{n} dice"
+    end
+    flow = ActionFlow.new(kind: 'special', actor_id: combatant[:id], actor_name: tracker_name(combatant),
+                          turn_key: PlayerRequests.turn_key(encounter_state, combatant[:id]), blob: blob,
+                          declare: declare, summary: summary, pool_cost: cost, ability: name, names: flow_names)
+    [action_flows.add(flow), nil]
+  end
+
+  # How each kind reads in a sentence ("Ash casts at you: …").
+  def flow_verb(flow)
+    { 'attack' => 'attacks', 'cast' => 'casts', 'item' => 'uses an item', 'special' => 'uses an ability' }[flow.kind]
   end
 
   # Create an attack flow from a player's request. Returns [flow, error].
@@ -162,4 +237,27 @@ end
 get '/encounter/flows_panel' do
   halt 403 unless dm_view?
   erb :_action_flows, layout: false, locals: { flows: action_flows.active, acting_id: encounter_state.acting_combatant_id }
+end
+
+# The DM approves a plain player request and applies it: a Move spends its
+# Combat Pool cost; End Turn advances the turn. (Other plain requests are
+# resolved by hand and dismissed.) DM only.
+post '/encounter/player_requests/:id/apply' do
+  halt 403 unless dm_view?
+  acting = encounter_state.acting_combatant_id
+  key = PlayerRequests.turn_key(encounter_state, acting)
+  req = PlayerRequests.instance.for_turn(acting, key).find { |r| r['id'] == params[:id] }
+  halt 404 unless req
+  case req['key']
+  when 'move'
+    result = encounter_state.apply_move(acting)
+    session[:flow_error] = result[:error] if result.is_a?(Hash) && result[:error]
+  when 'end_turn'
+    PlayerRequests.instance.remove(params[:id])
+    new_id = encounter_state.advance_turn
+    begin_turn_side_effects!(new_id) if new_id
+    redirect(request.referer || '/encounter')
+  end
+  PlayerRequests.instance.remove(params[:id])
+  redirect(request.referer || '/encounter')
 end

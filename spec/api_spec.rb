@@ -254,6 +254,7 @@ RSpec.describe 'Android app JSON API', type: :request do
       start_combat_on_my_turn!
       ini = api_get('/api/initiative')
       target = ini['targets'].find { |t| t['name'] == other_pc[:name] }
+      expect(ini['targets'].last['self']).to be true
       atk = ini['options'].find { |o| o['kind'] == 'attack' && o['dice'].any? { |d| d['affordable'] } }
       dice = atk['dice'].find { |d| d['affordable'] }['dice']
       j = api_post('/api/turn/requests', key: atk['key'], dice: dice, target_id: target['combatant_id'])
@@ -338,6 +339,80 @@ RSpec.describe 'Android app JSON API', type: :request do
       as_other_phone do
         expect(other_get('/api/prompts')['prompts'].map { |p| p['task_id'] }).not_to include(t['id'])
       end
+    end
+
+    def request_option(match, body = {})
+      ini = api_get('/api/initiative')
+      opt = ini['options'].find { |o| match.call(o) }
+      skip 'no such option for this character' unless opt
+      body = body.dup
+      body[:dice] ||= opt['dice'].find { |d| d['affordable'] }&.dig('dice')
+      j = api_post('/api/turn/requests', { key: opt['key'] }.merge(body.compact))
+      expect(last_response.status).to eq(200), j.inspect
+      [opt, ActionFlows.instance.active.last]
+    end
+
+    def approve_request!(flow)
+      dm_post("/encounter/flows/#{flow.id}/tasks/#{flow.tasks.first['id']}/approve")
+    end
+
+    it 'runs a save spell: the save is applied without asking and the target rolls it on their phone' do
+      start_combat_on_my_turn!
+      target = api_get('/api/initiative')['targets'].find { |t| t['name'] == other_pc[:name] }
+      opt, flow = request_option(->(o) { o['kind'] == 'cast' && o['name'] == 'Vicious Mockery' && !o['disabled'] },
+                                 dice: nil, target_id: target['combatant_id'])
+      expect(opt['target']).to eq('creature')
+      expect(flow.kind).to eq('cast')
+      approve_request!(flow)
+      expect(flow.choices['defense']).to start_with('save:wis')
+      expect(flow.stage).to eq('roll')
+      as_other_phone do
+        roll = other_get('/api/prompts')['prompts'].find { |p| p['kind'] == 'roll' }
+        expect(roll['title']).to eq('Roll Wisdom save')
+        expect(roll['body']).to include('casts')
+      end
+    end
+
+    it 'sends a spell that rolls nothing, and an area spell, straight to the DM' do
+      start_combat_on_my_turn!
+      me_id = api_get('/api/initiative')['me']['combatant_id']
+      _, heal = request_option(->(o) { o['kind'] == 'cast' && o['name'] == 'Healing Word' && !o['disabled'] },
+                               target_id: me_id)
+      approve_request!(heal)
+      expect(heal.stage).to eq('resolve')
+      _, area = request_option(->(o) { o['kind'] == 'cast' && o['target'] == 'area' && !o['disabled'] },
+                               dice: nil)
+      expect(area.summary).to include('places it on the map')
+      approve_request!(area)
+      expect(area.stage).to eq('resolve')
+      header 'Host', 'localhost'
+      get '/encounter/flows_panel', {}, dm_env
+      expect(last_response.status).to eq(200)
+      expect(last_response.body).to include('Open in Cast builder')
+    end
+
+    it 'runs a channeled ability with the performer rolling its check' do
+      start_combat_on_my_turn!
+      opt, flow = request_option(->(o) { o['kind'] == 'special' && o['dice'].any? { |d| d['affordable'] } },
+                                 dice: api_get('/api/initiative')['options'].find { |o| o['kind'] == 'special' && o['dice'].any? }&.dig('dice')&.find { |d| d['affordable'] }&.dig('dice'))
+      expect(flow.kind).to eq('special')
+      approve_request!(flow)
+      flow.open_tasks.dup.each { |x| dm_post("/encounter/flows/#{flow.id}/tasks/#{x['id']}/decide", value: flow.options_for(x).first[:value]) } if flow.stage == 'luck'
+      expect(flow.stage).to eq('roll')
+      roll = api_get('/api/initiative')['prompts'].find { |p| p['kind'] == 'roll' }
+      expect(roll['title']).to eq("Roll #{opt['name']}")
+    end
+
+    it 'applies an approved Move and End Turn' do
+      mine = start_combat_on_my_turn!
+      pool = Encounter.state.combat_pool_remaining(mine[:id])
+      id = api_post('/api/turn/requests', key: 'move')['requests'].last['id']
+      dm_post("/encounter/player_requests/#{id}/apply")
+      expect(Encounter.state.combat_pool_remaining(mine[:id])).to eq(pool - Encounter::Config.move_cost)
+      expect(api_get('/api/initiative')['requests']).to eq([])
+      id = api_post('/api/turn/requests', key: 'end_turn')['requests'].last['id']
+      dm_post("/encounter/player_requests/#{id}/apply")
+      expect(Encounter.state.acting_combatant_id).not_to eq(mine[:id])
     end
 
     it 'keeps the DM actions DM-only' do

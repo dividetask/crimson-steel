@@ -100,7 +100,7 @@ Spells that take a minute or longer to cast are not offered, as on the web.
 
 ### Requests
 
-**Attacks** are different: they run step by step — the target chooses a defense on their own phone, allies and Luck holders are asked, everyone rolls on their phone, and the DM approves each step and finishes it in the pre-filled Attack builder. See [action_flow.md](action_flow.md). Everything else below is a plain request.
+**Attacks, Spells, Items and Abilities** are different: they run step by step — the target chooses a defense (or rolls a save) on their own phone, allies and Luck holders are asked, everyone rolls on their phone, and the DM approves each step and finishes it in the pre-filled builder. See [action_flow.md](action_flow.md). **Move** and **End Turn** are plain requests that the DM's **Approve** applies; anything else below is a plain request the DM resolves by hand.
 
 Tapping an option opens it: a dice-count picker (counts the pool can't afford are disabled), then **Request**. A request **spends nothing**. It is sent to the server (`POST /api/turn/requests`), listed under *Requested this turn* with an **Undo last** button, and shown to the DM in a **Player requests** box at the top of the turn panel on the web Encounter page. The DM resolves it with the normal Attack / Move / Cast / Item / Special flow, which does the spending, or presses **Dismiss**.
 

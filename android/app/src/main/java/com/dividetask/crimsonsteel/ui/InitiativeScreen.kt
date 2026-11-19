@@ -232,7 +232,13 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
 
         if (isSelected) {
-            if (opt.kind == "attack") targetPicker(card, d)
+            if (opt.needsTarget) targetPicker(card, d, includeSelf = opt.kind != "attack")
+            when (opt.target) {
+                "self" -> card.addView(Ui.text(ctx, "Target: yourself", 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 8)))
+                "object" -> card.addView(Ui.text(ctx, "Target: an object (the DM handles it)", 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 8)))
+                "area" -> card.addView(Ui.text(ctx, "An area: the DM places it on the map, and everyone caught in it saves.", 13f, Ui.TEXT_DIM),
+                    Ui.matchWidth(Ui.dp(ctx, 8)))
+            }
             val cost = selectedCost(d)
             val left = poolLeft(d).coerceAtLeast(0)
             // Exactly what is in the Combat Pool right now, with what this choice would spend in yellow.
@@ -251,7 +257,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 }
             }
             val needsDice = opt.dice.isNotEmpty() && selectedDice == null
-            val needsTarget = opt.kind == "attack" && d.targets.none { it.combatantId == selectedTarget }
+            val needsTarget = opt.needsTarget && targetsFor(d, opt).none { it.combatantId == selectedTarget }
             val blocker = blocker(d, opt, selectedDice)
             val targetName = d.targets.find { it.combatantId == selectedTarget }?.name
             val confirm = Button(ctx).apply {
@@ -259,6 +265,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                     needsTarget -> "Choose a target"
                     needsDice -> "Choose dice"
                     opt.kind == "attack" -> "Attack $targetName with ${opt.name}"
+                    opt.needsTarget -> "${opt.actionText} on ${targetWord(d)}"
                     else -> opt.actionText
                 }
                 isEnabled = blocker == null && !needsDice && !needsTarget && !busy
@@ -285,7 +292,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         val send = {
             busy = true
             render()
-            val target = if (opt.kind == "attack") selectedTarget else null
+            val target = if (opt.needsTarget) selectedTarget else null
             Session.requestAction(opt.key, if (opt.dice.isEmpty()) null else selectedDice, target) { r ->
                 busy = false
                 if (r.isSuccess) clearSelection()
@@ -319,11 +326,20 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     // --- Attacks: target, prompts, status -------------------------------------------
 
-    /** Who to attack: one chip per Combatant, enemies first. */
-    private fun targetPicker(card: LinearLayout, d: Initiative) {
+    /** The chosen target in a sentence: "yourself" or their name. */
+    private fun targetWord(d: Initiative): String =
+        d.targets.find { it.combatantId == selectedTarget }?.let { if (it.self) "yourself" else it.name } ?: ""
+
+    /** Who an option may target: attacks never yourself; Spells and Items anyone. */
+    private fun targetsFor(d: Initiative, opt: TurnOption) =
+        if (opt.kind == "attack") d.targets.filter { !it.self } else d.targets
+
+    /** Who to target: one chip per Combatant, enemies first (yourself last, for Spells / Items). */
+    private fun targetPicker(card: LinearLayout, d: Initiative, includeSelf: Boolean) {
         card.addView(Ui.text(ctx, "Target", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
         var row: LinearLayout? = null
-        d.targets.forEachIndexed { i, t ->
+        val targets = if (includeSelf) d.targets else d.targets.filter { !it.self }
+        targets.forEachIndexed { i, t ->
             if (i % 2 == 0) {
                 row = Ui.horizontal(ctx)
                 card.addView(row, Ui.matchWidth(Ui.dp(ctx, 4)))
@@ -341,14 +357,14 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             Ui.makeTappable(chip, ctx) { selectedTarget = t.combatantId; render() }
             row!!.addView(chip, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 6) })
         }
-        if (d.targets.size % 2 == 1) row?.addView(View(ctx), Ui.weighted())
-        if (d.targets.isEmpty()) card.addView(Ui.text(ctx, "No one to attack.", 13f, Ui.TEXT_DIM))
+        if (targets.size % 2 == 1) row?.addView(View(ctx), Ui.weighted())
+        if (targets.isEmpty()) card.addView(Ui.text(ctx, "No one to target.", 13f, Ui.TEXT_DIM))
     }
 
     /** This player's own attacks in progress, one line per step. */
     private fun flowsSection(col: LinearLayout, d: Initiative) {
         if (d.flows.isEmpty()) return
-        col.addView(Ui.sectionHeader(ctx, "Your attack"))
+        col.addView(Ui.sectionHeader(ctx, "In progress"))
         for (f in d.flows) {
             val card = Ui.card(ctx)
             card.addView(Ui.text(ctx, f.summary, 15f, Ui.TEXT, bold = true))
@@ -375,7 +391,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     }
 
     private fun stageText(stage: String) = when (stage) {
-        "declare" -> "Waiting for the DM to approve your attack"
+        "declare" -> "Waiting for the DM to approve"
         "respond" -> "Defenses"
         "luck" -> "Luck"
         "roll" -> "Rolling"

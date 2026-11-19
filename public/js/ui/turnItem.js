@@ -140,6 +140,9 @@ export class TurnItem {
 
   static _post(container, payload, onOk) {
     if (!payload.spell_name) { TurnItem._warn(container, 'Pick an item first.'); return; }
+    // A player-driven cast pre-filled from the Player actions panel
+    // (flowsPanel.js): the commit closes that flow.
+    if (container.dataset.flowId) payload.flow_id = container.dataset.flowId;
     fetch('/encounter/resolve_cast', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     })

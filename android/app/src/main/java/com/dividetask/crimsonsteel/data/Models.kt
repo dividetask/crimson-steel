@@ -168,6 +168,8 @@ data class TurnOption(
     val skill: SkillView?,
     /** Flat Combat Pool surcharge on top of one die per die (a weapon's Speed). */
     val speed: Int,
+    /** Spells and Items: what it is pointed at — "creature", "self", "object" or "area". Null otherwise. */
+    val target: String? = null,
     val kind: String,
     val category: ActionCategory,
     val detail: String,
@@ -177,6 +179,9 @@ data class TurnOption(
     val disabledReason: String?,
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
+
+    /** Needs a creature picked in the app: an Attack, or a Spell / Item aimed at someone. */
+    val needsTarget: Boolean get() = kind == "attack" || target == "creature"
 
     /** What the confirm button says: "Cast Fire Dart", "Attack with Longbow", "Move"… */
     val actionText: String
@@ -211,7 +216,7 @@ data class TurnRequest(
 }
 
 /** Someone an attack can target (enemies first). */
-data class TargetChoice(val combatantId: Int, val name: String, val enemy: Boolean, val dying: Boolean)
+data class TargetChoice(val combatantId: Int, val name: String, val enemy: Boolean, val dying: Boolean, val self: Boolean = false)
 
 /** One answer a prompt offers. Options sharing a [group] with a [dice] count form one dice picker. */
 data class PromptOption(
@@ -304,6 +309,7 @@ data class Initiative(
                             SkillView(it.optString("name"), it.optInt("dice"), it.optInt("bonus"))
                         },
                         speed = o.optInt("speed"),
+                        target = o.optStringOrNull("target"),
                         kind = o.optString("kind"),
                         category = ActionCategory.of(o.optString("category")),
                         detail = o.optString("detail"),
@@ -317,7 +323,7 @@ data class Initiative(
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),
                 targets = j.optJSONArray("targets").mapObjects {
-                    TargetChoice(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("enemy"), it.optBoolean("dying"))
+                    TargetChoice(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("enemy"), it.optBoolean("dying"), it.optBoolean("self"))
                 },
                 prompts = Prompt.list(j.optJSONArray("prompts")),
                 flows = j.optJSONArray("flows").mapObjects { f ->

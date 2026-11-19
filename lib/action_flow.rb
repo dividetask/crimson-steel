@@ -1,24 +1,32 @@
 require 'securerandom'
 require 'cgi'
 
-# A player-driven attack (docs/project/action_flow.md). The attacker asks for
-# it from the Android app; every Combatant with a choice to make answers on
-# their own phone; each answer waits for the DM's approval; dice are rolled
-# on the phones; and the DM finishes it in the normal Attack builder.
+# A player-driven action (docs/project/action_flow.md): an Attack, a Cast, an
+# Item, or a Special Ability. The actor asks for it from the Android app;
+# every Combatant with a choice to make answers on their own phone; each
+# answer waits for the DM's approval; dice are rolled on the phones; and the
+# DM finishes it in the normal builder (Attack / Cast / Item / Special pane).
 #
-# The flow is built on the DM's own Attack builder blob (attack_builder_blob
-# in lib/routes/encounter_attack_ui.rb), so every option, cost and patch is
-# exactly what the DM would see. Stages, in order:
+# The flow is built on the DM's own Action Builder blob for that action
+# (attack_builder_blob, cast_builder_blob, item_builder_blob,
+# special_builder_blob), so every option, cost and patch is exactly what the
+# DM would see. A Special without a builder (e.g. Rage) has no blob: it is
+# declared, approved, and confirmed by the DM. Stages, in order:
 #
-#   declare  — the attacker's Target and Weapon & dice (one task, the request).
+#   declare  — the actor's choices (Target, Weapon / Spell & dice…): the request.
 #   respond  — at the same time: the target's Defense, and an ally's Shield
-#              (when the target is shielded).
+#              (when the target is shielded). A Saving Throw is not a choice
+#              (always the full Dice Cap), so it is applied without asking.
 #   luck     — at the same time: one task per Luck source (a Bard's Bardic
 #              Inspiration, DM Luck). After respond, because how much Luck a
 #              Roll can take depends on its dice (the builder's order too).
-#   roll     — at the same time: one roll per Roll in play (attacker, defender,
-#              ally shield), with Luck folded in as rerolls.
-#   resolve  — the DM opens the Attack builder pre-filled and commits it.
+#   roll     — at the same time: one roll per Roll in play (attacker / caster /
+#              performer, defender / target, ally shield), with Luck folded in.
+#   resolve  — the DM opens the builder pre-filled and commits it.
+#
+# Skipped straight to resolve: a Spell that rolls nothing (a buff, a Reservoir
+# pour), an area Spell (the DM places it on the map, and the creatures caught
+# in it are only known then), and a Special with no builder.
 #
 # A task belongs to one Combatant (owner_id), or to the DM alone (owner_id nil
 # — e.g. DM Luck). The DM may answer any task on the owner's behalf; that
@@ -26,47 +34,70 @@ require 'cgi'
 class ActionFlow
   STAGES = %w[declare respond luck roll resolve].freeze
 
-  attr_reader :id, :kind, :attacker_id, :attacker_name, :turn_key, :blob, :choices, :tasks, :rolls, :created_at
+  KINDS = %w[attack cast item special].freeze
+
+  attr_reader :id, :kind, :actor_id, :actor_name, :turn_key, :blob, :choices, :tasks, :rolls, :created_at, :ability
   attr_accessor :stage, :status
 
-  # +blob+: the attack builder blob (symbol keys). +names+: combatant id →
-  # display name. Creates the flow with its declare task already submitted.
-  def initialize(attacker_id:, attacker_name:, turn_key:, blob:, target_id:, action_value:, names: {})
-    @id            = SecureRandom.hex(5)
-    @kind          = 'attack'
-    @attacker_id   = attacker_id
-    @attacker_name = attacker_name
-    @turn_key      = turn_key
-    @blob          = blob
-    @names         = names
-    @choices       = {}
-    @tasks         = []
-    @rolls         = {}
-    @stage         = 'declare'
-    @status        = 'active'
-    @created_at    = Time.now.to_i
-    declare = new_task('declare', 'declare', attacker_id)
-    declare.merge!('status' => 'submitted', 'by' => 'player',
-                   'value' => { 'target' => target_id.to_i, 'action' => action_value.to_s },
-                   'summary' => declare_summary(target_id.to_i, action_value.to_s))
+  # +kind+: attack / cast / item / special. +blob+: the builder blob (symbol
+  # keys), or nil for a Special with no builder. +declare+: the actor's
+  # choices as [[step key, value], ...] in builder order. +names+: combatant
+  # id → display name. The attack form (target_id + action_value) is kept for
+  # callers that predate the other kinds. The declare task starts submitted.
+  def initialize(turn_key:, blob:, kind: 'attack', actor_id: nil, actor_name: nil, declare: nil, summary: nil,
+                 pool_cost: nil, ability: nil, names: {},
+                 attacker_id: nil, attacker_name: nil, target_id: nil, action_value: nil)
+    raise ArgumentError, "unknown kind #{kind}" unless KINDS.include?(kind.to_s)
+    @id          = SecureRandom.hex(5)
+    @kind        = kind.to_s
+    @actor_id    = actor_id || attacker_id
+    @actor_name  = actor_name || attacker_name
+    @turn_key    = turn_key
+    @blob        = blob
+    @ability     = ability
+    @names       = names
+    @choices     = {}
+    @tasks       = []
+    @rolls       = {}
+    @stage       = 'declare'
+    @status      = 'active'
+    @created_at  = Time.now.to_i
+    @declare     = declare || [['target', target_id.to_s], ['action', action_value.to_s]]
+    @declare     = @declare.map { |k, v| [k.to_s, v.to_s] }
+    @pool_cost   = pool_cost
+    decl = new_task('declare', 'declare', @actor_id)
+    decl.merge!('status' => 'submitted', 'by' => 'player', 'value' => @declare,
+                'summary' => summary || declare_summary)
   end
+
+  # The names the attack-only callers (and the DM panel) use.
+  def attacker_id = @actor_id
+  def attacker_name = @actor_name
 
   # --- Queries ------------------------------------------------------------------
 
-  # Combat Pool the declared attack will cost when the DM commits it:
-  # the weapon's Speed plus one per die (from the chosen action's patch).
+  # Combat Pool the declared action will cost when the DM commits it. For an
+  # attack: the weapon's Speed plus one per die (from the chosen action's
+  # patch); other kinds are given it by the caller.
   def declared_pool_cost
-    decl = stage_tasks('declare').first['value'] || {}
-    opt = raw_options('action').find { |o| o[:value].to_s == decl['action'].to_s }
+    return @pool_cost.to_i unless @pool_cost.nil?
+    action = @declare.to_h['action'].to_s
+    opt = raw_options('action').find { |o| o[:value].to_s == action }
     speed = Array(opt && opt.dig(:patch, :set_speed)).first&.dig(:speed).to_i
-    speed + decl['action'].to_s.split('|').last.to_i
+    speed + action.split('|').last.to_i
   end
+
+  def summary = stage_tasks('declare').first['summary']
 
   def task(task_id) = @tasks.find { |t| t['id'] == task_id.to_s }
   def stage_tasks(stage = @stage) = @tasks.select { |t| t['stage'] == stage }
   def open_tasks = @tasks.select { |t| t['status'] != 'approved' && t['stage'] == @stage }
   def active? = @status == 'active'
-  def target_id = @choices['target']&.to_i
+  # The targeted Combatant, or nil (no target, an object, or an area).
+  def target_id
+    t = @choices['target'] || @declare.to_h['target']
+    t.to_s.match?(/\A\d+\z/) ? t.to_i : nil
+  end
   def name_of(cid) = cid.nil? ? 'DM' : (@names[cid.to_i] || "Combatant ##{cid}")
 
   # Options for a respond task, for the phone and the DM's picker: a flat list
@@ -141,9 +172,9 @@ class ActionFlow
   # For the DM's pre-filled Attack builder: the choices in builder step order
   # and each Roll's result.
   def prefill
-    order = Array(@blob[:steps]).map { |s| s[:key].to_s }
+    order = Array(@blob && @blob[:steps]).map { |s| s[:key].to_s }
     {
-      flow_id: @id, attacker_id: @attacker_id,
+      flow_id: @id, kind: @kind, ability: @ability, attacker_id: @actor_id, actor_id: @actor_id,
       choices: order.filter_map { |k| [k, @choices[k]] if @choices.key?(k) },
       rolls: @rolls.transform_values { |r| r.slice('successes', 'crits', 'final', 'tn', 'starting_value') }
     }
@@ -218,7 +249,7 @@ class ActionFlow
     t
   end
 
-  def step_def(key) = Array(@blob[:steps]).find { |s| s[:key].to_s == key }
+  def step_def(key) = Array(@blob && @blob[:steps]).find { |s| s[:key].to_s == key }
 
   # Options of a builder step under the current choices (static list or the
   # choice-dependent options_map entry), as the builder would show them.
@@ -296,10 +327,25 @@ class ActionFlow
     name.empty? || name == '—' ? fallback.to_s : "#{name}'s #{rn.downcase}"
   end
 
-  def declare_summary(target_id, action_value)
-    opt = raw_options('action').find { |o| o[:value].to_s == action_value }
-    "#{opt ? clean(opt[:summary] || opt[:label]) : action_value} at #{name_of(target_id)}"
+  # The attack's request in words; other kinds pass their own summary.
+  def declare_summary
+    d = @declare.to_h
+    opt = raw_options('action').find { |o| o[:value].to_s == d['action'] }
+    "#{opt ? clean(opt[:summary] || opt[:label]) : d['action']} at #{name_of(d['target'].to_i)}"
   end
+
+  # A Spell option that rolls no check (a buff, a Reservoir pour): the builder
+  # skips Luck and the dice table for it (ActionBuilder `noRoll`).
+  def no_roll?
+    opt = raw_options('spell').find { |o| o[:value].to_s == @choices['spell'].to_s }
+    !!(opt && opt[:cast] && !opt[:cast][:roll])
+  end
+
+  # An area Spell: the DM places it on the map, which decides who saves.
+  def area? = @choices['target'].to_s == 'place'
+
+  def to_resolve! = @stage = 'resolve'
+  public :area?, :no_roll?
 
   # --- Stage transitions -------------------------------------------------------------
 
@@ -313,12 +359,16 @@ class ActionFlow
   end
 
   def start_respond!
-    decl = stage_tasks('declare').first['value']
-    @choices['target'] = decl['target'].to_s
-    @choices['action'] = decl['action']
+    @declare.each { |k, v| @choices[k] = v }
     @stage = 'respond'
-    target = decl['target'].to_i
-    new_task('respond', 'defense', target) unless step_options('defense').empty?
+    return to_resolve! if @blob.nil? || area?
+    defense = step_options('defense')
+    auto = raw_options('defense').select { |o| o[:kind] != 'info' && !o[:header_only] }
+    if auto.length == 1 && auto.first[:auto]
+      @choices['defense'] = auto.first[:value].to_s # a Saving Throw: full Dice Cap, nothing to ask
+    elsif !defense.empty? && target_id
+      new_task('respond', 'defense', target_id)
+    end
     shield = raw_options('ally_defense').find { |o| o[:value].to_s.start_with?('shield:') }
     if shield
       caster = shield[:value].to_s.split('|').first.split(':').last.to_i
@@ -330,6 +380,7 @@ class ActionFlow
   def start_luck!
     stage_tasks('respond').each { |t| @choices[t['step']] = t['value'] }
     @stage = 'luck'
+    return to_resolve! if no_roll?
     Array(@blob[:steps]).each do |s|
       next unless s[:dynamic].to_s == 'luck'
       next if luck_options(s[:key].to_s).length <= 1
@@ -359,9 +410,9 @@ class ActionFlow
     included.each do |r|
       tn = DiceResolution.compute_target_number(lists[r['id']])
       owner = case r['id']
-              when 'attacker' then @attacker_id
-              when 'defender' then target_id
-              when 'shield'   then shield_caster
+              when 'attacker', 'caster', 'performance' then @actor_id
+              when 'defender', 'target' then target_id
+              when 'shield' then shield_caster
               end
       roll = { 'roll_id' => r['id'], 'name' => r['roll_name'].to_s, 'creature_name' => r['creature_name'].to_s,
                'dice_count' => r['dice_count'].to_i, 'tn' => tn[:tn], 'starting_value' => tn[:starting_value],

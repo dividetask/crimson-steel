@@ -98,6 +98,8 @@ export class TurnSpecial {
       combatant_id: parseInt(container._combatantId, 10),
       ability: container._ability
     }, extra);
+    // A player-driven Ability opened from the Player actions panel closes its flow.
+    if (container.dataset.flowId) payload.flow_id = container.dataset.flowId;
     fetch('/encounter/use_special', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     })

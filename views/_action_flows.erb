@@ -14,9 +14,11 @@
   Refreshed in place every few seconds by public/js/ui/flowsPanel.js.
 %>
 <% stage_names = { 'declare' => 'Request', 'respond' => 'Defenses', 'luck' => 'Luck', 'roll' => 'Rolls', 'resolve' => 'Ready to resolve' } %>
+<% verbs = { 'attack' => 'attacks', 'cast' => 'casts', 'item' => 'uses', 'special' => 'uses' } %>
+<% panes = { 'attack' => 'Attack builder', 'cast' => 'Cast builder', 'item' => 'Item builder', 'special' => 'Ability' } %>
 <% step_name = lambda do |t|
      case t['step']
-     when 'declare' then 'Attack request'
+     when 'declare' then 'Request'
      when 'defense' then 'Defense'
      when 'ally_defense' then 'Ally shield'
      when /\Aluck:/ then 'Luck'
@@ -34,10 +36,10 @@
       <% declare = f.stage_tasks('declare').first %>
       <section class="af-flow" data-flow-id="<%= f.id %>">
         <header class="af-head">
-          <span class="af-what"><strong><%= Rack::Utils.escape_html(f.attacker_name) %></strong> attacks: <%= Rack::Utils.escape_html(declare['summary'].to_s) %></span>
+          <span class="af-what"><strong><%= Rack::Utils.escape_html(f.attacker_name) %></strong> <%= verbs[f.kind] %>: <%= Rack::Utils.escape_html(declare['summary'].to_s) %></span>
           <span class="af-stage"><%= stage_names[f.stage] %></span>
           <form method="post" action="/encounter/flows/<%= f.id %>/cancel" class="af-inline"
-                onsubmit="return confirm('Cancel this attack? Nothing has been spent.');">
+                onsubmit="return confirm('Cancel this action? Nothing has been spent.');">
             <button type="submit" class="af-btn af-cancel">Cancel</button>
           </form>
         </header>
@@ -54,10 +56,14 @@
         <% if f.stage == 'resolve' %>
           <div class="af-resolve">
             <% if acting_id == f.attacker_id %>
-              <button type="button" class="af-btn af-primary af-open-builder" data-flow-id="<%= f.id %>">Open in Attack builder</button>
-              <span class="af-note">Fills in every choice and roll; check it, then Confirm and Commit as usual.</span>
+              <button type="button" class="af-btn af-primary af-open-builder" data-flow-id="<%= f.id %>">Open in <%= panes[f.kind] %></button>
+              <span class="af-note">
+                <% if f.blob.nil? %>Opens <%= Rack::Utils.escape_html(f.ability.to_s) %> on the turn panel; check it, then Confirm.
+                <% elsif f.area? %>Fills in the spell and dice; place it on the map, then the creatures in it roll their saves in the builder.
+                <% else %>Fills in every choice and roll; check it, then Confirm and Commit as usual.<% end %>
+              </span>
             <% else %>
-              <span class="af-note">Open the turn of <%= Rack::Utils.escape_html(f.attacker_name) %> to resolve this attack.</span>
+              <span class="af-note">Open the turn of <%= Rack::Utils.escape_html(f.attacker_name) %> to resolve this.</span>
             <% end %>
           </div>
         <% else %>

@@ -1,8 +1,8 @@
-# Player-Driven Attacks
+# Player-Driven Actions
 
-How an attack a player starts from the Android app ([android_app.md](android_app.md)) is answered by the other players and approved by the DM. This is the player side of the DM's Attack flow ([turn_action_stub.md](../common/ui/turn_action_stub.md) → Attack); it runs on the same Attack builder data, so every option, Combat Pool cost and Target Number is what the DM's builder would show.
+How an action a player starts from the Android app ([android_app.md](android_app.md)) — an **Attack**, a **Spell**, an **Item** (Potion / Scroll) or a **Special Ability** — is answered by the other players and approved by the DM. This is the player side of the DM's turn flows ([turn_action_stub.md](../common/ui/turn_action_stub.md) → Attack, Cast, Item, Special); each runs on the same Action Builder data as the DM's pane, so every option, Combat Pool cost and Target Number is what the DM's builder would show.
 
-Spells, items and abilities are not yet player-driven: on the phone they are still a plain request the DM resolves (see *Requests* in [android_app.md](android_app.md)).
+**Move** and **End Turn** stay a plain request: the DM's **Approve** applies it (Move spends its Combat Pool cost; End Turn advances the turn). An active Spell's request (`<Spell> (conc)`) is resolved by the DM by hand.
 
 ## Rules
 
@@ -19,13 +19,23 @@ The steps of an attack run in the builder's order. Within a stage, several Comba
 
 | Stage | Who | What |
 |---|---|---|
-| **Request** | The attacker | Target, weapon and dice — chosen on the phone (Initiative screen). |
-| **Defenses** | The target; an ally shielding the target | The target's Defensive Action: No defense, Dodge, Block, Parry with a weapon, Ring of Parry, Better Lucky Than Good — each with its dice. An ally whose Shield of Faith (or similar) guards the target: whether to interpose it, and with how many dice. |
+| **Request** | The actor | Chosen on the phone (Initiative screen). Attack: target, weapon and dice. Spell / Item: the Spell (or Potion / Scroll), its dice, and its target — a creature (the player picks; themselves included), themselves, an object, or an area. Ability: the Ability and, when channeled, its dice. |
+| **Defenses** | The target; an ally shielding the target | Attack: the target's Defensive Action — No defense, Dodge, Block, Parry with a weapon, Ring of Parry, Better Lucky Than Good — each with its dice; and an ally whose Shield of Faith (or similar) guards the target: whether to interpose it, and with how many dice. Attack-roll Spell: the target's No defense / Dodge / Block. A **Saving Throw** is not asked: it always spends the full Dice Cap, so it is applied by itself and the target just rolls it. |
 | **Luck** | Each Luck source | Every other Combatant holding Bardic Inspiration, and the DM when holding DM Luck: whether to spend Luck on a Roll in play — a bonus reroll (low dice) and, with Unsettling Words or as the DM, a penalty reroll (high dice). After Defenses, because how much Luck a Roll can take depends on its dice. |
-| **Rolls** | Whoever owns each Roll | The attacker's attack, the target's defense, the ally's shield. The server sends each phone its Dice Count, TN and Starting Value — computed after cross-side propagation, exactly as Check Resolution does in the builder — and its Luck rerolls. |
-| **Resolve** | The DM | **Open in Attack builder**: the DM's Attack pane opens with every choice already made and each Roll's dice and Result / Crits filled in from the phones (and locked, so Roll All does not replace them). The DM checks it, presses **Confirm**, and commits from the usual damage screen (Damage, Bleed, Poison, Damage Riders, post-roll Reactions). The commit closes the attack. |
+| **Rolls** | Whoever owns each Roll | The attacker's attack or the caster's casting check or the performer's Performance check; the target's defense or Saving Throw; the ally's shield. The server sends each phone its Dice Count, TN and Starting Value — computed after cross-side propagation, exactly as Check Resolution does in the builder — and its Luck rerolls. |
+| **Resolve** | The DM | **Open in Attack builder / Cast builder / Item builder / Ability**: the matching pane opens with every choice already made and each Roll's dice and Result / Crits filled in from the phones (and locked, so Roll All does not replace them). The DM checks it, presses **Confirm**, and commits from the usual damage screen (Damage, Bleed, Poison, Damage Riders, post-roll Reactions). The commit closes the action. |
 
 A stage with nothing to ask is skipped (e.g. no Luck sources).
+
+### Straight to the DM
+
+Some actions have nothing for the other players to answer, so after the DM approves the request they go straight to **Resolve**:
+
+- A Spell or Item that rolls no check (a buff such as Bless or Ward, a heal with no check, a Reservoir pour such as Shield of Faith).
+- An **area** Spell: the DM places it on the map in the Cast builder, which decides who is caught; those creatures roll their saves there.
+- A Special Ability with no builder (e.g. Rage): the DM's **Open in Ability** presses its button, and the DM confirms the summary.
+
+A multi-target Spell takes one target from the phone; the DM can add more in the builder.
 
 ### Rolling on the phone
 
@@ -34,18 +44,19 @@ The phone throws the dice, shows them tumbling, then — when Luck applies — r
 ## On the phone
 
 - **Attack:** choosing an Attack on the Initiative screen asks for a **Target** (enemies first), then the dice. The confirm button reads *Attack \<target\> with \<weapon\>*.
+- **Spell / Item:** a Spell aimed at a creature asks for a **Target** too — enemies, allies, and the player themselves last (e.g. a heal); the button reads *Cast \<spell\> on \<target\>* (or *on yourself*). A self, object or area Spell says so instead of asking. An area Spell is placed on the map by the DM.
 - **Your move:** steps waiting on the player appear at the top of the Initiative screen, on anyone's turn: the title (*Choose your defense*, *Shield \<ally\>?*, *Use your Luck?*, *Roll \<roll\>*), who is attacking whom, and the choices — grouped like the builder's, with the same dice picker as actions. Once sent, the step reads *Sent — waiting for the DM to approve* until the DM approves it.
 - **From any tab:** when a step is waiting, the Initiative tab shows a badge (●) and the phone says *Your move: …* once.
 - **Your attack:** the attacker sees each step of their attack and where it stands. Its Combat Pool and Main Action count against what the player has left until the DM commits it.
 
 ## On the DM's Encounter page
 
-A **Player actions** panel above the Turn Action panel lists each attack in progress: who attacks whom with what, the stage, and every step of the current stage with its owner and status (*waiting*, the submitted answer, or approved). Buttons: **Approve**, **Send back**, **Decide for …** (with the step's options), **Roll for …**, **Cancel** (drops the attack; nothing was spent), and at the end **Open in Attack builder** (when the attacker is the acting Combatant). The panel refreshes itself every few seconds.
+A **Player actions** panel above the Turn Action panel lists each action in progress: who does what to whom, the stage, and every step of the current stage with its owner and status (*waiting*, the submitted answer, or approved). Buttons: **Approve**, **Send back**, **Decide for …** (with the step's options), **Roll for …**, **Cancel** (drops the action; nothing was spent), and at the end **Open in Attack builder / Cast builder / Item builder / Ability** (when the actor is the acting Combatant). The panel refreshes itself every few seconds.
 
 ## Implementation
 
-- `lib/action_flow.rb` — the flow: stages, tasks, options from the builder blob, a Ruby port of the builder's patch application and of Check Resolution's cross-side propagation, Luck → rerolls, server-side scoring, and the pre-fill.
+- `lib/action_flow.rb` — the flow (kinds attack / cast / item / special): stages, tasks, options from the builder blob, a Ruby port of the builder's patch application and of Check Resolution's cross-side propagation, Luck → rerolls, server-side scoring, and the pre-fill.
 - `lib/routes/action_flows.rb` — player prompts (`GET /api/prompts`, `POST /api/prompts/:flow_id/:task_id`), DM actions (`POST /encounter/flows/:id/tasks/:task_id/{approve,reject,decide,roll}`, `POST /encounter/flows/:id/cancel`), `GET /encounter/flows/:id/prefill`, and `GET /encounter/flows_panel`.
-- `POST /api/turn/requests` with an `attack:` key and a `target_id` starts a flow; `GET /api/initiative` carries `targets`, `prompts` and the player's `flows`.
-- `views/_action_flows.erb` and `public/js/ui/flowsPanel.js` — the DM's panel and the builder pre-fill. `/encounter/resolve_attack` closes the flow when its payload carries `flow_id` and commits.
-- Attacks in progress are kept in memory; restarting the server drops them (nothing has been spent).
+- `POST /api/turn/requests` with an `attack:`, `cast:`, `item:` or `special:` key (and a `target_id` when one is needed) starts a flow; `GET /api/initiative` carries `targets`, `prompts` and the player's `flows`.
+- `views/_action_flows.erb` and `public/js/ui/flowsPanel.js` — the DM's panel and the builder pre-fill. `/encounter/resolve_attack`, `/encounter/resolve_cast` and `/encounter/use_special` close the flow when their payload carries `flow_id` and commits. `POST /encounter/player_requests/:id/apply` applies an approved Move / End Turn.
+- Actions in progress are kept in memory; restarting the server drops them (nothing has been spent).

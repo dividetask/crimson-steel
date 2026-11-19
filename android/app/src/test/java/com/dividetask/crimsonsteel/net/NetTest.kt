@@ -109,4 +109,24 @@ class NetTest {
         assertEquals(1, roll.roll!!.positiveReroll)
         assertEquals(6, i.flows.single().poolCost)
     }
+
+    @Test fun spellOptionsSayWhatTheyTarget() {
+        val j = JSONObject("""
+            {"ok":true,"combat_active":true,"round_label":"Round 1","my_turn":true,"requests":[],
+             "targets":[{"combatant_id":5,"name":"Wolf","enemy":true,"dying":false,"self":false},
+                        {"combatant_id":1,"name":"Ash (you)","enemy":false,"dying":false,"self":true}],
+             "options":[
+               {"key":"cast:Heal","label":"Cast: Heal","name":"Heal","kind":"cast","tier":0,"target":"creature",
+                "category":"main","detail":"","dice":[],"pool_cost":4,"mana_cost":1},
+               {"key":"cast:Sift","label":"Cast: Sift","name":"Sift","kind":"cast","tier":0,"target":"area",
+                "category":"main","detail":"","dice":[],"pool_cost":4,"mana_cost":1},
+               {"key":"attack:Rapier","label":"Attack: Rapier","name":"Rapier","kind":"attack",
+                "category":"main","detail":"","dice":[],"pool_cost":0,"mana_cost":0}]}
+        """.trimIndent())
+        val i = Initiative.from(j)
+        assertTrue(i.options[0].needsTarget)
+        assertEquals(false, i.options[1].needsTarget)
+        assertTrue(i.options[2].needsTarget)
+        assertTrue(i.targets.last().self)
+    }
 }

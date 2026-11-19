@@ -99,6 +99,11 @@
           <li>
             <span class="ta-player-request-label"><%= Rack::Utils.escape_html(r['label']) %><% if r['dice'] %> &mdash; <%= r['dice'] %> dice<% end %></span>
             <span class="ta-player-request-cost">pool <%= r['pool_cost'] %><% if r['mana_cost'].to_i.positive? %>, mana <%= r['mana_cost'] %><% end %></span>
+            <% if %w[move end_turn].include?(r['key']) %>
+              <form method="post" action="/encounter/player_requests/<%= r['id'] %>/apply" class="ta-player-request-dismiss">
+                <button type="submit"><%= r['key'] == 'move' ? 'Approve (spend Move)' : 'Approve (end turn)' %></button>
+              </form>
+            <% end %>
             <form method="post" action="/encounter/player_requests/<%= r['id'] %>/dismiss" class="ta-player-request-dismiss">
               <button type="submit">Dismiss</button>
             </form>
