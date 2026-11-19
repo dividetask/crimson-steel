@@ -13,7 +13,7 @@ import kotlin.math.min
 /**
  * One small d10 per Combat Pool die. Remaining dice are filled with a color
  * that depends on how much of the pool is left; spent dice are hollow. The
- * last [highlight] remaining dice — what the selected action would spend —
+ * first [highlight] dice — what the selected action would spend —
  * are drawn yellow.
  */
 class PoolView(context: Context) : View(context) {
@@ -59,7 +59,7 @@ class PoolView(context: Context) : View(context) {
             canvas.save()
             canvas.translate(cx, cy)
             if (i < remaining) {
-                val c = if (i >= remaining - highlight) Ui.POOL_SELECTED else color
+                val c = if (i < highlight) Ui.POOL_SELECTED else color
                 fill.color = shade(c, 0.75f)
                 canvas.drawPath(outline, fill)
                 fill.color = c

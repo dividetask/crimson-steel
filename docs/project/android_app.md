@@ -78,7 +78,7 @@ This is the player's half of the web app's Turn Action Stub ([turn_action_stub.m
 
 Top to bottom:
 
-1. **Combat Pool** — one small d10 per Combat Pool die. Remaining dice are filled, spent dice are hollow. The fill color depends on how much of the pool is left: more than half green, a quarter to a half amber, under a quarter red. Below it: Main Actions left this turn and Mana. The dice shown subtract this turn's pending requests (see below).
+1. **Combat Pool** — one small d10 per Combat Pool die. Remaining dice are filled, spent dice are hollow. The fill color depends on how much of the pool is left: more than half green, a quarter to a half amber, under a quarter red. Below it: Main Actions left this turn and Mana. The dice shown subtract this turn's pending requests (see below). While choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
 2. **Initiative order** — the round and every combatant, with the acting one highlighted. On the player's turn the list compacts to a single row, `<name> (you) — Your turn`; tapping it shows the full list, and *Hide initiative* compacts it again.
 3. **Action options** (player's turn only) — grouped under **Main Action**, **Bonus Action** and **Free Action**; an empty group is not shown.
 

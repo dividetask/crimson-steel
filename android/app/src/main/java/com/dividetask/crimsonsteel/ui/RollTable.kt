@@ -22,15 +22,17 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * The dice table: a full-screen overlay the dice are thrown across. They fly
- * in from a side, bounce off the edges and each other, spin and slow down,
- * flicker through faces while they tumble, and stop on their real values.
+ * The dice table: dice thrown right over the screen — no backdrop, no box,
+ * bounded only by the screen's edges. They fly in from a side, bounce off the
+ * edges and each other, spin and slow down, flicker through faces while they
+ * tumble, and stop on their real values.
  *
- * The screen is split into one band per Roll of the action (the player's own
- * first), each with its own dice colour, so several people's rolls sit apart.
- * Another player's dice are thrown into their band when their result arrives.
- * Luck rerolls are thrown again after the first throw settles. When a band's
- * dice have stopped its result shows; a tap (or a few idle seconds) closes it.
+ * Each Roll of the action (the player's own first) has its own dice colour
+ * and its own part of the screen: its dice are thrown into it and gently
+ * pulled back if they wander, with no line drawn. Its label and result float
+ * just above its dice. Another player's dice are thrown in when their result
+ * arrives. Luck rerolls are thrown again after the first throw settles. The
+ * dice stay on screen until the player taps.
  */
 object RollTable {
 
@@ -95,7 +97,6 @@ object RollTable {
         private var zones: List<Zone> = emptyList()
         private val throws = mutableMapOf<String, Throw>()
         private var lastFrame = 0L
-        private var idleSince = 0L
         private var running = false
 
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -108,8 +109,13 @@ object RollTable {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textSize = 15f * density
             color = Ui.TEXT
+            setShadowLayer(4f * density, 0f, 1f * density, Color.BLACK) // readable over the screen beneath
         }
-        private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 12f * density; color = Ui.TEXT_DIM }
+        private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 13f * density
+            color = Ui.TEXT
+            setShadowLayer(4f * density, 0f, 1f * density, Color.BLACK)
+        }
         private val outline = Path()
         private val face = Path()
         private val edges = Path()
@@ -176,13 +182,9 @@ object RollTable {
                 invalidate()
                 val busy = throws.values.any { !it.done }
                 if (busy) {
-                    idleSince = 0
                     postOnAnimation(this)
                 } else {
                     running = false
-                    idleSince = System.currentTimeMillis()
-                    // Close by itself a while after everything has settled.
-                    postDelayed({ if (!running && idleSince != 0L && System.currentTimeMillis() - idleSince >= AUTO_CLOSE_MS) close() }, AUTO_CLOSE_MS)
                 }
             }
         }
@@ -192,6 +194,8 @@ object RollTable {
             val friction = 1.6f            // velocity decay per second (exponential)
             val drag = 260f * density      // constant rolling resistance, px/s²
             val stopSpeed = 30f * density
+            val w = width.toFloat()
+            val h = height.toFloat()
             for ((_, t) in throws) {
                 if (t.done) continue
                 val r = zoneRect(t.zone)
@@ -200,11 +204,16 @@ object RollTable {
                     d.x += d.vx * dt
                     d.y += d.vy * dt
                     d.angle += d.spin * dt
-                    // Edges of the band: bounce, losing some speed.
-                    if (d.x < r.left + rad) { d.x = r.left + rad; d.vx = abs(d.vx) * 0.62f; d.spin *= -0.8f }
-                    if (d.x > r.right - rad) { d.x = r.right - rad; d.vx = -abs(d.vx) * 0.62f; d.spin *= -0.8f }
-                    if (d.y < r.top + rad) { d.y = r.top + rad; d.vy = abs(d.vy) * 0.62f; d.spin *= -0.8f }
-                    if (d.y > r.bottom - rad) { d.y = r.bottom - rad; d.vy = -abs(d.vy) * 0.62f; d.spin *= -0.8f }
+                    // Only the screen's edges stop a die: bounce, losing some speed.
+                    if (d.x < rad) { d.x = rad; d.vx = abs(d.vx) * 0.62f; d.spin *= -0.8f }
+                    if (d.x > w - rad) { d.x = w - rad; d.vx = -abs(d.vx) * 0.62f; d.spin *= -0.8f }
+                    if (d.y < rad) { d.y = rad; d.vy = abs(d.vy) * 0.62f; d.spin *= -0.8f }
+                    if (d.y > h - rad) { d.y = h - rad; d.vy = -abs(d.vy) * 0.62f; d.spin *= -0.8f }
+                    // A gentle pull back towards the roller's own part of the
+                    // screen, so several people's dice stay apart (no line drawn).
+                    val pull = 9f
+                    if (d.y < r.top + rad) d.vy += (r.top + rad - d.y) * pull * dt
+                    if (d.y > r.bottom - rad) d.vy -= (d.y - (r.bottom - rad)) * pull * dt
                     val speed = hypot(d.vx, d.vy)
                     val decay = max(0f, 1f - friction * dt) * max(0f, 1f - drag * dt / max(speed, 1f))
                     d.vx *= decay; d.vy *= decay; d.spin *= max(0f, 1f - 2.2f * dt)
@@ -213,9 +222,10 @@ object RollTable {
                     if (d.travelled > rad * 1.3f) { d.travelled = 0f; d.face = rnd.nextInt(1, DiceConfig.DIE_SIZE + 1) }
                     if (speed < stopSpeed) { d.vx = 0f; d.vy = 0f; d.spin = 0f; d.moving = false; d.face = d.target }
                 }
-                collide(t.dice, rad)
                 if (t.dice.isNotEmpty() && t.dice.none { it.moving }) settled(t)
             }
+            // Dice from every throw share the screen, so they knock each other too.
+            collide(throws.values.flatMap { it.dice }, rad)
         }
 
         /** Dice in a band knock each other apart (equal mass, a little energy lost). */
@@ -266,37 +276,33 @@ object RollTable {
 
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
-            canvas.drawColor(0xE6101216.toInt())
+            // No backdrop and no bands: just the dice, over whatever is on screen.
             val rad = dieRadius()
-            zones.forEachIndexed { i, z ->
-                val r = zoneRect(i)
-                fill.color = Color.argb(34, Color.red(z.color), Color.green(z.color), Color.blue(z.color))
-                canvas.drawRect(r, fill)
-                if (i > 0) {
-                    stroke.color = 0x55FFFFFF; stroke.strokeWidth = density
-                    canvas.drawLine(r.left, r.top, r.right, r.top, stroke)
-                }
-                label.color = z.color.let { Color.rgb(min(255, Color.red(it) + 80), min(255, Color.green(it) + 80), min(255, Color.blue(it) + 80)) }
-                canvas.drawText(z.label, r.left + 14 * density, r.top + 24 * density, label)
-                val t = throws[z.key]
-                val line = when {
-                    t == null -> "waiting to roll…"
-                    !t.done -> "rolling…"
-                    else -> {
-                        val n = DiceRules.dois(t.final, t.tn, t.startingValue)
-                        val crits = t.final.count { it == DiceConfig.DIE_SIZE }
-                        "$n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) " · $crits crit${if (crits == 1) "" else "s"}" else ""
-                    }
-                }
-                canvas.drawText(line, r.left + 14 * density, r.top + 42 * density, small)
-            }
             for ((key, t) in throws) {
                 val color = zones.find { it.key == key }?.color ?: COLORS[0]
                 for (d in t.dice) drawDie(canvas, d, rad, color, t.tn, t.done || !d.moving)
             }
+            // Each roller's label (and result once stopped) floats just above their dice.
+            for ((key, t) in throws) {
+                if (t.dice.isEmpty()) continue
+                val z = zones.find { it.key == key } ?: continue
+                val cx = t.dice.map { it.x }.average().toFloat()
+                val top = t.dice.minOf { it.y } - rad * 1.35f
+                val result = if (!t.done) "" else {
+                    val n = DiceRules.dois(t.final, t.tn, t.startingValue)
+                    val crits = t.final.count { it == DiceConfig.DIE_SIZE }
+                    "  \u00b7  $n ${if (abs(n) == 1) "success" else "successes"}" + if (crits > 0) ", $crits crit${if (crits == 1) "" else "s"}" else ""
+                }
+                val textLine = z.label + result
+                label.color = Color.rgb(min(255, Color.red(z.color) + 90), min(255, Color.green(z.color) + 90), min(255, Color.blue(z.color) + 90))
+                val tw = label.measureText(textLine)
+                val x = (cx - tw / 2f).coerceIn(8 * density, max(8 * density, width - tw - 8 * density))
+                val y = top.coerceIn(20 * density, height - 8 * density)
+                canvas.drawText(textLine, x, y, label)
+            }
             if (throws.isNotEmpty() && throws.values.all { it.done }) {
                 small.textAlign = Paint.Align.CENTER
-                canvas.drawText("Tap to close", width / 2f, height - 18 * density, small)
+                canvas.drawText("Tap anywhere to clear the dice", width / 2f, height - 18 * density, small)
                 small.textAlign = Paint.Align.LEFT
             }
         }
@@ -345,8 +351,5 @@ object RollTable {
             animate().alpha(0f).setDuration(200).withEndAction { (parent as? ViewGroup)?.removeView(this) }.start()
         }
 
-        companion object {
-            const val AUTO_CLOSE_MS = 5000L
-        }
     }
 }
