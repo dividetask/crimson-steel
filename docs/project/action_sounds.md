@@ -14,7 +14,7 @@ An Ability or Spell can have a sound. When a player picks that action on the And
 
 Names are matched ignoring case, spaces and punctuation. The file is re-read when it changes: no server restart and no app update needed. An entry whose file is missing is ignored.
 
-Today: **Rage** → `RAGE_AGAIN.mp3`.
+Today: **Rage** → `RAGE_AGAIN.mp3`; **Fireball** → `Fireball.mp3` (once a Fireball spell exists).
 
 ## Implementation
 
