@@ -35,7 +35,7 @@ A request from the app is never the DM: it does not come from the server host's 
   - **Notes** — the Chronicle notes this Character can see, grouped by chapter. Tap a note to expand it.
   - **Scene** — the current chapter, the in-game time, and the Chronicle entries the DM has made active (scene notes and the characters present).
 
-Settings has the app version, the player's **Dice colour** ([dice_colors.md](dice_colors.md)), the connection, and the debug log.
+Settings has the app version, the player's **Dice colour** ([dice_colors.md](dice_colors.md)), the connection, and the debug log: **Save debug log** (a file in Downloads) and **Copy log to clipboard** (to paste into a message; a very long log keeps its newest 2,000 lines).
 
 The gear is also on the *Looking for the server*, *No server found* and *Waiting for the DM* screens, so the debug log can be saved when the app can't connect.
 

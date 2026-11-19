@@ -76,6 +76,7 @@ class SettingsActivity : Activity() {
             "Records how the app searches for the server and talks to it. Save a copy to Downloads to send it when something goes wrong.",
             13f, Ui.TEXT_DIM), Ui.matchWidth())
         col.addView(button("Save debug log", primary = true) { saveLog() }, Ui.matchWidth(Ui.dp(this, 8)))
+        col.addView(button("Copy log to clipboard") { copyLog() }, Ui.matchWidth(Ui.dp(this, 4)))
         val row = Ui.horizontal(this)
         row.addView(button("View log") { toggleLog(col) }, Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 6) })
         row.addView(button("Clear log") { confirmClear() }, Ui.weighted())
@@ -177,6 +178,23 @@ class SettingsActivity : Activity() {
         }
     }
 
+    /**
+     * Copy the log (with the same header as the saved file) to the clipboard,
+     * to paste into a message. Very long logs keep only their newest part: a
+     * clipboard has a size limit.
+     */
+    private fun copyLog() {
+        val lines = DebugLog.read().lines()
+        var body = lines.takeLast(MAX_COPY_LINES).joinToString("\n")
+        if (body.length > MAX_COPY_CHARS) body = body.takeLast(MAX_COPY_CHARS).substringAfter('\n')
+        val cut = if (lines.size > MAX_COPY_LINES || body.length >= MAX_COPY_CHARS) "\n(only the newest part of the log)\n" else "\n"
+        val text = logHeader() + cut + body
+        val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("Crimson Steel debug log", text))
+        DebugLog.i("settings", "copied the debug log to the clipboard")
+        toast("Debug log copied \u2014 paste it into your message")
+    }
+
     @Deprecated("Activity result for the Android 8–9 save picker")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         @Suppress("DEPRECATION")
@@ -220,5 +238,8 @@ class SettingsActivity : Activity() {
 
     private companion object {
         const val REQUEST_SAVE = 41
+        /** What fits comfortably on the clipboard and in a chat message. */
+        const val MAX_COPY_LINES = 2000
+        const val MAX_COPY_CHARS = 200_000
     }
 }
