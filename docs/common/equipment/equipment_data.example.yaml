@@ -126,6 +126,8 @@ characters:
           - entangle
       - item: Potion of Heal
         tier: 0
+      - item: Scroll of Fireball
+        tier: 3
       - item: Gold
         quantity: 52
       - item: Silver

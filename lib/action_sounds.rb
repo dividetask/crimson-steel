@@ -23,7 +23,8 @@ module ActionSounds
   # The URL path of the sound for an action name, or nil (no sound, or its
   # file is missing).
   def path_for(name)
-    file = table[normalize(name)]
+    # An item that holds a Spell ("Scroll of Fireball") plays the Spell's sound.
+    file = table[normalize(name)] || table[normalize(name.to_s.sub(/\A(scroll|potion|oil|wand|ring)\s+of\s+/i, ''))]
     return nil if file.nil? || file.empty? || file.include?('/') || file.include?('..')
     File.file?(File.join(DIR, file)) ? "/sounds/#{file}" : nil
   end

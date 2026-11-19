@@ -12,9 +12,9 @@ An Ability or Spell can have a sound. When a player **takes** that action on the
    Fireball: fireball.mp3
    ```
 
-Names are matched ignoring case, spaces and punctuation. The file is re-read when it changes: no server restart and no app update needed. An entry whose file is missing is ignored.
+Names are matched ignoring case, spaces and punctuation, and an item that holds a Spell (a *Scroll of Fireball*, a *Potion of …*) plays that Spell's sound. The file is re-read when it changes: no server restart and no app update needed. An entry whose file is missing is ignored.
 
-Today: **Rage** → `RAGE_AGAIN.mp3`; **Fireball** → `Fireball.mp3` (once a Fireball spell exists).
+Today: **Rage** → `RAGE_AGAIN.mp3`; **Fireball** → `Fireball.mp3` (also for a Scroll of Fireball).
 
 ## Implementation
 

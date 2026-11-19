@@ -59,6 +59,20 @@ Heal:
       bleed_reduction: "tier*2*success"
   description: "Restores up to {minor_damage} minor damage, {moderate_damage} moderate damage, and {major_damage} major damage to the touched ally."
 
+Fireball:
+  type: spell
+  tier: 3
+  school: resonance
+  damage_type: fire
+  range: Long
+  area: { shape: circle, size: 4 }
+  save:
+    - attribute: dex
+      fail: "full"
+      success: "half"
+  skills: [arcana]
+  description: "A bead of fire bursts into a ball of flame..."
+
 Vicious Mockery:
   type: spell
   tier: 0
