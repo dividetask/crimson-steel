@@ -197,6 +197,8 @@ data class TurnOption(
     val ranged: Boolean = false,
     /** A sound tied to the action (e.g. "/sounds/RAGE_AGAIN.mp3"), played on the device by a button. */
     val sound: String? = null,
+    /** Magic toxicity it adds to the user (a potion); 0 when none. */
+    val toxicity: Int = 0,
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
 
@@ -382,6 +384,8 @@ data class Initiative(
     val pool: Meter?,
     val mainActionsRemaining: Int?,
     val mana: Meter?,
+    /** The player's magic toxicity now, against their threshold (max). */
+    val toxicity: Meter? = null,
     val order: List<InitiativeEntry>,
     val options: List<TurnOption>,
     val requests: List<TurnRequest>,
@@ -408,6 +412,7 @@ data class Initiative(
                 pool = pool,
                 mainActionsRemaining = me?.optIntOrNull("main_actions_remaining"),
                 mana = Meter.from(me?.optJSONObject("mana")),
+                toxicity = Meter.from(me?.optJSONObject("toxicity"), maxKey = "threshold"),
                 order = j.optJSONArray("order").mapObjects {
                     InitiativeEntry(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("is_pc"),
                         it.optBoolean("acting"), it.optBoolean("is_you"), it.optStringOrNull("initiative"),
@@ -438,6 +443,7 @@ data class Initiative(
                         disabledReason = o.optStringOrNull("disabled_reason"),
                         ranged = o.optBoolean("ranged"),
                         sound = o.optStringOrNull("sound"),
+                        toxicity = o.optInt("toxicity"),
                     )
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),

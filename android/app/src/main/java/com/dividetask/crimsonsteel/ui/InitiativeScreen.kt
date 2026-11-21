@@ -364,12 +364,23 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             }
             val cost = selectedCost(d)
             val left = poolLeft(d).coerceAtLeast(0)
-            // Exactly what is in the Combat Pool right now, with what this choice would spend in yellow.
-            card.addView(Ui.text(ctx, "Combat Pool: $left dice" + if (cost > 0) " \u2014 this uses $cost" else "",
-                13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
-            d.pool?.let { pool ->
-                card.addView(PoolView(ctx).apply { max = pool.max; remaining = left; highlight = cost },
-                    Ui.matchWidth(Ui.dp(ctx, 4)))
+            card.addView(Ui.text(ctx, opt.category.label, 13f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 10)))
+            // The Combat Pool only for actions that spend dice, with what this choice would spend in yellow.
+            if (opt.dice.isNotEmpty() || (opt.poolCost ?: 0) > 0) {
+                card.addView(Ui.text(ctx, "Combat Pool: $left dice" + if (cost > 0) " \u2014 this uses $cost" else "",
+                    13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 6)))
+                d.pool?.let { pool ->
+                    card.addView(PoolView(ctx).apply { max = pool.max; remaining = left; highlight = cost },
+                        Ui.matchWidth(Ui.dp(ctx, 4)))
+                }
+            }
+            if (opt.manaCost > 0) d.mana?.let { m ->
+                card.addView(Ui.text(ctx, "Mana: ${m.current} of ${m.max} \u2014 this uses ${opt.manaCost}", 13f, Ui.TEXT, bold = true),
+                    Ui.matchWidth(Ui.dp(ctx, 6)))
+            }
+            if (opt.toxicity > 0) d.toxicity?.let { t ->
+                card.addView(Ui.text(ctx, "Magic toxicity: ${t.current} (threshold ${t.max}) \u2014 this adds ${opt.toxicity}",
+                    13f, if (t.current + opt.toxicity > t.max) Ui.DIE_FAIL else Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 6)))
             }
             if (opt.dice.isNotEmpty()) {
                 card.addView(Ui.text(ctx, "How many dice?", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
@@ -396,7 +407,6 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             }
             if (blocker != null && !needsDice) card.addView(Ui.text(ctx, blocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 6)))
             card.addView(confirm, Ui.matchWidth(Ui.dp(ctx, 8)))
-            card.addView(Ui.text(ctx, "Sent to the DM, who resolves it.", 11f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(ctx, 2)))
         }
         if (isSelected && scrollTarget == opt.key) { scrollTarget = null; scrollToTop(card) }
         return card

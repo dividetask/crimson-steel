@@ -41,6 +41,15 @@ There is no login, password, or account selection. Identity is purely based on w
 
 - Whenever you have a question, or multiple questions, stop immediatly after asking them.
 
+### No filler text or comments
+
+- Don't add text to the UI that tells the user what they already know or
+  what happens anyway (e.g. "Sent to the DM, who resolves it." under every
+  action). Every line on a screen must earn its space.
+- Don't write code comments that only restate the code. Comment the why, a
+  non-obvious rule, or a link to the design doc — nothing else.
+- Keep chat messages and commit messages short and to the point.
+
 ### Design document conventions
 
 - All formulas use `floor()` for division (round down) unless explicitly stated otherwise.

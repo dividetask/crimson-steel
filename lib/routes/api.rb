@@ -174,6 +174,11 @@ helpers do
                        elsif sp[:self_only] then 'self'
                        else 'creature'
                        end) }
+      # Magic toxicity it adds to the user: a potion (or oil) item.
+      if kind == 'item' && sp[:item] && %w[potion oil].include?(sp[:item][:form].to_s)
+        tox = (Equipment.instance.item_form_toxicity(item_tier: sp[:item][:tier].to_i, target_tier: (acc.tier rescue nil)) rescue 0).to_i
+        opt[:toxicity] = tox if tox.positive?
+      end
       opt[:disabled_reason] = 'not enough Mana' unless sp[:affordable]
       opt[:disabled_reason] ||= "Dice Cap #{cap} is below the #{min}-dice minimum" if rolled && cap < min
       opt
@@ -330,7 +335,7 @@ get '/api/initiative' do
     me = { combatant_id: mine[:id],
            pool: pool_max && { remaining: (es.combat_pool_remaining(mine[:id]) rescue 0), max: pool_max },
            main_actions_remaining: (es.main_actions_remaining(mine[:id]) rescue nil),
-           mana: v && v[:mana] }
+           mana: v && v[:mana], toxicity: v && v[:toxicity] }
   end
   key = mine && PlayerRequests.turn_key(es, mine[:id])
   api_json(
