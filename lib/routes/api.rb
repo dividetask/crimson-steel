@@ -471,3 +471,18 @@ post '/encounter/player_requests/:id/dismiss' do
   PlayerRequests.instance.remove(params[:id])
   redirect(request.referer || '/encounter')
 end
+
+# The app version this server offers (the newest APK in android/versions/;
+# docs/project/app_updates.md). Any device: an unassigned phone may update too.
+get '/api/app/latest' do
+  rel = AppRelease.latest
+  api_json(ok: true, version: rel && rel[:version], size: rel && rel[:size], url: rel && '/api/app/apk')
+end
+
+# The APK itself, for Settings → App updates on the phone.
+get '/api/app/apk' do
+  rel = AppRelease.latest
+  halt 404, JSON.generate(ok: false, error: 'no app build on this server') unless rel
+  send_file rel[:path], type: 'application/vnd.android.package-archive',
+                        filename: "crimson-steel-#{rel[:version]}.apk", disposition: 'attachment'
+end

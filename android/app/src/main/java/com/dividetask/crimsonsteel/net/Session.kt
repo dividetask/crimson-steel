@@ -95,6 +95,9 @@ object Session {
         }
     }
 
+    /** [withApi] for helpers outside Session (e.g. AppUpdater). */
+    fun <T> withApiPublic(work: (Api) -> T, done: (Result<T>) -> Unit) = withApi(work, done)
+
     private fun <T> withApi(work: (Api) -> T, done: (Result<T>) -> Unit) {
         val a = api ?: return done(Result.failure(java.io.IOException("not connected")))
         background({ work(a) }, done)

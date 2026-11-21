@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Detect a VPN / firewall app, to explain a failed connection. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Settings → App updates: install the newer version the server offers
+         (Android asks the player to allow it once, and to confirm each install). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:icon="@mipmap/ic_launcher"
@@ -25,6 +28,7 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:label="Settings" />
 
     </application>

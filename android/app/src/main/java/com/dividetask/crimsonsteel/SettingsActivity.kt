@@ -43,6 +43,12 @@ class SettingsActivity : Activity() {
         col.addView(Ui.sectionHeader(this, "App"))
         col.addView(infoCard(listOf("Version" to Ui.versionName)), Ui.matchWidth())
 
+        // --- App updates ---------------------------------------------------------------
+        col.addView(Ui.sectionHeader(this, "App updates"))
+        updateBox = Ui.vertical(this, 0)
+        col.addView(updateBox, Ui.matchWidth())
+        showUpdates()
+
         // --- Dice colour -------------------------------------------------------------
         col.addView(Ui.sectionHeader(this, "Dice colour"))
         col.addView(Ui.text(this,
@@ -123,6 +129,68 @@ class SettingsActivity : Activity() {
             repeat(4 - rowOpts.size) { row.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).apply { marginEnd = Ui.dp(this@SettingsActivity, 4) }) }
             box.addView(row, Ui.matchWidth())
         }
+    }
+
+    private var updateBox: LinearLayout? = null
+
+    /**
+     * This app's version next to the server's (the newest build in its
+     * checkout). When the server's is newer, Update downloads it from the
+     * server and hands it to Android's installer; the app never updates by
+     * itself.
+     */
+    private fun showUpdates(status: String? = null) {
+        val box = updateBox ?: return
+        box.removeAllViews()
+        val mine = com.dividetask.crimsonsteel.net.AppUpdater.parse(Ui.versionName)
+        box.addView(Ui.text(this, "This app: ${Ui.versionName}", 14f, Ui.TEXT), Ui.matchWidth())
+        if (Session.api == null) {
+            box.addView(Ui.text(this, "Connect to the server to check for updates.", 13f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(this, 4)))
+            return
+        }
+        val serverLine = Ui.text(this, status ?: "Server: checking\u2026", 14f, Ui.TEXT_DIM)
+        box.addView(serverLine, Ui.matchWidth(Ui.dp(this, 2)))
+        if (status != null) return
+        com.dividetask.crimsonsteel.net.AppUpdater.latest { r ->
+            if (isFinishing) return@latest
+            val v = r.getOrNull()
+            val theirs = com.dividetask.crimsonsteel.net.AppUpdater.parse(v)
+            when {
+                r.isFailure -> serverLine.text = "Server: could not check (${r.exceptionOrNull()?.message})"
+                v == null || theirs == null -> serverLine.text = "Server: has no app build."
+                mine == null -> serverLine.text = "Server: $v"
+                com.dividetask.crimsonsteel.net.AppUpdater.compare(theirs, mine) == 0 -> serverLine.text = "Server: $v \u2014 up to date."
+                com.dividetask.crimsonsteel.net.AppUpdater.compare(theirs, mine) < 0 ->
+                    serverLine.text = "Server: $v \u2014 older than this app. Android cannot install an older build over a newer one; pull the server to get the newest."
+                else -> {
+                    serverLine.text = "Server: $v \u2014 a newer version."
+                    box.addView(button("Update to $v", primary = true) { startUpdate(v) }, Ui.matchWidth(Ui.dp(this, 6)))
+                }
+            }
+        }
+    }
+
+    private fun startUpdate(version: String) {
+        // Android asks once to allow installs from this app.
+        if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+            toast("Allow Crimson Steel to install apps, then tap Update again.")
+            startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                android.net.Uri.parse("package:$packageName")))
+            return
+        }
+        DebugLog.i("update", "updating to $version")
+        com.dividetask.crimsonsteel.net.AppUpdater.install(this, version) { msg -> showUpdates(msg) }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        com.dividetask.crimsonsteel.net.AppUpdater.handleStatus(this, intent)?.let { msg -> toast(msg); showUpdates() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Back from Android's "install unknown apps" screen: show the current state.
+        if (updateBox != null && updateBox!!.childCount > 0) showUpdates()
     }
 
     private fun infoCard(rows: List<Pair<String, String>>): View = Ui.card(this).apply {
