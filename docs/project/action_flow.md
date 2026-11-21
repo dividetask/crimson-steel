@@ -41,6 +41,32 @@ Either way, everything below happens in the builder.
 - **A prompt stays until it is answered** or the builder moves on — however long the player takes. (A phone's answer reaches the DM's page at once over its live-updates connection.)
 - A builder the DM closes by picking another action takes its prompts off the phones; an action the DM started is then dropped, and a player's request stays in the Player actions panel with **Open in … builder**. Leaving the Encounter page or reloading it does not drop anything (above).
 
+## Reactions (Kesser's Gambit)
+
+Kesser's Gambit (a Roll Table reaction, from Kesser's Ring or a Cleric's
+Channel Divinity) may answer **any attack or spell roll, by anyone**.
+
+- Each Combatant has **one reaction per action** made by another creature.
+  Spending Luck on an action uses that reaction, so a player who used Luck
+  is not offered the Gambit on that action; a player who used the Gambit has
+  their Luck options greyed out on it.
+- When the actor's dice come up in the builder, every other phone player
+  who holds it (and has the Mana and at least the Reaction Action Minimum in
+  their Combat Pool) is asked: *Kesser's Gambit? (your reaction)* — No
+  reaction, or a dice count.
+- Choosing a dice count gives the player a roll prompt for the Channel
+  check, rolled on the phone.
+- The DM's builder shows the reaction and, once rolled, **Roll the table**:
+  the d10 on the Kesser Reversal Table, with Reroll and Confirm (Confirm
+  spends the Combat Pool dice and Mana). The DM adjusts the outcome by hand.
+
+## Ending Rage
+
+**End Rage** appears in a raging player's actions. It takes 1 minute and
+goes to the DM for approval like any request. Approved, the rage's Effects
+end and the Creature gains **Exhausted** for 10 minutes (100 Rounds); Rage
+cannot be used while exhausted.
+
 ## Fudging
 
 The DM may fudge any Roll a player rolls on their phone. Nobody else ever sees it — not the players, not the builder after the fact.
@@ -92,6 +118,11 @@ The dice are thrown right over the screen — no backdrop, no box; only the scre
 Each Roll of the action has its own strip of the screen — two rolls, two halves; three rolls, three thirds — the player's own first. Its dice are thrown into that strip and bounce off its edges, so different Rolls never mix (no line is drawn). Each strip has a short label at its top left: the character's name and the Roll's TN (*Wolf (TN 9)*), or for a Damage Rider its kind (*Garroth Vask (Vicious Damage)*); the action's title is above the first. (Only the dice table's labels are this short; the action cards keep their full labels.) Each Roll is in its roller's own dice colour, the same on every phone ([dice_colors.md](dice_colors.md)). When another Roll is shared, its dice are thrown into its part of the screen, whether or not the player's own dice are already there. A stopped die's number shows what it counts for: dark green for a Success, deep blue for a Critical Success, dark red for a 1, dark grey for no effect. On the dice table a die rerolled by Luck carries a small gold **↻** badge (a nudged die **±**) at its bottom right, and a much smaller die with its earlier value: at its top left before a reroll, at its top right before a nudge. **The dice stay on the screen until the player taps it.**
 
 ## On the DM's Encounter page
+
+Confirm (and the Damage Riders' Confirm) is refused while a player's phone
+roll has no dice yet — Roll All leaves those rows alone. The row flashes and
+a note names who is still to roll; "Roll for …" rolls it instead.
+
 
 - **Player actions** panel, above the Turn Action panel: each request from a phone — who does what to whom — with **Approve** (opens it in the builder) and **Cancel** (drops it; nothing was spent). An approved request that is not open in a builder (e.g. after a page reload) has **Open in Attack builder / Cast builder / Item builder / Ability**. The panel refreshes itself every few seconds.
 - **In the builder:** *Waiting on \<player\>'s phone* under a step a player may answer; under each Roll that belongs to a phone, its status (*Waiting for \<player\> to roll*, *\<player\> rolled on their phone. Only you can see it until you approve*, *You rolled for \<player\>…*, *Shared with the players*) with **Roll for \<player\>** / **Roll again** and **Approve**.

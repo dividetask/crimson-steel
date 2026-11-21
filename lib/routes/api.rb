@@ -198,9 +198,15 @@ helpers do
               detail: s[:summary].to_s, mana_cost: s[:mana_cost].to_i,
               dice: channel.map { |n| { dice: n, pool_cost: n, affordable: n <= pool } },
               pool_cost: s[:channeled] ? nil : cost }
-      opt[:category] = 'main' unless %w[main bonus free].include?(opt[:category])
+      opt[:category] = 'main' unless %w[main bonus free minute].include?(opt[:category])
       opt[:disabled_reason] = s[:disabled_reason] if s[:disabled]
       out << opt
+    end
+
+    # End Rage: only while raging; takes 1 minute, approved by the DM.
+    if (es.raging?(combatant[:creature_id]) rescue false)
+      out << { key: 'special:End Rage', label: 'End Rage', name: 'End Rage', kind: 'special', category: 'minute',
+               detail: 'Ends your rage. You are exhausted for 10 minutes.', dice: [], pool_cost: 0, mana_cost: 0 }
     end
 
     Array((active_persistent_spells(combatant) rescue [])).each do |e|

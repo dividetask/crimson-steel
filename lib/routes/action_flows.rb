@@ -27,6 +27,7 @@ helpers do
       when 'defense'      then ['Choose your defense', what]
       when 'ally_defense' then ["Shield #{flow.name_of(flow.target_id)}?", what]
       when /\Aluck:/      then ['Use your luck?', what]
+      when /\Areaction:/  then ["#{t.dig('reaction', 'ability')}? (your reaction)", what]
       when /\Aroll:/      then ["Roll #{t.dig('roll', 'name')}", what]
       else [t['step'].to_s, what]
       end
@@ -92,6 +93,35 @@ helpers do
 
   # Prompts waiting on this device's Character (its turn or not), from the
   # builders open on the DM's page.
+  # Kesser's Gambit (a Roll Table reaction) on any attack or spell roll, once
+  # the actor's dice are up: offered to every other phone player who holds it,
+  # has not used their reaction on this action, and can pay for it.
+  def offer_reactions!(flow)
+    return unless %w[attack cast item].include?(flow.kind)
+    return unless flow.roll_tasks.any? { |t| %w[attacker caster].include?(t.dig('roll', 'roll_id')) }
+    rmin = Encounter::Config.reaction_action_minimum
+    encounter_state.combatants.each do |c|
+      next if c[:id] == flow.actor_id || flow.reaction_offered?(c[:id]) || flow.reaction_used?(c[:id])
+      next unless claimed_combatant?(c[:id])
+      acc = (Creatures.lookup(c[:creature_id]) rescue nil) or next
+      found = roll_table_reaction_for(acc, c[:creature_id]) or next
+      pool = (encounter_state.combat_pool_remaining(c[:id]) rescue 0).to_i
+      cost = reaction_mana_cost(found[:ability])
+      mana = combatant_mana_left(c[:creature_id], acc)
+      info = roll_table_channel_info(acc, c[:creature_id])
+      top = [pool, info[:dice_cap].to_i].min
+      next if top < rmin || (mana && mana < cost)
+      roll = api_roll(found[:ability].to_s, 0, info[:bpl])
+      spec = { 'name' => found[:ability].to_s, 'creature_name' => tracker_name(c), 'tn' => roll[:tn],
+               'starting_value' => roll[:starting_value], 'positive_reroll' => 0, 'negative_reroll' => 0,
+               'speed' => 0, 'side' => '', 'what' => "#{Encounter::Special.pretty_skill(info[:skill])} (channel)",
+               'bonus' => (info[:bpl].find { |b| b[0] == 'Competency' } || [nil, 0])[1].to_i, 'failure_modifier' => -1 }
+      flow.offer_reaction(c[:id], ability: found[:ability].to_s, mana_cost: cost, dice: (rmin..top).to_a, roll: spec)
+    end
+  rescue StandardError => e
+    warn "offer_reactions!: #{e.class}: #{e.message}"
+  end
+
   def my_prompts(acc)
     mine = my_combatant_ids(acc)
     # A prompt stays until the builder moves on, closes, or the action ends —
@@ -100,6 +130,7 @@ helpers do
     action_flows.active.select { |f| f.stage == 'builder' }.flat_map do |f|
       tasks = f.tasks.select do |t|
         next false unless mine.include?(t['owner_id'])
+        next false if t['step'].start_with?('reaction:') && t['status'] == 'approved' # answered
         t['kind'] == 'choice' || (t['kind'] == 'roll' && t['claimed'])
       end
       tasks.map { |t| flow_prompt_view(f, t, mine) }
@@ -347,7 +378,11 @@ post '/encounter/flows/:id/tasks/:task_id/approve' do
       f.approve(params[:task_id])
     end
     if f.kind == 'special' && f.blob.nil?
-      result = encounter_state.use_special_payload('combatant_id' => f.actor_id, 'ability' => f.ability.to_s)
+      result = if f.ability.to_s == 'End Rage'
+                 encounter_state.end_rage(f.actor_id)
+               else
+                 encounter_state.use_special_payload('combatant_id' => f.actor_id, 'ability' => f.ability.to_s)
+               end
       if result[:ok]
         Conditions.store.persist!
         f.done!("#{f.actor_name} used #{f.ability}.")
@@ -399,7 +434,10 @@ post '/encounter/live/sync' do
                                         turn_key: PlayerRequests.turn_key(encounter_state, actor[:id]), blob: nil,
                                         names: flow_names, dm_started: true))
   end
-  action_flows.synchronize { f.sync!(s, claimed: ->(cid) { claimed_combatant?(cid) }) }
+  action_flows.synchronize do
+    f.sync!(s, claimed: ->(cid) { claimed_combatant?(cid) })
+    offer_reactions!(f) unless s['idle']
+  end
   # A builder the DM closed without committing: nothing was spent.
   f.cancel! if s['idle'] && f.dm_started?
   JSON.generate(ok: true, **f.builder_view)

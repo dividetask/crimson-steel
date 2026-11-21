@@ -1,3 +1,4 @@
+require 'set'
 require 'securerandom'
 require 'cgi'
 
@@ -81,6 +82,7 @@ class ActionFlow
     @last_sync   = nil
     @live_label  = nil
     @live_target = nil
+    @reaction_used = Set.new
     if dm_started
       @declare = []
       @stage = 'builder'
@@ -251,7 +253,14 @@ class ActionFlow
     @live_target = s['target_id'] if s.key?('target_id')
     @live_label = s['action_label'].to_s unless s['action_label'].to_s.empty?
     @ability ||= @live_label if @kind == 'special' # a DM-started Ability: which one, for resuming
-    keep = @tasks.select { |t| t['kind'] == 'declare' }
+    # A Luck answer uses that player's reaction for this action.
+    choice_tasks.each do |t|
+      next unless t['step'].start_with?('luck:') && t['owner_id']
+      v = @choices[t['step']] || t['value']
+      @reaction_used << t['owner_id'] if v && !v.to_s.end_with?('|none')
+    end
+    # Reactions (Kesser's Gambit) are not builder steps: they stay.
+    keep = @tasks.select { |t| t['kind'] == 'declare' || reaction_task?(t) }
     unless s['idle']
       step = s['step']
       if step.is_a?(Hash) && step['key'].to_s.match?(PLAYER_STEPS)
@@ -261,6 +270,9 @@ class ActionFlow
           t = choice_tasks.find { |x| x['step'] == key && x['owner_id'] == owner } ||
               new_task('builder', key, owner, 'kind' => 'choice')
           t['options'] = step['luck'] ? luck_options(step['luck']) : normalize_options(step['options'])
+          if step['luck'] && @reaction_used.include?(owner)
+            t['options'] = t['options'].map { |o| o[:group] == 'none' ? o : o.merge(disabled: true) }
+          end
           t['luck_amount'] = step.dig('luck', 'source', 'amount')&.to_i
           keep << t
         end
@@ -279,11 +291,12 @@ class ActionFlow
   # What the builder needs back: a player's answer to the step it is on, and
   # where every Roll stands (claimed ones with their dice, for the DM only).
   def builder_view
-    answer = choice_tasks.find { |t| t['status'] == 'submitted' }
-    asked = choice_tasks.first
+    answer = choice_tasks.find { |t| t['status'] == 'submitted' && !reaction_task?(t) }
+    asked = choice_tasks.reject { |t| reaction_task?(t) }.first
     { flow_id: @id, stage: @stage, status: @status,
       answer: answer && { step: answer['step'], value: answer['value'] },
-      waiting_on: asked && asked['status'] == 'waiting' ? asked['owner_name'] : nil,
+      waiting_on: asked && asked['status'] == 'waiting' && !reaction_task?(asked) ? asked['owner_name'] : nil,
+      reactions: reactions_view,
       rolls: roll_tasks.to_h do |t|
         v = t['value'] || {}
         [t['roll']['roll_id'], { task_id: t['id'], claimed: !!t['claimed'], owner: t['owner_name'],
@@ -315,6 +328,39 @@ class ActionFlow
     end
   end
 
+  # --- Reactions (Kesser's Gambit) ---------------------------------------------------
+
+  # Each Combatant has one reaction per action by another creature; Luck on
+  # this action uses it too.
+  def reaction_used?(cid) = @reaction_used.include?(cid)
+  def reaction_offered?(cid) = @tasks.any? { |t| t['step'] == "reaction:#{cid}" }
+  def reaction_task?(t) = t['step'].start_with?('reaction:', 'roll:gambit-')
+
+  # Offer a Roll Table reaction to +cid+'s phone. +dice+: the dice counts it may
+  # channel with; +roll+: the Channel check's spec without dice_count.
+  def offer_reaction(cid, ability:, mana_cost:, dice:, roll:)
+    opts = [{ value: 'none', label: 'No reaction', summary: 'No reaction', group: 'none', group_label: 'No reaction',
+              dice: nil, disabled: false }]
+    dice.each do |n|
+      opts << { value: "gambit|#{n}", label: n.to_s, summary: "#{ability} \u2014 #{n} dice (#{mana_cost} mana)",
+                group: 'gambit', group_label: ability, dice: n, disabled: false }
+    end
+    new_task('builder', "reaction:#{cid}", cid, 'kind' => 'choice', 'options' => opts,
+             'reaction' => { 'ability' => ability, 'mana_cost' => mana_cost, 'roll' => roll })
+  end
+
+  # The DM's view of the reactions: who, with how many dice, and their Channel check.
+  def reactions_view
+    @tasks.select { |t| t['step'].start_with?('reaction:') && t['value'].to_s.start_with?('gambit|') }.map do |t|
+      cid = t['owner_id']
+      r = @tasks.find { |x| x['step'] == "roll:gambit-#{cid}" }
+      v = (r && r['value']) || {}
+      { combatant_id: cid, owner: t['owner_name'], ability: t.dig('reaction', 'ability'),
+        dice: t['value'].split('|').last.to_i, rolled: !v['final'].nil?, successes: v['successes'], final: v['final'],
+        tn: r && r.dig('roll', 'tn'), starting_value: r && r.dig('roll', 'starting_value') }
+    end
+  end
+
   # --- Answers ----------------------------------------------------------------------
 
   # A player answers their own task. A choice waits for the builder to pick
@@ -323,6 +369,7 @@ class ActionFlow
   def submit(task_id, value, by: 'player')
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'that step is finished' if t['status'] == 'approved' || t['stage'] != @stage
+    return answer_reaction(t, value) if t['step'].start_with?('reaction:')
     if t['kind'] == 'roll'
       t['value'] = score_roll(t, value)
       t['summary'] = roll_summary(t['value'])
@@ -455,6 +502,20 @@ class ActionFlow
   private
 
   def die_size = ActionFlow.die_size
+
+  # A reaction offer answered: "none", or "gambit|N" → the Channel check is theirs to roll.
+  def answer_reaction(t, value)
+    opt = options_for(t).find { |o| o[:value].to_s == value.to_s }
+    raise ArgumentError, 'not one of the options' unless opt
+    raise ArgumentError, 'your reaction is already used on this action' if value != 'none' && reaction_used?(t['owner_id'])
+    t.merge!('value' => value.to_s, 'summary' => opt[:summary], 'status' => 'approved', 'by' => 'player')
+    return t if value == 'none'
+    cid = t['owner_id']
+    @reaction_used << cid
+    spec = t.dig('reaction', 'roll').merge('roll_id' => "gambit-#{cid}", 'dice_count' => value.split('|').last.to_i)
+    new_task('builder', "roll:gambit-#{cid}", cid, 'kind' => 'roll', 'roll' => spec, 'claimed' => true)
+    t
+  end
 
   def new_task(stage, step, owner_id, extra = {})
     t = { 'id' => SecureRandom.hex(4), 'stage' => stage, 'step' => step, 'kind' => 'choice',

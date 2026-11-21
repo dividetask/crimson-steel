@@ -222,6 +222,14 @@ Effect Names:
       - kind: flag
         flag: raging
 
+  exhausted:
+    description: "Worn out after a rage ends: lasts 10 minutes. You cannot enter a rage while exhausted."
+    mechanics:
+      - kind: flag
+        flag: exhausted
+      - kind: display
+        text: "Exhausted: cannot rage."
+
   martial_devotion:
     mechanics:
       - kind: modifier

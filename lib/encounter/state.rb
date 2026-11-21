@@ -1342,6 +1342,25 @@ module Encounter
     # current Mana and Combat Pool. Already-running Bardic Performances are
     # marked `active`. Returns [] for an unknown Combatant or a Creature
     # that exposes no Granted Abilities.
+    # Exhausted lasts this many Rounds after a rage ends (10 minutes).
+    EXHAUSTED_ROUNDS = 100
+
+    def raging?(creature_id) = active_condition_names(creature_id).include?('rage')
+
+    # End Rage (docs/common/abilities/talents.yaml → Rage): the rage's Effects
+    # end and the Creature is exhausted for 10 minutes.
+    def end_rage(combatant_id)
+      c = combatant_for(combatant_id) or return { ok: false, error: 'unknown combatant' }
+      cid = c[:creature_id]
+      return { ok: false, error: 'not raging' } unless raging?(cid)
+      inst = conditions_for(cid)
+      inst.remove_effects_by_prefix("special:#{cid}:Rage:")
+      base = current_abs_round
+      inst.apply_named_effect('exhausted', source_id: "special:#{cid}:End Rage:exhausted",
+                              ends_on_round: base && base + EXHAUSTED_ROUNDS)
+      { ok: true }
+    end
+
     def special_options(combatant_id)
       c = combatant_for(combatant_id) or return []
       creature = lookup!(c[:creature_id]) or return []
@@ -1356,9 +1375,11 @@ module Encounter
         desc[:active]   = active.include?(desc[:name])
         afford_mana     = mana_rem.nil? || mana_rem >= desc[:mana_cost]
         afford_pool     = pool_rem >= desc[:action_cost]
-        desc[:disabled] = !(afford_mana && afford_pool)
+        exhausted       = desc[:name].to_s == 'Rage' && active_condition_names(c[:creature_id]).include?('exhausted')
+        desc[:disabled] = !(afford_mana && afford_pool) || exhausted
         desc[:disabled_reason] =
-          if !afford_pool then 'not enough Combat Pool'
+          if exhausted then 'exhausted'
+          elsif !afford_pool then 'not enough Combat Pool'
           elsif !afford_mana then 'not enough Mana'
           end
         desc[:summary] = special_summary(desc)

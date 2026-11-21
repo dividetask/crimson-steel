@@ -162,7 +162,8 @@ data class Inventory(
 enum class ActionCategory(val key: String, val label: String) {
     MAIN("main", "Main Action"),
     BONUS("bonus", "Bonus Action"),
-    FREE("free", "Free Action");
+    FREE("free", "Free Action"),
+    MINUTE("minute", "1 minute");
 
     companion object {
         fun of(key: String) = entries.find { it.key == key } ?: MAIN

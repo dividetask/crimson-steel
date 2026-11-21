@@ -5023,3 +5023,7 @@ button.spell-school-badge { font-family: inherit; }
 @keyframes lr-flash { 0%, 100% { background: transparent; } 30% { background: #fecaca; } }
 tr.lr-row.lr-flash { animation: lr-flash 0.6s ease 2; }
 .lr-wait-note { color: #b91c1c; font-weight: bold; margin: 6px 0; }
+
+/* Kesser's Gambit from a phone, in the DM's builder (liveSync.js). */
+.lr-reactions { margin-top: 10px; }
+.lr-react-line { margin: 4px 0; font-size: 0.9em; }

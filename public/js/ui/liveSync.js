@@ -1,5 +1,6 @@
 import { ActionBuilder } from './actionBuilder.js';
 import { DiceRenderer } from './diceRenderer.js';
+import { TurnRollTable } from './turnRollTable.js';
 
 // The DM's builders, live on the players' phones (docs/project/action_flow.md).
 //
@@ -262,9 +263,55 @@ function apply(root, container, res) {
   if (!res || res.ok === false) return;
   if (res.flow_id) container.dataset.flowId = res.flow_id;
   applyRolls(root, res.flow_id, res.rolls);
+  applyReactions(root, res.reactions);
   stepNote(root, res);
   applyAnswer(root, res.answer);
 }
+
+// Kesser's Gambit from a phone: the player rolls the Channel check; the DM
+// rolls the d10 on the table here (the existing Roll Table stub does the
+// rolling, Reroll and Confirm) and adjusts the outcome by hand.
+function applyReactions(root, list) {
+  let box = root.querySelector(':scope > .lr-reactions');
+  if (!list || !list.length) { if (box) box.remove(); return; }
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'lr-reactions';
+    root.appendChild(box);
+  }
+  list.forEach((r) => {
+    let stub = box.querySelector('.ta-roll-table[data-combatant-id="' + r.combatant_id + '"]');
+    if (!stub) {
+      stub = document.createElement('section');
+      stub.className = 'ta-roll-table';
+      stub.dataset.combatantId = r.combatant_id;
+      stub.innerHTML = '<p class="lr-react-line"></p><div class="ta-rt-result" hidden></div>';
+      box.appendChild(stub);
+      TurnRollTable._wire(stub);
+    }
+    const sig = JSON.stringify(r);
+    if (stub.dataset.sig === sig) return;
+    stub.dataset.sig = sig;
+    stub._combatantId = r.combatant_id;
+    stub._ability = r.ability;
+    stub._dice = r.dice;
+    stub._successes = r.successes || 0;
+    const line = stub.querySelector('.lr-react-line');
+    const who = esc(r.owner) + ' uses ' + esc(r.ability) + ' (' + r.dice + ' dice, their reaction): ';
+    line.innerHTML = '<span class="lr-phone">📱</span> ' + who + (r.rolled
+      ? 'Channel check ' + DiceRenderer.renderDice(r.final, r.tn, 10, r.starting_value || 0) + ' → ' + r.successes + ' successes. ' +
+        '<button type="button" class="af-btn af-primary lr-react-roll">Roll the table</button>'
+      : 'waiting for their Channel check.');
+  });
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('.lr-react-roll');
+  if (!b) return;
+  e.preventDefault();
+  const stub = b.closest('.ta-roll-table');
+  b.remove();
+  TurnRollTable._fire(stub, { commit: false });
+});
 
 // Send the builder's state if it changed since it was last sent (or +force+).
 function syncOne(root, force) {

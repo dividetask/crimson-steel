@@ -242,4 +242,45 @@ RSpec.describe ActionFlow do
     end
   end
 
+
+  describe 'reactions (Kesser\'s Gambit)' do
+    let(:spec) { { 'name' => "Kesser's Gambit", 'tn' => 5, 'starting_value' => 0, 'positive_reroll' => 0, 'negative_reroll' => 0 } }
+    let(:luck) do
+      { 'key' => 'luck:7', 'luck' => { 'source' => { 'id' => 7, 'sid' => '7', 'label' => 'Lira', 'penalty' => true },
+                                       'targets' => [{ 'roll_id' => 'attacker', 'label' => 'Goblin', 'cap' => 2 }] } }
+    end
+
+    it 'offers it, gives the Channel check to the phone, and keeps it across builder syncs' do
+      f = flow
+      f.sync!({ 'choices' => { 'target' => '9' } }, claimed: claimed)
+      offer = f.offer_reaction(5, ability: "Kesser's Gambit", mana_cost: 4, dice: [2, 3], roll: spec)
+      expect(f.options_for(offer).map { |o| o[:value] }).to eq(%w[none gambit|2 gambit|3])
+      f.submit(offer['id'], 'gambit|3')
+      roll = f.roll_tasks.find { |t| t['step'] == 'roll:gambit-5' }
+      expect(roll['roll']['dice_count']).to eq(3)
+      expect(roll['claimed']).to be(true)
+      f.sync!({ 'choices' => { 'target' => '9' } }, claimed: claimed)
+      expect(f.task(roll['id'])).not_to be_nil
+      f.submit(roll['id'], { 'dice' => [6, 2, 9], 'final' => [6, 2, 9] })
+      r = f.builder_view[:reactions].first
+      expect(r).to include(owner: 'Bryn', dice: 3, rolled: true)
+      expect(f.reaction_used?(5)).to be(true)
+    end
+
+    it 'is used up by Luck, and once used greys out that player\'s Luck' do
+      f = flow
+      f.sync!({ 'choices' => { 'target' => '9' }, 'step' => luck }, claimed: claimed)
+      f.submit(f.choice_tasks.first['id'], '7|pos|1|attacker')
+      f.sync!({ 'choices' => { 'target' => '9', 'luck:7' => '7|pos|1|attacker' } }, claimed: claimed)
+      expect(f.reaction_used?(7)).to be(true)
+
+      g = flow
+      g.sync!({ 'choices' => { 'target' => '9' } }, claimed: claimed)
+      offer = g.offer_reaction(7, ability: "Kesser's Gambit", mana_cost: 4, dice: [2], roll: spec)
+      g.submit(offer['id'], 'gambit|2')
+      g.sync!({ 'choices' => { 'target' => '9' }, 'step' => luck }, claimed: claimed)
+      t = g.choice_tasks.find { |x| x['step'] == 'luck:7' }
+      expect(g.options_for(t).reject { |o| o[:group] == 'none' }.map { |o| o[:disabled] }.uniq).to eq([true])
+    end
+  end
 end

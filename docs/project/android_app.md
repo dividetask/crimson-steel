@@ -103,6 +103,15 @@ The options come from the same server code that builds the DM's turn menu (`api_
 
 Spells that take a minute or longer to cast are not offered, as on the web.
 
+### Picking a target
+
+When there is an Active Map (`/api/initiative` → `map`: the player's view,
+with fogged and hidden Tokens left out), the target is picked by tapping its
+token: enemies ringed red, allies blue, the choice gold with its name;
+tokens that cannot be targeted are faded. Pinch to zoom, drag to move.
+Targets not on the map keep a button below it; with no map, every target is
+a button.
+
 ### Requests
 
 **Attacks, Spells, Items and Abilities** are different: they run step by step — the target chooses a defense (or rolls a save) on their own phone, allies and Luck holders are asked, everyone rolls on their phone, and the DM approves each step and finishes it in the pre-filled builder. See [action_flow.md](action_flow.md). **Move** and **End Turn** are plain requests that the DM's **Approve** applies; anything else below is a plain request the DM resolves by hand.
