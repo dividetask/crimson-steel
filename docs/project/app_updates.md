@@ -11,6 +11,8 @@ The Android app ([android_app.md](android_app.md)) updates itself from the Crims
 - The first time, Android asks to allow *Install unknown apps* for Crimson Steel; the app opens that screen. After allowing it, tap **Update** again.
 - Settings, the remembered server and the phone's device id are kept: an update needs no reassigning.
 
+When the server starts while the app code in its checkout is newer than its newest APK (the build automation has not committed the APK yet, or the build failed), it prints a **WARNING** in the console: the checkout's version (`versionBase` in `android/app/build.gradle`), the APK the phones will be offered meanwhile, and the last build commit. Once the build lands, a `git pull` is enough — the server looks at `android/versions/` on every request.
+
 If the server's build is **older** than the app (e.g. the server is on an older branch), Settings says so and offers nothing: Android cannot install an older build over a newer one. Pull the server (or switch it to the newer branch) instead.
 
 ## Implementation

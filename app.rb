@@ -85,5 +85,7 @@ end
 if Sinatra::Application.run?
   # One-time changes to the campaign data in data/ (lib/data_migrations.rb).
   DataMigrations.run!
+  # Still waiting for the build automation's APK? Say so in the console.
+  (w = AppRelease.pending_warning) && warn("\n#{w}\n\n")
   LanDiscovery.start(http_port: settings.port, name: -> { Chronicle.store.campaign_name })
 end
