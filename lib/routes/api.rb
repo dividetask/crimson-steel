@@ -486,3 +486,40 @@ get '/api/app/apk' do
   send_file rel[:path], type: 'application/vnd.android.package-archive',
                         filename: "crimson-steel-#{rel[:version]}.apk", disposition: 'attachment'
 end
+
+# A phone's log, and optionally a screenshot, saved on the server in
+# device-logs/ (docs/project/device_logs.md). Works for an unassigned device
+# too — that is often when a log is wanted.
+#   { "kind": "log" | "screenshot", "log": "...", "screenshot": "<base64 PNG>",
+#     "app": { "version": "v0.038 a (e687)" },
+#     "device": { "manufacturer", "model", "android", "sdk", "screen", ... } }
+post '/api/logs' do
+  request.body.rewind
+  body = (JSON.parse(request.body.read) rescue nil)
+  api_error(400, 'expected a JSON object') unless body.is_a?(Hash)
+  png = nil
+  if (b64 = body['screenshot']).is_a?(String) && !b64.empty?
+    png = (Base64.strict_decode64(b64) rescue Base64.decode64(b64))
+    api_error(400, 'screenshot is not a PNG') unless DeviceLogs.png?(png)
+    api_error(413, 'screenshot too large') if png.bytesize > DeviceLogs::MAX_PNG_BYTES
+  end
+  cid = assigned_character_id
+  who = cid && (Creatures.get(cid) rescue nil)
+  name = who ? who[:name] : nil
+  dev = body['device'].is_a?(Hash) ? body['device'] : {}
+  app = body['app'].is_a?(Hash) ? body['app'] : {}
+  info = {
+    'Kind' => png ? 'screenshot' : 'log',
+    'Received' => Time.now.strftime('%Y-%m-%d %H:%M:%S %z'),
+    'Character' => name || '(not assigned)',
+    'Device id' => current_device_id,
+    'IP' => request.ip,
+    'User agent' => request.user_agent.to_s,
+    'App version' => app['version'] || '?',
+    'Server commit' => DeviceLogs.server_commit
+  }
+  dev.each { |k, v| info["Device #{k}"] = v.to_s[0, 200] }
+  saved = DeviceLogs.save!(who: name || "device-#{assignment_short_id(current_device_id)}",
+                           info: info, log: body['log'].to_s, png: png)
+  api_json(ok: true, saved: saved)
+end

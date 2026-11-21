@@ -150,7 +150,9 @@ helpers do
       { label: 'Notes',            href: '/notes',            dm_only: false },
       { label: 'Compendium',       href: '/compendium',       dm_only: false },
       { label: 'DM',               href: '/dm',               dm_only: true  },
-      { label: 'Status',           href: '/status',           dm_only: true  }
+      # Players see their own Status page (which Character they are, their
+      # device id, and the Android app download); the DM sees the full one.
+      { label: 'Status',           href: '/status',           dm_only: false }
     ]
   end
 

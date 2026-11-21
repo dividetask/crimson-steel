@@ -5011,3 +5011,10 @@ button.spell-school-badge { font-family: inherit; }
 .dm-notice-what { flex: 1 1 200px; }
 .af-fudge, .lr-fudge { font-size: 0.85em; margin-left: 6px; }
 .assignment-cleanup { margin: 4px 0 10px; } .assignment-remove { display: inline-block; margin-left: 6px; }
+/* The Status page as a player sees it (views/status_player.erb). */
+.status-player { max-width: 640px; }
+.status-player-card { border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; margin: 10px 0 18px; background: #fafafa; }
+.status-player-row { display: flex; gap: 12px; padding: 4px 0; }
+.status-player-label { width: 90px; color: #666; }
+.status-player-download { display: inline-block; background: #2563eb; color: #fff; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+.status-player-steps li { margin: 4px 0; }

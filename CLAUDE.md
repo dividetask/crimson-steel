@@ -180,6 +180,21 @@ Notes:
 - Put the same line at the end of the commit message body, e.g.
   `Update: APK only` or `Update: server + APK`.
 
+### Device logs (`device-logs/`)
+
+The server saves the logs and screenshots the phones send into `device-logs/`
+at the repo root (see [docs/project/device_logs.md](docs/project/device_logs.md)).
+Each `.log` starts with a header: the device, the app version (with the APK's
+commit) and the server's commit.
+
+- Whenever a new branch is made, empty `device-logs/` (delete everything but
+  `.gitkeep`) in the branch's first commit — the logs belong to the branch they
+  were taken on.
+- Never merge `device-logs/` into another branch: when merging, keep the
+  target branch's `device-logs/` as it is.
+- To read a log the user mentions: `git pull`, then look in `device-logs/`
+  (newest file name first; names start with the date and time).
+
 ### Configuration file architecture
 
 | File | Purpose | Scope |

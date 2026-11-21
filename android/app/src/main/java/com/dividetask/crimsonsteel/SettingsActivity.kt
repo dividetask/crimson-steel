@@ -24,6 +24,17 @@ import com.dividetask.crimsonsteel.ui.Ui
 class SettingsActivity : Activity() {
 
     private var logView: TextView? = null
+    private val screenshots by lazy { com.dividetask.crimsonsteel.debug.ScreenshotWatcher(this) }
+
+    override fun onStart() {
+        super.onStart()
+        screenshots.start()
+    }
+
+    override fun onStop() {
+        screenshots.stop()
+        super.onStop()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,9 +90,12 @@ class SettingsActivity : Activity() {
         // --- Debug log -------------------------------------------------------------
         col.addView(Ui.sectionHeader(this, "Debug log"))
         col.addView(Ui.text(this,
-            "Records how the app searches for the server and talks to it. Save a copy to Downloads to send it when something goes wrong.",
+            "Records how the app searches for the server and talks to it. Send it to the server when something goes wrong; " +
+                "the DM finds it in the server's device-logs folder. A screenshot taken in the app is sent there too" +
+                (if (android.os.Build.VERSION.SDK_INT >= 34) "." else " (needs Android 14 or newer)."),
             13f, Ui.TEXT_DIM), Ui.matchWidth())
-        col.addView(button("Save debug log", primary = true) { saveLog() }, Ui.matchWidth(Ui.dp(this, 8)))
+        col.addView(button("Send log to server", primary = true) { sendLog() }, Ui.matchWidth(Ui.dp(this, 8)))
+        col.addView(button("Save debug log") { saveLog() }, Ui.matchWidth(Ui.dp(this, 4)))
         col.addView(button("Copy log to clipboard") { copyLog() }, Ui.matchWidth(Ui.dp(this, 4)))
         val row = Ui.horizontal(this)
         row.addView(button("View log") { toggleLog(col) }, Ui.weighted().apply { marginEnd = Ui.dp(this@SettingsActivity, 6) })
@@ -251,6 +265,15 @@ class SettingsActivity : Activity() {
      * to paste into a message. Very long logs keep only their newest part: a
      * clipboard has a size limit.
      */
+    private fun sendLog() {
+        if (Session.api == null) return toast("Not connected to the server.")
+        com.dividetask.crimsonsteel.debug.LogUploader.send(this) { r ->
+            r.onSuccess { DebugLog.i("logs", "log saved on the server: $it") }
+            r.onFailure { DebugLog.e("logs", "log not sent", it) }
+            if (!isFinishing) toast(if (r.isSuccess) "Log sent to the server" else "Log not sent: ${r.exceptionOrNull()?.message}")
+        }
+    }
+
     private fun copyLog() {
         val lines = DebugLog.read().lines()
         var body = lines.takeLast(MAX_COPY_LINES).joinToString("\n")

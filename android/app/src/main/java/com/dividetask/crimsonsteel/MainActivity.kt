@@ -167,6 +167,19 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
+    /** A screenshot taken in the app is copied to the server's device-logs/ (Android 14+). */
+    private val screenshots by lazy { com.dividetask.crimsonsteel.debug.ScreenshotWatcher(this) }
+
+    override fun onStart() {
+        super.onStart()
+        screenshots.start()
+    }
+
+    override fun onStop() {
+        screenshots.stop()
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
         resumed = true

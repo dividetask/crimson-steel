@@ -4,6 +4,7 @@ The Android app ([android_app.md](android_app.md)) updates itself from the Crims
 
 ## How it works
 
+- **First install:** a player opens the server's website in the phone's browser and goes to **Status**, which shows their Character, their device id and **Download the app** (`/api/app/apk`, the newest APK on the server). No git access is needed.
 - The build automation commits each new APK to `android/versions/vMAJOR.MINOR.apk`. When the DM pulls on the server computer, the newest one comes down with it.
 - The server reports the newest APK it has (`GET /api/app/latest` → `{ version: "v0.037", size, url }`) and serves the file (`GET /api/app/apk`). Any device may ask, assigned or not.
 - **Settings → App updates** shows *This app: v0.036 a (…)* and *Server: v0.037 — a newer version*, with **Update to v0.037**. Tapping it downloads the APK from the server over the Wi-Fi and hands it to Android's installer (`PackageInstaller`), which shows its own confirmation: **Install**.

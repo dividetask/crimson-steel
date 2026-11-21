@@ -1,0 +1,40 @@
+<%#
+  The Status page as a player sees it (docs/project/menu_layout.md): which
+  player Character this device is, the device's id (the DM assigns devices
+  by it on their own Status page), and the Android app's download — the
+  newest build on this server (docs/project/app_updates.md). Later updates
+  come from the app's own Settings.
+%>
+<section class="status-player">
+  <h1>Status</h1>
+
+  <div class="status-player-card">
+    <div class="status-player-row">
+      <span class="status-player-label">You are</span>
+      <span class="status-player-value">
+        <% if @player_character %>
+          <strong><%= h @player_character[:name] %></strong>
+        <% else %>
+          <em>not assigned yet</em> — ask the DM to assign this device a Character.
+        <% end %>
+      </span>
+    </div>
+    <div class="status-player-row">
+      <span class="status-player-label">Device id</span>
+      <span class="status-player-value"><code><%= h @device_short %></code></span>
+    </div>
+  </div>
+
+  <h2>Android app</h2>
+  <% if @app_release %>
+    <p>Play from your phone or tablet with the Crimson Steel app. It finds this server on the Wi-Fi by itself.</p>
+    <p><a class="status-player-download" href="/api/app/apk" download>Download the app (<%= h @app_release[:version] %>, <%= (@app_release[:size] / 1_048_576.0).round(1) %> MB)</a></p>
+    <ol class="status-player-steps">
+      <li>Open the downloaded file. Android asks to allow installing apps from your browser: allow it, then tap <strong>Install</strong>.</li>
+      <li>Open Crimson Steel. The DM assigns the app's device to your Character (it shows its own id).</li>
+      <li>Later updates: in the app, <strong>Settings → App updates</strong>.</li>
+    </ol>
+  <% else %>
+    <p><em>No app build is on this server yet.</em></p>
+  <% end %>
+</section>

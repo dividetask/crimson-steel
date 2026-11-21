@@ -1,7 +1,14 @@
 STATUS_VIEWS = %w[status dice check conditions creatures timekeeping chronicle encounter equipment].freeze
 
 get '/status' do
-  redirect '/character-sheets' unless dm_view?
+  # A player: who they are, their device id, and the Android app.
+  unless dm_view?
+    cid = assigned_character_id
+    @player_character = cid && (Creatures.get(cid) rescue nil)
+    @device_short = assignment_short_id(current_device_id)
+    @app_release = AppRelease.latest
+    return erb :status_player
+  end
   @view = STATUS_VIEWS.include?(params[:view]) ? params[:view] : 'status'
   @check = Status::SampleCheck.check
   @rolls = Status::SampleRolls.rolls

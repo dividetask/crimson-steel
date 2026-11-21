@@ -8,6 +8,9 @@
     <!-- Settings → App updates: install the newer version the server offers
          (Android asks the player to allow it once, and to confirm each install). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Android 14+: be told when the player takes a screenshot of the app, to
+         send a copy to the server's device-logs/ folder (granted at install). -->
+    <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
 
     <application
         android:icon="@mipmap/ic_launcher"
