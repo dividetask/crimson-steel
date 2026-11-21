@@ -206,8 +206,12 @@ function applyRolls(root, flowId, rolls) {
       const row = g.querySelector('tr.lr-row');
       if (row) row.remove();
       delete g.dataset.lrSig;
+      delete g.dataset.lrStatus;
+      delete g.dataset.lrOwner;
       return;
     }
+    g.dataset.lrStatus = r.status;
+    g.dataset.lrOwner = r.owner;
     const sig = JSON.stringify(r);
     if (g.dataset.lrSig === sig) return;
     g.dataset.lrSig = sig;
@@ -328,6 +332,52 @@ document.addEventListener('change', (e) => {
       if (res && res.ok !== false && root) applyRolls(root, res.flow_id, res.rolls);
     });
 });
+
+// Confirm (and the Damage Riders' Confirm) waits until every phone Roll in
+// play has dice: rolled on the phone, or by "Roll for …". Registered before
+// the share listener below so a blocked Confirm shares nothing.
+function unrolled(groups) {
+  return groups.filter((g) => inPlay(g) && g.dataset.lrStatus === 'waiting');
+}
+function blockConfirm(e, groups) {
+  const waiting = unrolled(groups);
+  if (!waiting.length) return false;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  const names = Array.from(new Set(waiting.map((g) => g.dataset.lrOwner || 'a player')));
+  waiting.forEach((g) => {
+    const row = g.querySelector('tr.lr-row');
+    if (!row) return;
+    row.classList.remove('lr-flash');
+    void row.offsetWidth;
+    row.classList.add('lr-flash');
+  });
+  const box = waiting[0].closest('.action-builder') || document.body;
+  let note = box.querySelector('.lr-wait-note');
+  if (!note) {
+    note = document.createElement('p');
+    note.className = 'lr-wait-note';
+    const btn = e.target.closest('.btn-confirm, .ta-rider-confirm');
+    (btn && btn.parentNode ? btn.parentNode : box).insertBefore(note, btn ? btn.nextSibling : null);
+  }
+  note.textContent = 'Waiting for ' + names.join(', ') + ' to roll. Use "Roll for" to roll it yourself.';
+  clearTimeout(note._t);
+  note._t = setTimeout(() => note.remove(), 5000);
+  return true;
+}
+document.addEventListener('click', (e) => {
+  const rider = e.target.closest && e.target.closest('.ta-rider-confirm');
+  if (rider) {
+    const ta = rider.closest('.turn-action');
+    const root = ta && ta.querySelector('.ta-attack .action-builder');
+    if (root) blockConfirm(e, riderGroups(root));
+    return;
+  }
+  const conf = e.target.closest && e.target.closest('.btn-confirm');
+  if (!conf || conf.closest('.ta-rider-stub')) return;
+  const root = conf.closest('.action-builder');
+  if (root) blockConfirm(e, rollGroups(root));
+}, true);
 
 // Confirm shares every Roll with the players: the claimed ones that have
 // dice, and those Roll All rolled here. The Damage Riders' own Confirm does

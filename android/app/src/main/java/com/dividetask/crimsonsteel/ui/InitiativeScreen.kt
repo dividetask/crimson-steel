@@ -475,9 +475,23 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     /** Who to target: one chip per Combatant, enemies first (yourself last, for Spells / Items). */
     private fun targetPicker(card: LinearLayout, d: Initiative, includeSelf: Boolean) {
-        card.addView(Ui.text(ctx, "Target", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
+        val all = if (includeSelf) d.targets else d.targets.filter { !it.self }
+        val map = d.map
+        val onMap = map?.tokens?.mapNotNull { it.combatantId }?.toSet().orEmpty()
+        val mapped = all.filter { it.combatantId in onMap }
+        if (map != null && mapped.isNotEmpty()) {
+            val picked = all.find { it.combatantId == selectedTarget }
+            card.addView(Ui.text(ctx, "Target: " + (picked?.name ?: "tap one on the map"), 13f, Ui.TEXT, bold = true),
+                Ui.matchWidth(Ui.dp(ctx, 10)))
+            card.addView(MapTargetView(ctx, map, mapped.associate { it.combatantId to it.enemy }, selectedTarget) { id ->
+                selectedTarget = id; render()
+            }, Ui.matchWidth(Ui.dp(ctx, 6)))
+        } else {
+            card.addView(Ui.text(ctx, "Target", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
+        }
+        // Targets not on the map (or no map): one button each.
+        val targets = if (map != null && mapped.isNotEmpty()) all - mapped.toSet() else all
         var row: LinearLayout? = null
-        val targets = if (includeSelf) d.targets else d.targets.filter { !it.self }
         targets.forEachIndexed { i, t ->
             if (i % 2 == 0) {
                 row = Ui.horizontal(ctx)
@@ -497,7 +511,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             row!!.addView(chip, Ui.weighted().apply { marginEnd = Ui.dp(ctx, 6) })
         }
         if (targets.size % 2 == 1) row?.addView(View(ctx), LinearLayout.LayoutParams(0, 1, 1f)) // 1 px: a plain View grows to all the height on offer
-        if (targets.isEmpty()) card.addView(Ui.text(ctx, "No one to target.", 13f, Ui.TEXT_DIM))
+        if (all.isEmpty()) card.addView(Ui.text(ctx, "No one to target.", 13f, Ui.TEXT_DIM))
     }
 
     /** This player's own attacks in progress, one line per step. */

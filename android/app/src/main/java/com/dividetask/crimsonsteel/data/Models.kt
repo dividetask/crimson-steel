@@ -377,6 +377,43 @@ data class Stat(val current: Int, val max: Int, val hidden: Boolean = false) {
     }
 }
 
+/** A rectangle or ellipse between two corners, in grid squares. */
+data class MapShape(val ellipse: Boolean, val x0: Float, val y0: Float, val x1: Float, val y1: Float, val texture: String? = null) {
+    companion object {
+        fun from(j: JSONObject): MapShape? {
+            val p = j.optJSONArray("points") ?: return null
+            if (p.length() < 2) return null
+            val a = p.optJSONArray(0) ?: return null
+            val b = p.optJSONArray(1) ?: return null
+            return MapShape(j.optString("shape") == "ellipse",
+                minOf(a.optDouble(0), b.optDouble(0)).toFloat(), minOf(a.optDouble(1), b.optDouble(1)).toFloat(),
+                maxOf(a.optDouble(0), b.optDouble(0)).toFloat(), maxOf(a.optDouble(1), b.optDouble(1)).toFloat(),
+                j.optStringOrNull("texture"))
+        }
+    }
+}
+
+data class MapToken(val x: Float, val y: Float, val size: Float, val label: String, val image: String?, val combatantId: Int?)
+
+/** The Active Map as a player sees it (GET /api/initiative → map). Units are grid squares. */
+data class MapSnapshot(
+    val width: Int, val height: Int, val image: String?,
+    val tokens: List<MapToken>, val terrain: List<MapShape>, val fog: List<MapShape>,
+) {
+    companion object {
+        fun from(j: JSONObject) = MapSnapshot(
+            width = j.optInt("width").coerceAtLeast(1), height = j.optInt("height").coerceAtLeast(1),
+            image = j.optStringOrNull("image"),
+            tokens = j.optJSONArray("tokens").mapObjects {
+                MapToken(it.optDouble("x").toFloat(), it.optDouble("y").toFloat(), it.optDouble("size", 1.0).toFloat(),
+                    it.optString("label"), it.optStringOrNull("image"), it.optIntOrNull("combatant_id"))
+            },
+            terrain = j.optJSONArray("terrain").mapObjects { MapShape.from(it) }.filterNotNull(),
+            fog = j.optJSONArray("fog").mapObjects { MapShape.from(it) }.filterNotNull(),
+        )
+    }
+}
+
 data class Initiative(
     val combatActive: Boolean,
     val roundLabel: String,
@@ -386,6 +423,8 @@ data class Initiative(
     val mana: Meter?,
     /** The player's magic toxicity now, against their threshold (max). */
     val toxicity: Meter? = null,
+    /** The Active Map, to pick targets on; null when there is none. */
+    val map: MapSnapshot? = null,
     val order: List<InitiativeEntry>,
     val options: List<TurnOption>,
     val requests: List<TurnRequest>,
@@ -413,6 +452,7 @@ data class Initiative(
                 mainActionsRemaining = me?.optIntOrNull("main_actions_remaining"),
                 mana = Meter.from(me?.optJSONObject("mana")),
                 toxicity = Meter.from(me?.optJSONObject("toxicity"), maxKey = "threshold"),
+                map = j.optJSONObject("map")?.let { MapSnapshot.from(it) },
                 order = j.optJSONArray("order").mapObjects {
                     InitiativeEntry(it.optInt("combatant_id"), it.optString("name"), it.optBoolean("is_pc"),
                         it.optBoolean("acting"), it.optBoolean("is_you"), it.optStringOrNull("initiative"),

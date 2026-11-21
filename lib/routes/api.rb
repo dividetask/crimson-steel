@@ -219,6 +219,23 @@ helpers do
     end
   end
 
+  # The Active Map as a player sees it (fogged and hidden Tokens removed), for
+  # picking targets on the phone (docs/project/android_app.md). nil when there
+  # is no Active Map.
+  def api_target_map
+    snap = atlas_map_snapshot(:player)
+    m = snap[:map] or return nil
+    { width: m[:width], height: m[:height], image: m[:image],
+      origin: (m[:grid] || {})[:origin] || [0, 0],
+      tokens: snap[:tokens].map do |t|
+        { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id] }
+      end,
+      terrain: snap[:terrain].map { |t| { shape: t[:shape_kind], points: t[:points], texture: t[:texture] } },
+      fog: snap[:fog].map { |f| { shape: f[:shape_kind], points: f[:points] } } }
+  rescue StandardError
+    nil
+  end
+
   # In Combat as the players see it: combat running and the party's Phase is
   # Combat (the same condition the web Encounter page uses for the turn panel).
   def api_in_combat?
@@ -338,9 +355,10 @@ get '/api/initiative' do
            mana: v && v[:mana], toxicity: v && v[:toxicity] }
   end
   key = mine && PlayerRequests.turn_key(es, mine[:id])
+  map = api_target_map if api_in_combat?
   api_json(
     ok: true, combat_active: api_in_combat?, round_label: es.round_label,
-    acting_combatant_id: acting, my_turn: my_turn, me: me,
+    acting_combatant_id: acting, my_turn: my_turn, me: me, map: map,
     order: rows.map do |r|
       { combatant_id: r[:combatant_id], name: r[:name], is_pc: r[:is_pc], acting: r[:acting],
         is_you: !!(mine && r[:combatant_id] == mine[:id]), initiative: r[:initiative] }.merge(api_status_view(r, es))
