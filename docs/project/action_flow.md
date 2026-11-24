@@ -69,7 +69,7 @@ last stage of the fatigue track (Winded → Tired → Exhausted: Strength,
 Combat Pool and speed −25% / −50% / −75%, reductions rounded down; see
 [conditions_effect_names.yaml](../common/conditions/conditions_effect_names.yaml)).
 Already exhausted, it adds **Unconscious** (helpless, unaware; Strength,
-Dexterity, Wisdom and Intelligence 0). Rage cannot be used at any fatigue
+Dexterity, Wisdom, Intelligence and Combat Pool 0). Rage cannot be used at any fatigue
 stage.
 
 ## Fudging

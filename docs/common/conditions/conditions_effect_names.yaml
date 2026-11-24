@@ -277,7 +277,7 @@ Effect Names:
 
   # Not on the fatigue track.
   unconscious:
-    description: "Helpless and unaware. Strength, Dexterity, Wisdom and Intelligence are 0."
+    description: "Helpless and unaware. Strength, Dexterity, Wisdom, Intelligence and Combat Pool are 0."
     mechanics:
       - kind: flag
         flag: cannot_act
@@ -296,6 +296,9 @@ Effect Names:
         value: 0
       - kind: set_value
         target: int
+        value: 0
+      - kind: set_value
+        target: combat_pool
         value: 0
 
   martial_devotion:

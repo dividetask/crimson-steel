@@ -35,9 +35,11 @@ RSpec.describe 'Fatigue track' do
     expect(inst.adjusted_value(:dex, 14)).to eq(14)
   end
 
-  it 'sets Strength, Dexterity, Wisdom and Intelligence to 0 while unconscious' do
+  it 'sets Strength, Dexterity, Wisdom, Intelligence and the Combat Pool to 0 while unconscious' do
     inst = build_instance
     inst.apply_named_effect('unconscious', source_id: 'test:1:x:unconscious')
     expect(%i[str dex wis int con cha].map { |a| inst.adjusted_value(a, 14) }).to eq([0, 0, 0, 0, 14, 14])
+    fatigue(inst, 'exhausted')
+    expect(inst.adjusted_value(:combat_pool, 16)).to eq(0)
   end
 end
