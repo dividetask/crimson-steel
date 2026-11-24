@@ -1,0 +1,651 @@
+============================================================
+Kind                   : screenshot
+Received               : 2026-11-24 15:34:00 -0800
+Character              : Garroth Vask
+Device id              : 57d846b7324d415e
+IP                     : 192.168.4.111
+User agent             : Dalvik/2.1.0 (Linux; U; Android 17; Pixel 7 Build/CP3A.261005.002.A1)
+App version            : v0.037 b (3471)
+Server commit          : 056336e (claude/quirky-mayer-xpibcg)
+Device manufacturer    : Google
+Device model           : Pixel 7
+Device android         : 17 (API 37)
+Device screen          : 1080x2400 @ 420dpi
+Device server          : http://192.168.4.105:4567
+Device cookie id       : 57d846b7
+Device character (app) : Garroth Vask
+Device vpn             : on
+Screenshot             : 20261124-153400-garroth-vask.png
+============================================================
+2026-11-18 12:47:22.820 [session] app started: Crimson Steel v0.006 a (18b2); Android 17 (API 37); Google Pixel 7
+2026-11-18 12:47:22.845 [main] screen: Looking for the Crimson Steel server…
+2026-11-18 12:47:22.852 [session] searching for the server
+2026-11-18 12:47:22.855 [session] broadcasting a discovery probe on UDP 47567
+2026-11-18 12:47:22.859 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-18 12:47:22.859 [discovery] interface v4-rmnet1: 192.0.0.4/32 broadcast null
+2026-11-18 12:47:22.860 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-18 12:47:22.862 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-18 12:47:22.863 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-18 12:47:22.913 [discovery] reply from 192.168.1.163: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-18 12:47:22.915 [session] found The Shattered Beacon at http://192.168.1.163:4567 by broadcast
+2026-11-18 12:47:23.219 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-18 12:47:23.220 [session] ERROR search failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-18 12:47:23.220 [main] screen: No server found
+2026-11-18 12:47:50.776 [main] screen: Looking for the Crimson Steel server…
+2026-11-18 12:47:50.783 [session] searching for the server
+2026-11-18 12:47:50.784 [session] broadcasting a discovery probe on UDP 47567
+2026-11-18 12:47:50.785 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-18 12:47:50.785 [discovery] interface v4-rmnet1: 192.0.0.4/32 broadcast null
+2026-11-18 12:47:50.786 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-18 12:47:50.786 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-18 12:47:50.786 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-18 12:47:50.957 [discovery] reply from 192.168.1.163: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-18 12:47:50.959 [session] found The Shattered Beacon at http://192.168.1.163:4567 by broadcast
+2026-11-18 12:47:54.969 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /10.1.10.1 (port 42578) after 4000ms
+2026-11-18 12:47:54.973 [session] ERROR search failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /10.1.10.1 (port 42578) after 4000ms
+2026-11-18 12:47:54.975 [main] screen: No server found
+2026-11-18 12:48:01.149 [main] screen: Looking for the Crimson Steel server…
+2026-11-18 12:48:01.155 [session] searching for the server
+2026-11-18 12:48:01.156 [session] broadcasting a discovery probe on UDP 47567
+2026-11-18 12:48:01.160 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-18 12:48:01.161 [discovery] interface v4-rmnet1: 192.0.0.4/32 broadcast null
+2026-11-18 12:48:01.162 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-18 12:48:01.163 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-18 12:48:01.164 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-18 12:48:01.199 [discovery] reply from 192.168.1.163: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-18 12:48:01.203 [session] found The Shattered Beacon at http://192.168.1.163:4567 by broadcast
+2026-11-18 12:48:05.215 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /10.1.10.1 (port 37210) after 4000ms
+2026-11-18 12:48:05.219 [session] ERROR search failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /10.1.10.1 (port 37210) after 4000ms
+2026-11-18 12:48:05.221 [main] screen: No server found
+2026-11-18 12:53:39.277 [settings] opened
+2026-11-18 12:53:42.820 [settings] sharing debug log
+2026-11-18 12:54:34.085 [settings] sharing debug log
+2026-11-18 13:10:43.075 [session] app started: Crimson Steel v0.007 a (9a72); Android 17 (API 37); Google Pixel 7
+2026-11-18 13:10:43.099 [main] screen: Looking for the Crimson Steel server…
+2026-11-18 13:10:43.108 [session] searching for the server
+2026-11-18 13:10:43.112 [session] broadcasting a discovery probe on UDP 47567
+2026-11-18 13:10:43.116 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-18 13:10:43.118 [discovery] interface v4-rmnet1: 192.0.0.4/32 broadcast null
+2026-11-18 13:10:43.118 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-18 13:10:43.121 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-18 13:10:43.122 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-18 13:10:43.344 [discovery] reply from 192.168.1.163: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-18 13:10:43.346 [session] found The Shattered Beacon at http://192.168.1.163:4567 by broadcast
+2026-11-18 13:10:43.354 [network] Wi-Fi network: found; VPN: ON — connecting to the server over Wi-Fi directly
+2026-11-18 13:10:43.408 [http] server issued device id 41d5075b
+2026-11-18 13:10:43.411 [http] GET /api/hello -> 200 in 52ms
+2026-11-18 13:10:43.411 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character (not assigned)
+2026-11-18 13:10:43.412 [main] screen: Connected to The Shattered Beacon
+2026-11-18 13:11:11.577 [settings] opened
+2026-11-18 13:11:12.954 [settings] saving debug log
+2026-11-18 13:11:13.050 [settings] saved Downloads/crimson-steel-debug-20261118-131112.log
+2026-11-18 13:13:54.030 [main] screen: playing as Lira Duskmoor
+2026-11-18 13:13:54.092 [http] GET /api/sheet -> 200 in 55ms
+2026-11-18 13:14:07.112 [http] GET /api/initiative -> 200 in 159ms
+2026-11-18 13:19:42.272 [http] POST /api/turn/requests -> 200 in 471ms
+2026-11-18 17:59:22.813 [session] app started: Crimson Steel v0.012 a (98f4); Android 17 (API 37); Google Pixel 7
+2026-11-18 17:59:22.838 [main] screen: Looking for the Crimson Steel server…
+2026-11-18 17:59:22.845 [session] searching for the server
+2026-11-18 17:59:22.847 [session] trying last server http://192.168.1.163:4567
+2026-11-18 17:59:22.873 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-18 17:59:22.874 [session] last server not reachable: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-18 17:59:22.875 [session] broadcasting a discovery probe on UDP 47567
+2026-11-18 17:59:22.878 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-18 17:59:22.879 [discovery] interface v4-rmnet1: 192.0.0.4/32 broadcast null
+2026-11-18 17:59:22.879 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-18 17:59:22.882 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-18 17:59:22.883 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-18 17:59:22.900 [discovery] reply from 192.168.4.105: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-18 17:59:22.903 [session] found The Shattered Beacon at http://192.168.4.105:4567 by broadcast
+2026-11-18 17:59:22.924 [http] GET /api/hello -> 200 in 20ms
+2026-11-18 17:59:22.928 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-18 17:59:22.928 [main] screen: playing as Lira Duskmoor
+2026-11-18 17:59:23.180 [http] GET /api/sheet -> 200 in 242ms
+2026-11-18 17:59:27.883 [http] GET /api/initiative -> 200 in 271ms
+2026-11-18 18:00:29.938 [http] POST /api/turn/requests -> 200 in 389ms
+2026-11-18 18:17:05.806 [session] app started: Crimson Steel v0.013 a (4aee); Android 17 (API 37); Google Pixel 7
+2026-11-18 18:17:05.827 [main] screen: Looking for the Crimson Steel server…
+2026-11-18 18:17:05.834 [session] searching for the server
+2026-11-18 18:17:05.838 [session] trying last server http://192.168.4.105:4567
+2026-11-18 18:17:05.903 [http] GET /api/hello -> 200 in 64ms
+2026-11-18 18:17:05.905 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-18 18:17:05.906 [main] screen: playing as Lira Duskmoor
+2026-11-18 18:17:06.191 [http] GET /api/sheet -> 200 in 276ms
+2026-11-18 18:17:10.403 [http] GET /api/initiative -> 200 in 239ms
+2026-11-18 18:17:38.270 [http] POST /api/turn/requests -> 200 in 356ms
+2026-11-19 11:37:01.808 [session] app started: Crimson Steel v0.015 a (766f); Android 17 (API 37); Google Pixel 7
+2026-11-19 11:37:01.832 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 11:37:01.839 [session] searching for the server
+2026-11-19 11:37:01.840 [session] trying last server http://192.168.4.105:4567
+2026-11-19 11:37:05.868 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: SocketTimeoutException: failed to connect to /192.168.4.105 (port 4567) from /192.168.1.220 (port 33512) after 4000ms
+2026-11-19 11:37:05.870 [session] last server not reachable: SocketTimeoutException: failed to connect to /192.168.4.105 (port 4567) from /192.168.1.220 (port 33512) after 4000ms
+2026-11-19 11:37:05.871 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 11:37:05.882 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-19 11:37:05.882 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 11:37:05.883 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 11:37:05.886 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-19 11:37:05.887 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 11:37:05.925 [discovery] reply from 192.168.1.163: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-19 11:37:05.926 [session] found The Shattered Beacon at http://192.168.1.163:4567 by broadcast
+2026-11-19 11:37:06.089 [http] GET /api/hello -> 200 in 162ms
+2026-11-19 11:37:06.094 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-19 11:37:06.096 [main] screen: playing as Lira Duskmoor
+2026-11-19 11:37:06.325 [http] GET /api/sheet -> 200 in 210ms
+2026-11-19 11:37:10.144 [http] GET /api/initiative -> 200 in 199ms
+2026-11-19 11:38:13.510 [http] POST /api/turn/requests -> 200 in 100ms
+2026-11-19 11:38:41.534 [http] POST /api/prompts/f8561b9ebb/bc71bfba -> 200 in 80ms
+2026-11-19 11:49:42.440 [session] app started: Crimson Steel v0.016 a (2d57); Android 17 (API 37); Google Pixel 7
+2026-11-19 11:49:42.464 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 11:49:42.472 [session] searching for the server
+2026-11-19 11:49:42.473 [session] trying last server http://192.168.1.163:4567
+2026-11-19 11:49:42.664 [http] GET /api/hello -> 200 in 189ms
+2026-11-19 11:49:42.667 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-19 11:49:42.669 [main] screen: playing as Lira Duskmoor
+2026-11-19 11:49:42.817 [http] GET /api/sheet -> 200 in 132ms
+2026-11-19 11:49:47.757 [http] GET /api/prompts -> 200 in 11ms
+2026-11-19 11:49:53.261 [http] GET /api/initiative -> 200 in 71ms
+2026-11-19 11:50:02.313 [http] POST /api/turn/requests -> 200 in 128ms
+2026-11-19 11:50:21.723 [http] POST /api/prompts/21b31e183c/083293d8 -> 200 in 30ms
+2026-11-19 12:10:49.814 [http] ERROR GET /api/initiative to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 12:10:49.820 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 12:10:49.823 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 12:10:49.842 [session] searching for the server
+2026-11-19 12:10:49.844 [session] trying last server http://192.168.1.163:4567
+2026-11-19 12:10:49.860 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 12:10:49.864 [session] last server not reachable: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 12:10:49.865 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 12:10:49.882 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-19 12:10:49.884 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 12:10:49.885 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 12:10:49.889 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-19 12:10:49.891 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 12:10:51.152 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 12:10:51.156 [discovery] attempt 2: probe sent to 192.168.1.255:47567
+2026-11-19 12:10:51.158 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 12:10:52.418 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 12:10:52.421 [discovery] attempt 3: probe sent to 192.168.1.255:47567
+2026-11-19 12:10:52.424 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 12:10:52.456 [discovery] reply from 192.168.1.163: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-19 12:10:52.461 [session] found The Shattered Beacon at http://192.168.1.163:4567 by broadcast
+2026-11-19 12:10:52.557 [http] GET /api/hello -> 200 in 94ms
+2026-11-19 12:10:52.560 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-19 12:10:52.563 [main] screen: playing as Lira Duskmoor
+2026-11-19 12:10:52.839 [http] GET /api/initiative -> 200 in 259ms
+2026-11-19 12:16:21.986 [session] app started: Crimson Steel v0.018 a (dce22); Android 17 (API 37); Google Pixel 7
+2026-11-19 12:16:22.012 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 12:16:22.020 [session] searching for the server
+2026-11-19 12:16:22.021 [session] trying last server http://192.168.1.163:4567
+2026-11-19 12:16:22.273 [http] GET /api/hello -> 200 in 250ms
+2026-11-19 12:16:22.275 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-19 12:16:22.276 [main] screen: playing as Lira Duskmoor
+2026-11-19 12:16:22.452 [http] GET /api/sheet -> 200 in 166ms
+2026-11-19 12:16:23.810 [http] GET /api/initiative -> 200 in 123ms
+2026-11-19 12:49:55.298 [session] app started: Crimson Steel v0.019 a (62465); Android 17 (API 37); Google Pixel 7
+2026-11-19 12:49:55.327 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 12:49:55.334 [session] searching for the server
+2026-11-19 12:49:55.339 [session] trying last server http://192.168.1.163:4567
+2026-11-19 12:49:55.428 [http] GET /api/hello -> 200 in 86ms
+2026-11-19 12:49:55.438 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character Lira Duskmoor
+2026-11-19 12:49:55.439 [main] screen: playing as Lira Duskmoor
+2026-11-19 12:49:55.696 [http] GET /api/sheet -> 200 in 248ms
+2026-11-19 12:50:03.781 [http] GET /api/prompts -> 200 in 9ms
+2026-11-19 12:50:58.270 [http] GET /api/initiative -> 200 in 80ms
+2026-11-19 12:51:16.663 [session] app started: Crimson Steel v0.019 a (62465); Android 17 (API 37); Google Pixel 7
+2026-11-19 12:51:16.680 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 12:51:16.686 [session] searching for the server
+2026-11-19 12:51:16.687 [session] trying last server http://192.168.1.163:4567
+2026-11-19 12:51:16.751 [http] GET /api/hello -> 200 in 63ms
+2026-11-19 12:51:16.757 [session] connected to http://192.168.1.163:4567; campaign "The Shattered Beacon", device 41d5075b, character Ash Windmere
+2026-11-19 12:51:16.759 [main] screen: playing as Ash Windmere
+2026-11-19 12:51:17.081 [http] GET /api/sheet -> 200 in 310ms
+2026-11-19 12:51:18.033 [http] GET /api/initiative -> 200 in 47ms
+2026-11-19 12:59:55.939 [http] POST /api/prompts/ef742267f2/574b53c5 -> 200 in 107ms
+2026-11-19 13:02:42.714 [http] GET /api/inventory -> 200 in 43ms
+2026-11-19 13:02:46.540 [http] GET /api/notes -> 200 in 93ms
+2026-11-19 13:06:03.059 [http] ERROR GET /api/initiative to http://192.168.1.163:4567 failed: SocketTimeoutException: timeout
+2026-11-19 13:06:03.067 [main] ERROR lost the server; searching again: SocketTimeoutException: timeout
+2026-11-19 13:06:03.071 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:06:07.085 [http] ERROR GET /api/initiative to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 42692) after 4000ms
+2026-11-19 13:06:07.092 [main] ERROR lost the server; searching again: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 42692) after 4000ms
+2026-11-19 13:06:11.109 [http] ERROR GET /api/initiative to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 42704) after 4000ms
+2026-11-19 13:06:11.119 [main] ERROR lost the server; searching again: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 42704) after 4000ms
+2026-11-19 13:06:15.139 [http] ERROR GET /api/initiative to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 35646) after 4000ms
+2026-11-19 13:06:15.149 [main] ERROR lost the server; searching again: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 35646) after 4000ms
+2026-11-19 13:06:19.170 [http] ERROR GET /api/initiative to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 35658) after 4000ms
+2026-11-19 13:06:19.180 [session] searching for the server
+2026-11-19 13:06:19.184 [main] ERROR lost the server; searching again: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 35658) after 4000ms
+2026-11-19 13:06:19.187 [session] trying last server http://192.168.1.163:4567
+2026-11-19 13:06:23.214 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 53166) after 4000ms
+2026-11-19 13:06:23.223 [session] last server not reachable: SocketTimeoutException: failed to connect to /192.168.1.163 (port 4567) from /192.168.1.220 (port 53166) after 4000ms
+2026-11-19 13:06:23.227 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 13:06:23.254 [discovery] interface wlan0: 192.168.1.220/24 broadcast 192.168.1.255
+2026-11-19 13:06:23.255 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 13:06:23.257 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 13:06:23.262 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-19 13:06:23.263 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 13:06:24.524 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 13:06:24.533 [discovery] attempt 2: probe sent to 192.168.1.255:47567
+2026-11-19 13:06:24.538 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 13:06:25.801 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 13:06:25.806 [discovery] attempt 3: probe sent to 192.168.1.255:47567
+2026-11-19 13:06:25.810 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 13:06:27.072 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 13:06:27.082 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 13:06:27.107 [main] screen: No server found
+2026-11-19 13:24:56.382 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:24:56.384 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:24:56.384 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:24:56.386 [session] searching for the server
+2026-11-19 13:24:56.386 [session] trying last server http://192.168.1.163:4567
+2026-11-19 13:24:56.392 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:24:56.395 [session] last server not reachable: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:24:56.395 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 13:24:56.397 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 13:24:56.398 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 13:24:56.398 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 13:24:56.399 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 13:24:56.399 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 13:24:57.655 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 13:24:57.657 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 13:24:57.658 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 13:24:58.914 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 13:24:58.915 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 13:24:58.916 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 13:25:00.172 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 13:25:00.174 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 13:25:00.194 [main] screen: No server found
+2026-11-19 13:26:03.898 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:26:03.910 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:26:03.911 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:26:03.913 [session] searching for the server
+2026-11-19 13:26:03.913 [session] trying last server http://192.168.1.163:4567
+2026-11-19 13:26:03.924 [http] ERROR GET /api/hello to http://192.168.1.163:4567 failed: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:26:03.925 [session] last server not reachable: ConnectException: Failed to connect to /192.168.1.163:4567
+2026-11-19 13:26:03.925 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 13:26:03.954 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 13:26:03.956 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 13:26:03.957 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 13:26:03.959 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 13:26:03.960 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 13:26:04.010 [discovery] reply from 192.168.4.105: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-19 13:26:04.011 [session] found The Shattered Beacon at http://192.168.4.105:4567 by broadcast
+2026-11-19 13:26:04.026 [http] GET /api/hello -> 200 in 14ms
+2026-11-19 13:26:04.026 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Ash Windmere
+2026-11-19 13:26:04.027 [main] screen: playing as Ash Windmere
+2026-11-19 13:26:04.417 [http] GET /api/initiative -> 200 in 386ms
+2026-11-19 13:31:43.566 [session] app started: Crimson Steel v0.020 a (b132); Android 17 (API 37); Google Pixel 7
+2026-11-19 13:31:43.592 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:31:43.599 [session] searching for the server
+2026-11-19 13:31:43.600 [session] trying last server http://192.168.4.105:4567
+2026-11-19 13:31:43.647 [http] GET /api/hello -> 200 in 44ms
+2026-11-19 13:31:43.671 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Garroth Vask
+2026-11-19 13:31:43.672 [main] screen: playing as Garroth Vask
+2026-11-19 13:31:43.789 [http] GET /api/sheet -> 200 in 107ms
+2026-11-19 13:31:48.978 [http] GET /api/prompts -> 200 in 40ms
+2026-11-19 13:32:11.530 [http] GET /api/initiative -> 200 in 299ms
+2026-11-19 13:32:44.870 [http] GET /api/inventory -> 200 in 18ms
+2026-11-19 13:35:20.154 [http] POST /api/turn/requests -> 200 in 408ms
+2026-11-19 13:37:16.204 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:37:16.208 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:37:16.210 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:37:16.224 [session] searching for the server
+2026-11-19 13:37:16.226 [session] trying last server http://192.168.4.105:4567
+2026-11-19 13:37:16.237 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:37:16.239 [session] last server not reachable: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:37:16.241 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 13:37:16.256 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 13:37:16.258 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 13:37:16.259 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 13:37:16.263 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 13:37:16.265 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 13:37:17.525 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 13:37:17.529 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 13:37:17.532 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 13:37:18.793 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 13:37:18.806 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 13:37:18.811 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 13:37:20.073 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 13:37:20.080 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 13:37:20.111 [main] screen: No server found
+2026-11-19 13:45:24.524 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:45:24.527 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:45:24.527 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:45:24.529 [session] searching for the server
+2026-11-19 13:45:24.529 [session] trying last server http://192.168.4.105:4567
+2026-11-19 13:45:24.534 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:45:24.534 [session] last server not reachable: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:45:24.534 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 13:45:24.535 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 13:45:24.535 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 13:45:24.535 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 13:45:24.536 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 13:45:24.536 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 13:45:25.788 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 13:45:25.789 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 13:45:25.790 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 13:45:27.043 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 13:45:27.045 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 13:45:27.047 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 13:45:28.303 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 13:45:28.307 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 13:45:28.311 [main] screen: No server found
+2026-11-19 13:45:37.539 [session] app started: Crimson Steel v0.021 b (0f68); Android 17 (API 37); Google Pixel 7
+2026-11-19 13:45:37.576 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:45:37.585 [session] searching for the server
+2026-11-19 13:45:37.587 [session] trying last server http://192.168.4.105:4567
+2026-11-19 13:45:37.622 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:45:37.623 [session] last server not reachable: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 13:45:37.624 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 13:45:37.629 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 13:45:37.630 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 13:45:37.631 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 13:45:37.634 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 13:45:37.635 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 13:45:38.890 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 13:45:38.892 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 13:45:38.892 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 13:45:40.146 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 13:45:40.147 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 13:45:40.148 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 13:45:41.406 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 13:45:41.409 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 13:45:41.420 [main] screen: No server found
+2026-11-19 13:46:33.709 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 13:46:33.712 [session] searching for the server
+2026-11-19 13:46:33.712 [session] trying last server http://192.168.4.105:4567
+2026-11-19 13:46:33.743 [http] GET /api/hello -> 200 in 30ms
+2026-11-19 13:46:33.746 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Garroth Vask
+2026-11-19 13:46:33.746 [main] screen: playing as Garroth Vask
+2026-11-19 13:46:33.829 [http] GET /api/sheet -> 200 in 77ms
+2026-11-19 13:46:35.188 [http] GET /api/initiative -> 200 in 198ms
+2026-11-19 13:46:35.901 [live] live updates connected
+2026-11-19 13:47:53.524 [http] POST /api/turn/requests -> 200 in 349ms
+2026-11-19 14:07:08.127 [live] live updates connected
+2026-11-19 14:08:14.083 [session] app started: Crimson Steel v0.022 a (7640); Android 17 (API 37); Google Pixel 7
+2026-11-19 14:08:14.107 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 14:08:14.114 [session] searching for the server
+2026-11-19 14:08:14.118 [session] trying last server http://192.168.4.105:4567
+2026-11-19 14:08:14.176 [http] GET /api/hello -> 200 in 52ms
+2026-11-19 14:08:14.191 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Garroth Vask
+2026-11-19 14:08:14.193 [main] screen: playing as Garroth Vask
+2026-11-19 14:08:14.298 [http] GET /api/sheet -> 200 in 91ms
+2026-11-19 14:08:16.502 [live] live updates connected
+2026-11-19 14:08:16.650 [http] GET /api/prompts -> 200 in 13ms
+2026-11-19 14:08:47.225 [http] GET /api/initiative -> 200 in 148ms
+2026-11-19 14:09:05.045 [http] POST /api/turn/requests -> 200 in 372ms
+2026-11-19 14:11:10.919 [http] POST /api/prompts/baeffcbd04/60482344 -> 200 in 82ms
+2026-11-19 14:18:17.601 [live] live updates connected
+2026-11-19 14:23:26.340 [live] live updates connected
+2026-11-19 14:23:35.657 [http] POST /api/turn/requests -> 200 in 303ms
+2026-11-19 14:24:01.856 [http] POST /api/prompts/f3825a8ae7/1b97ad22 -> 200 in 88ms
+2026-11-19 14:24:30.714 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 14:24:32.752 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 14:24:36.789 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 14:24:39.419 [http] ERROR GET /api/initiative to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 14:24:39.427 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 14:24:39.430 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 14:24:39.441 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 14:24:39.446 [session] searching for the server
+2026-11-19 14:24:39.447 [session] trying last server http://192.168.4.105:4567
+2026-11-19 14:24:39.453 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 14:24:39.461 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 14:24:39.470 [session] last server not reachable: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 14:24:39.473 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 14:24:39.492 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 14:24:39.493 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 14:24:39.494 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 14:24:39.498 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 14:24:39.500 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 14:24:40.762 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 14:24:40.772 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 14:24:40.775 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 14:24:42.037 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 14:24:42.049 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 14:24:42.054 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 14:24:43.325 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 14:24:43.338 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 14:24:43.373 [main] screen: No server found
+2026-11-19 14:24:44.837 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 14:25:52.721 [session] app started: Crimson Steel v0.025 a (c524); Android 17 (API 37); Google Pixel 7
+2026-11-19 14:25:52.745 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 14:25:52.751 [session] searching for the server
+2026-11-19 14:25:52.752 [session] trying last server http://192.168.4.105:4567
+2026-11-19 14:25:52.982 [http] GET /api/hello -> 200 in 229ms
+2026-11-19 14:25:52.985 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Garroth Vask
+2026-11-19 14:25:52.986 [main] screen: playing as Garroth Vask
+2026-11-19 14:25:53.303 [http] GET /api/sheet -> 200 in 304ms
+2026-11-19 14:25:55.131 [live] live updates connected
+2026-11-19 14:25:55.370 [http] GET /api/prompts -> 200 in 11ms
+2026-11-19 14:26:32.306 [http] GET /api/initiative -> 200 in 236ms
+2026-11-19 14:26:58.009 [http] POST /api/turn/requests -> 200 in 353ms
+2026-11-19 14:28:22.190 [http] POST /api/prompts/142c5dd496/a0a812f9 -> 200 in 37ms
+2026-11-19 14:31:31.478 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 14:31:33.553 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 14:43:27.140 [session] app started: Crimson Steel v0.028 a (8bd03); Android 17 (API 37); Google Pixel 7
+2026-11-19 14:43:27.162 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 14:43:27.169 [session] searching for the server
+2026-11-19 14:43:27.171 [session] trying last server http://192.168.4.105:4567
+2026-11-19 14:43:27.446 [http] GET /api/hello -> 200 in 274ms
+2026-11-19 14:43:27.448 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 41d5075b, character Garroth Vask
+2026-11-19 14:43:27.448 [main] screen: playing as Garroth Vask
+2026-11-19 14:43:27.831 [http] GET /api/sheet -> 200 in 373ms
+2026-11-19 14:43:29.561 [live] live updates connected
+2026-11-19 14:43:29.798 [http] GET /api/prompts -> 200 in 9ms
+2026-11-19 14:44:14.212 [http] GET /api/initiative -> 200 in 481ms
+2026-11-19 14:44:37.149 [http] POST /api/turn/requests -> 200 in 570ms
+2026-11-19 14:45:19.271 [http] POST /api/prompts/6619950d69/064a0643 -> 200 in 75ms
+2026-11-19 14:52:27.511 [sound] playing /sounds/RAGE_AGAIN.mp3
+2026-11-19 14:52:33.695 [http] server issued device id 2ed9db65
+2026-11-19 14:52:33.698 [http] POST /api/turn/requests -> 409 (unassigned) in 102ms
+2026-11-19 14:52:33.723 [http] server issued device id 0ee19335
+2026-11-19 14:52:33.725 [http] GET /api/initiative -> 409 (unassigned) in 19ms
+2026-11-19 14:52:33.726 [main] device is no longer assigned
+2026-11-19 14:52:33.743 [http] server issued device id 37079b37
+2026-11-19 14:52:33.745 [main] screen: Connected to The Shattered Beacon
+2026-11-19 14:52:56.251 [http] server issued device id 2bca9c2a
+2026-11-19 14:53:26.464 [http] server issued device id 3453a7fd
+2026-11-19 14:53:30.663 [live] live updates connected
+2026-11-19 14:53:30.710 [http] server issued device id 388a37e1
+2026-11-19 14:54:00.802 [http] server issued device id 76f60a24
+2026-11-19 14:54:30.893 [http] server issued device id 27d9659f
+2026-11-19 15:30:57.826 [session] app started: Crimson Steel v0.032 a (0d43); Android 17 (API 37); Google Pixel 7
+2026-11-19 15:30:57.853 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 15:30:57.880 [session] searching for the server
+2026-11-19 15:30:57.881 [session] trying last server http://192.168.4.105:4567
+2026-11-19 15:30:57.924 [http] GET /api/hello -> 200 in 41ms
+2026-11-19 15:30:57.934 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 27d9659f, character (not assigned)
+2026-11-19 15:30:57.935 [main] screen: Connected to The Shattered Beacon
+2026-11-19 15:31:00.218 [live] live updates connected
+2026-11-19 15:31:40.456 [settings] opened
+2026-11-19 15:31:40.470 [http] GET /api/dice_colors -> 409 (unassigned) in 10ms
+2026-11-19 15:31:43.393 [settings] saving debug log
+2026-11-19 15:31:43.491 [settings] saved Downloads/crimson-steel-debug-20261119-153143.log
+2026-11-19 15:32:57.162 [live] live updates connected
+2026-11-19 15:33:37.987 [session] app started: Crimson Steel v0.032 a (0d43); Android 17 (API 37); Google Pixel 7
+2026-11-19 15:33:38.008 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 15:33:38.029 [session] searching for the server
+2026-11-19 15:33:38.030 [session] trying last server http://192.168.4.105:4567
+2026-11-19 15:33:38.087 [http] GET /api/hello -> 200 in 56ms
+2026-11-19 15:33:38.114 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 27d9659f, character (not assigned)
+2026-11-19 15:33:38.115 [main] screen: Connected to The Shattered Beacon
+2026-11-19 15:33:40.378 [live] live updates connected
+2026-11-19 15:34:16.068 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:34:18.092 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:34:22.184 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:34:30.280 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:34:45.607 [live] live updates connected
+2026-11-19 15:36:09.987 [live] live updates connected
+2026-11-19 15:38:30.127 [session] app started: Crimson Steel v0.033 a (a8e9); Android 17 (API 37); Google Pixel 7
+2026-11-19 15:38:30.152 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 15:38:30.170 [session] searching for the server
+2026-11-19 15:38:30.172 [session] trying last server http://192.168.4.105:4567
+2026-11-19 15:38:30.202 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 15:38:30.203 [session] last server not reachable: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 15:38:30.203 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 15:38:30.206 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 15:38:30.207 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 15:38:30.208 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 15:38:30.210 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 15:38:30.211 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 15:38:31.467 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 15:38:31.468 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 15:38:31.469 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 15:38:32.727 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 15:38:32.730 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 15:38:32.732 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 15:38:33.989 [discovery] attempt 3: no reply within 1200ms
+2026-11-19 15:38:33.995 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-19 15:38:34.021 [main] screen: No server found
+2026-11-19 15:38:40.751 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 15:38:40.754 [session] searching for the server
+2026-11-19 15:38:40.754 [session] trying last server http://192.168.4.105:4567
+2026-11-19 15:38:40.866 [http] GET /api/hello -> 200 in 111ms
+2026-11-19 15:38:40.869 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 27d9659f, character (not assigned)
+2026-11-19 15:38:40.871 [main] screen: Connected to The Shattered Beacon
+2026-11-19 15:38:42.462 [live] live updates connected
+2026-11-19 15:40:57.388 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:40:59.426 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:41:03.521 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:41:11.565 [live] live updates dropped (ConnectException: Failed to connect to /192.168.4.105:4567); retrying
+2026-11-19 15:41:13.094 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 15:41:13.101 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 15:41:13.103 [main] screen: Looking for the Crimson Steel server…
+2026-11-19 15:41:13.119 [session] searching for the server
+2026-11-19 15:41:13.120 [session] trying last server http://192.168.4.105:4567
+2026-11-19 15:41:13.131 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 15:41:13.133 [session] last server not reachable: ConnectException: Failed to connect to /192.168.4.105:4567
+2026-11-19 15:41:13.134 [session] broadcasting a discovery probe on UDP 47567
+2026-11-19 15:41:13.144 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-19 15:41:13.146 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-19 15:41:13.147 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-19 15:41:13.150 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-19 15:41:13.151 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-19 15:41:14.414 [discovery] attempt 1: no reply within 1200ms
+2026-11-19 15:41:14.428 [discovery] attempt 2: probe sent to 192.168.4.255:47567
+2026-11-19 15:41:14.432 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-19 15:41:15.696 [discovery] attempt 2: no reply within 1200ms
+2026-11-19 15:41:15.708 [discovery] attempt 3: probe sent to 192.168.4.255:47567
+2026-11-19 15:41:15.714 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-19 15:41:15.732 [discovery] reply from 192.168.4.105: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-19 15:41:15.734 [session] found The Shattered Beacon at http://192.168.4.105:4567 by broadcast
+2026-11-19 15:41:15.768 [http] server issued device id ef6a5e0e
+2026-11-19 15:41:15.771 [http] GET /api/hello -> 200 in 36ms
+2026-11-19 15:41:15.774 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device ef6a5e0e, character (not assigned)
+2026-11-19 15:41:15.777 [main] screen: Connected to The Shattered Beacon
+2026-11-19 15:41:26.920 [live] live updates connected
+2026-11-19 15:42:09.820 [main] screen: playing as Garroth Vask
+2026-11-19 15:42:10.148 [http] GET /api/sheet -> 200 in 302ms
+2026-11-19 15:42:15.621 [http] GET /api/prompts -> 200 in 20ms
+2026-11-19 15:43:46.394 [http] GET /api/initiative -> 200 in 330ms
+2026-11-19 15:43:56.529 [http] POST /api/turn/requests -> 200 in 121ms
+2026-11-19 15:43:59.828 [http] GET /sounds/RAGE_AGAIN.mp3 -> 200 (1565394 bytes)
+2026-11-19 15:43:59.934 [sound] playing Rage
+2026-11-19 15:44:22.644 [http] POST /api/turn/requests -> 200 in 412ms
+2026-11-19 15:44:25.571 [main] news: Garroth Vask used Rage.
+2026-11-19 15:44:53.930 [http] POST /api/prompts/1c87b25ae1/aa27feac -> 200 in 75ms
+2026-11-19 15:47:02.125 [http] POST /api/prompts/1c87b25ae1/d6512933 -> 200 in 32ms
+2026-11-19 15:51:28.120 [live] live updates connected
+2026-11-21 14:48:53.703 [session] app started: Crimson Steel v0.037 b (3471); Android 17 (API 37); Google Pixel 7
+2026-11-21 14:48:53.729 [main] screen: Looking for the Crimson Steel server…
+2026-11-21 14:48:53.757 [session] searching for the server
+2026-11-21 14:48:53.758 [session] trying last server http://192.168.4.105:4567
+2026-11-21 14:48:57.817 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: SocketTimeoutException: failed to connect to /192.168.4.105 (port 4567) from /192.168.0.220 (port 46548) after 4000ms
+2026-11-21 14:48:57.820 [session] last server not reachable: SocketTimeoutException: failed to connect to /192.168.4.105 (port 4567) from /192.168.0.220 (port 46548) after 4000ms
+2026-11-21 14:48:57.821 [session] broadcasting a discovery probe on UDP 47567
+2026-11-21 14:48:57.836 [discovery] interface wlan0: 192.168.0.220/24 broadcast 192.168.0.255
+2026-11-21 14:48:57.837 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-21 14:48:57.838 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-21 14:48:57.843 [discovery] attempt 1: probe sent to 192.168.0.255:47567
+2026-11-21 14:48:57.843 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-21 14:48:57.928 [discovery] reply from 192.168.0.162: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-21 14:48:57.930 [session] found The Shattered Beacon at http://192.168.0.162:4567 by broadcast
+2026-11-21 14:48:58.110 [http] GET /api/hello -> 200 in 179ms
+2026-11-21 14:48:58.112 [session] device id is now this phone's own (57d846b7)
+2026-11-21 14:48:58.115 [session] connected to http://192.168.0.162:4567; campaign "The Shattered Beacon", device 57d846b7, character Garroth Vask
+2026-11-21 14:48:58.117 [main] screen: playing as Garroth Vask
+2026-11-21 14:48:58.359 [http] GET /api/sheet -> 200 in 223ms
+2026-11-21 14:49:00.042 [live] live updates connected
+2026-11-21 14:49:00.210 [http] GET /api/prompts -> 200 in 15ms
+2026-11-21 14:49:11.297 [http] GET /api/initiative -> 200 in 196ms
+2026-11-21 14:52:18.624 [http] POST /api/turn/requests -> 200 in 119ms
+2026-11-21 14:52:20.516 [sound] playing Rage
+2026-11-21 14:52:30.345 [main] news: Garroth Vask used Rage.
+2026-11-21 14:53:04.000 [http] POST /api/turn/requests -> 200 in 213ms
+2026-11-21 14:54:58.516 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 14:55:00.564 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 14:55:04.128 [http] ERROR GET /api/sheet to http://192.168.0.162:4567 failed: ConnectException: Failed to connect to /192.168.0.162:4567
+2026-11-21 14:55:04.130 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.0.162:4567
+2026-11-21 14:55:04.131 [main] screen: Looking for the Crimson Steel server…
+2026-11-21 14:55:04.137 [session] searching for the server
+2026-11-21 14:55:04.138 [session] trying last server http://192.168.0.162:4567
+2026-11-21 14:55:04.171 [http] ERROR GET /api/hello to http://192.168.0.162:4567 failed: ConnectException: Failed to connect to /192.168.0.162:4567
+2026-11-21 14:55:04.172 [session] last server not reachable: ConnectException: Failed to connect to /192.168.0.162:4567
+2026-11-21 14:55:04.172 [session] broadcasting a discovery probe on UDP 47567
+2026-11-21 14:55:04.177 [discovery] interface wlan0: 192.168.0.220/24 broadcast 192.168.0.255
+2026-11-21 14:55:04.177 [discovery] interface v4-rmnet2: 192.0.0.4/32 broadcast null
+2026-11-21 14:55:04.178 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-21 14:55:04.179 [discovery] attempt 1: probe sent to 192.168.0.255:47567
+2026-11-21 14:55:04.179 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-21 14:55:04.605 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 14:55:05.439 [discovery] attempt 1: no reply within 1200ms
+2026-11-21 14:55:05.444 [discovery] attempt 2: probe sent to 192.168.0.255:47567
+2026-11-21 14:55:05.447 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-21 14:55:05.525 [discovery] reply from 192.168.0.162: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-21 14:55:05.528 [session] found The Shattered Beacon at http://192.168.0.162:4567 by broadcast
+2026-11-21 14:55:05.679 [http] GET /api/hello -> 200 in 150ms
+2026-11-21 14:55:05.684 [session] connected to http://192.168.0.162:4567; campaign "The Shattered Beacon", device 57d846b7, character Garroth Vask
+2026-11-21 14:55:05.687 [main] screen: playing as Garroth Vask
+2026-11-21 14:55:06.043 [http] GET /api/sheet -> 200 in 331ms
+2026-11-21 14:55:06.921 [http] GET /api/initiative -> 200 in 219ms
+2026-11-21 14:55:08.889 [http] GET /api/prompts -> 200 in 20ms
+2026-11-21 14:55:12.867 [live] live updates connected
+2026-11-21 14:55:15.658 [http] POST /api/turn/requests -> 200 in 383ms
+2026-11-21 15:04:29.656 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 15:04:31.750 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 15:04:36.307 [live] live updates connected
+2026-11-21 15:05:13.853 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 15:05:15.930 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 15:05:20.030 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 15:05:28.464 [live] live updates connected
+2026-11-21 15:05:28.509 [http] GET /api/initiative -> 409 (unassigned) in 38ms
+2026-11-21 15:05:28.513 [main] device is no longer assigned
+2026-11-21 15:05:28.534 [main] screen: Connected to The Shattered Beacon
+2026-11-21 15:05:28.553 [http] GET /api/prompts -> 409 (unassigned) in 20ms
+2026-11-21 15:05:44.344 [main] screen: playing as Garroth Vask
+2026-11-21 15:06:22.949 [http] POST /api/turn/requests -> 200 in 215ms
+2026-11-21 15:06:50.019 [http] POST /api/prompts/e5ac0b81d0/368c7a5d -> 200 in 79ms
+2026-11-21 15:07:29.880 [http] POST /api/prompts/e5ac0b81d0/afa7c7ba -> 200 in 45ms
+2026-11-21 15:16:45.451 [live] live updates dropped (ConnectException: Failed to connect to /192.168.0.162:4567); retrying
+2026-11-21 15:16:45.452 [http] ERROR GET /api/hello to http://192.168.0.162:4567 failed: ConnectException: Failed to connect to /192.168.0.162:4567
+2026-11-21 15:16:45.455 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.0.162:4567
+2026-11-21 15:16:45.456 [main] screen: Looking for the Crimson Steel server…
+2026-11-21 15:16:45.459 [session] searching for the server
+2026-11-21 15:16:45.460 [session] trying last server http://192.168.0.162:4567
+2026-11-24 15:33:35.902 [session] app started: Crimson Steel v0.037 b (3471); Android 17 (API 37); Google Pixel 7
+2026-11-24 15:33:35.937 [main] screen: Looking for the Crimson Steel server…
+2026-11-24 15:33:35.956 [session] searching for the server
+2026-11-24 15:33:35.957 [session] trying last server http://192.168.0.162:4567
+2026-11-24 15:33:39.986 [http] ERROR GET /api/hello to http://192.168.0.162:4567 failed: SocketTimeoutException: failed to connect to /192.168.0.162 (port 4567) from /192.168.4.111 (port 33716) after 4000ms
+2026-11-24 15:33:39.988 [session] last server not reachable: SocketTimeoutException: failed to connect to /192.168.0.162 (port 4567) from /192.168.4.111 (port 33716) after 4000ms
+2026-11-24 15:33:39.988 [session] broadcasting a discovery probe on UDP 47567
+2026-11-24 15:33:39.999 [discovery] interface wlan0: 192.168.4.111/24 broadcast 192.168.4.255
+2026-11-24 15:33:39.999 [discovery] interface v4-rmnet1: 192.0.0.4/32 broadcast null
+2026-11-24 15:33:39.999 [discovery] interface tun0: 10.1.10.1/32 broadcast null
+2026-11-24 15:33:40.001 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-24 15:33:40.001 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-24 15:33:40.131 [discovery] reply from 192.168.4.105: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-24 15:33:40.132 [session] found The Shattered Beacon at http://192.168.4.105:4567 by broadcast
+2026-11-24 15:33:40.168 [http] GET /api/hello -> 200 in 35ms
+2026-11-24 15:33:40.172 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device 57d846b7, character Garroth Vask
+2026-11-24 15:33:40.173 [main] screen: playing as Garroth Vask
+2026-11-24 15:33:40.280 [http] GET /api/sheet -> 200 in 92ms
+2026-11-24 15:33:42.273 [live] live updates connected
+2026-11-24 15:33:42.430 [http] GET /api/prompts -> 200 in 17ms
+2026-11-24 15:33:44.167 [http] GET /api/scene -> 200 in 71ms
+2026-11-24 15:33:45.521 [http] GET /api/notes -> 200 in 19ms
+2026-11-24 15:33:46.147 [http] GET /api/inventory -> 200 in 35ms
+2026-11-24 15:33:46.788 [http] GET /api/initiative -> 200 in 193ms
+2026-11-24 15:33:47.907 [settings] opened
+2026-11-24 15:33:47.927 [http] GET /api/app/latest -> 200 in 12ms
+2026-11-24 15:33:47.938 [http] GET /api/dice_colors -> 200 in 11ms
+2026-11-24 15:33:59.761 [logs] screenshot taken in SettingsActivity: sending a copy to the server
