@@ -59,8 +59,11 @@ There is no login, password, or account selection. Identity is purely based on w
 
 ### End with an 80/20 summary
 
-- Close every reply with a line (`---`), then a `## 80/20` section as the
-  very last thing. It restates the bottom line only and adds nothing new.
+- End your answer to each of my prompts with a line (`---`), then a
+  `## 80/20` section as the very last thing. It restates the bottom line only
+  and adds nothing new.
+- One 80/20 per prompt: only in the final reply to it. Replies to automated
+  events (scheduled build checks, notifications) get none.
 - Include a line only when it has something real to say:
   - ✅ **Result:** always; one line.
   - 👉 **Next:** only when I have to do something. A bullet per step, the
