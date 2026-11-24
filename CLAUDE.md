@@ -37,6 +37,13 @@ There is no login, password, or account selection. Identity is purely based on w
 - Ask questions often especially when there is ambiguity or you believe I have made a mistake
 - Ask questions in plain chat text, not via the `AskUserQuestion` / multiple-choice prompt tool. Do not use that tool in this project — write the question(s) as normal prose and wait for a reply.
 
+### Say what's missing first
+
+- Before answering, list the information you'd need that I haven't given
+  you. Skip the list when nothing is missing.
+- If something on the list blocks the work, ask about it and stop (see
+  *Stop after asking questions*).
+
 ### Stop after asking questions
 
 - Whenever you have a question, or multiple questions, stop immediatly after asking them.
@@ -49,6 +56,24 @@ There is no login, password, or account selection. Identity is purely based on w
 - Don't write code comments that only restate the code. Comment the why, a
   non-obvious rule, or a link to the design doc — nothing else.
 - Keep chat messages and commit messages short and to the point.
+
+### End with an 80/20 summary
+
+- Close every reply with a line (`---`), then a `## 80/20` section as the
+  very last thing. It restates the bottom line only and adds nothing new.
+- Include a line only when it has something real to say:
+  - ✅ **Result:** always; one line.
+  - 👉 **Next:** only when I have to do something. A bullet per step, the
+    action in bold.
+  - ❓ **Decide:** only when the choice is mine.
+  - ⚠️ **Watch out:** only for a real risk.
+  - 🔀 **Git:** only when a repo changed.
+- Bold the key actions, so the bold words alone answer the question.
+
+### Never touch `main`
+
+- Never commit to, push to, or otherwise change `main`. It is mine to merge
+  into; your work goes on your `claude/` branch.
 
 ### Design document conventions
 
