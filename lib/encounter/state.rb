@@ -276,7 +276,11 @@ module Encounter
       c = find!(combatant_id)
       creature = lookup!(c[:creature_id])
       return 0 unless creature
-      CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, c[:creature_id])
+      fatigue_adjusted_pool(c[:creature_id], CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, c[:creature_id]))
+    end
+
+    def fatigue_adjusted_pool(creature_id, size)
+      defined?(::Conditions) ? ::Conditions.adjust_value(creature_id, :combat_pool, size) : size
     end
 
     def combat_pool_remaining(combatant_id)
@@ -1342,7 +1346,8 @@ module Encounter
     # current Mana and Combat Pool. Already-running Bardic Performances are
     # marked `active`. Returns [] for an unknown Combatant or a Creature
     # that exposes no Granted Abilities.
-    # Exhausted lasts this many Rounds after a rage ends (10 minutes).
+    # Exhausted (conditions_effect_names.yaml → fatigue track) lasts this many
+    # Rounds after a rage ends (10 minutes).
     EXHAUSTED_ROUNDS = 100
 
     def raging?(creature_id) = active_condition_names(creature_id).include?('rage')
@@ -1375,10 +1380,11 @@ module Encounter
         desc[:active]   = active.include?(desc[:name])
         afford_mana     = mana_rem.nil? || mana_rem >= desc[:mana_cost]
         afford_pool     = pool_rem >= desc[:action_cost]
-        exhausted       = desc[:name].to_s == 'Rage' && active_condition_names(c[:creature_id]).include?('exhausted')
-        desc[:disabled] = !(afford_mana && afford_pool) || exhausted
+        tired           = desc[:name].to_s == 'Rage' &&
+                          (active_condition_names(c[:creature_id]) & Conditions::Instance::FATIGUE_TRACK).first
+        desc[:disabled] = !(afford_mana && afford_pool) || !!tired
         desc[:disabled_reason] =
-          if exhausted then 'exhausted'
+          if tired then tired
           elsif !afford_pool then 'not enough Combat Pool'
           elsif !afford_mana then 'not enough Mana'
           end
@@ -2072,7 +2078,8 @@ module Encounter
     def combat_pool_size_for(combatant)
       creature = lookup!(combatant[:creature_id])
       return 0 unless creature
-      CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, combatant[:creature_id])
+      fatigue_adjusted_pool(combatant[:creature_id],
+                            CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, combatant[:creature_id]))
     rescue StandardError
       0
     end

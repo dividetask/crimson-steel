@@ -17,6 +17,17 @@ module Conditions
   def severities
     SEVERITIES
   end
+
+  # +value+ after the Creature's active set_value / scale_value mechanics for
+  # +target+ (str, dex, …, speed, combat_pool): a set_value wins (the lowest);
+  # otherwise the strongest scale_value, its reduction rounded down.
+  def adjust_value(creature_id, target, value)
+    inst = (store.instance_for(creature_id) rescue nil)
+    return value unless inst
+    inst.adjusted_value(target, value)
+  rescue StandardError
+    value
+  end
 end
 
 require_relative 'conditions/catalog'

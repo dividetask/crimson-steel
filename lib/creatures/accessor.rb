@@ -93,7 +93,7 @@ module Creatures
       base ||= Creatures::Config.data['Default Base Speed'] || 30
 
       bonus = aggregated_modifiers(target: 'speed').sum { |m| m[:amount] }
-      [base + bonus, 0].max
+      condition_adjusted(:speed, [base + bonus, 0].max)
     end
 
     def max_hit_points
@@ -252,9 +252,15 @@ module Creatures
       Creatures::Config.attribute_keys.each_with_object({}) do |a, h|
         raw = base[a] + racial_adjustment(a) + inherent_bonus(a) + attribute_modifier(a)
         # Every Effective Attribute floors at 1 — racial penalties (notably
-        # beasts' -8 Int) never drop a score below 1.
-        h[a] = [raw, 1].max
+        # beasts' -8 Int) never drop a score below 1 — before Conditions'
+        # fatigue / unconscious adjustments (which may set it to 0).
+        h[a] = condition_adjusted(a, [raw, 1].max)
       end
+    end
+
+    def condition_adjusted(target, value)
+      return value unless defined?(::Conditions) && ::Conditions.respond_to?(:adjust_value)
+      ::Conditions.adjust_value(id, target, value)
     end
 
     def racial_adjustment(attr)
