@@ -233,7 +233,38 @@ class MainActivity : Activity() {
         Session.hello { r -> r.onSuccess { onHello(it) }.onFailure { onApiError(it) } }
     }
 
+    /** The update in progress on the "Update required" screen: what Android or the download last said. */
+    private var updateStatus: String? = null
+
+    /** The server's build is newer than this app: every tab waits until it is installed. */
+    private fun showUpdateRequired(version: String) {
+        showMessage("Update required",
+            updateStatus ?: "The server has Crimson Steel $version. Install it to keep playing.",
+            action = "Update to $version") {
+            com.dividetask.crimsonsteel.net.AppUpdater.start(this, version) { msg ->
+                updateStatus = msg
+                showUpdateRequired(version)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        com.dividetask.crimsonsteel.net.AppUpdater.handleStatus(this, intent)?.let { msg ->
+            updateStatus = msg
+            checkAssignment()
+        }
+    }
+
     private fun onHello(h: Hello) {
+        if (com.dividetask.crimsonsteel.net.AppUpdater.needsUpdate(h.app)) {
+            playing = false
+            showUpdateRequired(h.app!!.version)
+            handler.removeCallbacks(poll)
+            handler.postDelayed(poll, pollDelay())
+            return
+        }
+        updateStatus = null
         val c = h.character
         if (c == null) {
             playing = false

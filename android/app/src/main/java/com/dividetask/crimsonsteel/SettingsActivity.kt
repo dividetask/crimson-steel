@@ -153,10 +153,14 @@ class SettingsActivity : Activity() {
      * server and hands it to Android's installer; the app never updates by
      * itself.
      */
+    /** Bumped on every redraw: an answer for an older one is dropped (it would add a second button). */
+    private var updatesShown = 0
+
     private fun showUpdates(status: String? = null) {
         val box = updateBox ?: return
         box.removeAllViews()
-        val mine = com.dividetask.crimsonsteel.net.AppUpdater.parse(Ui.versionName)
+        val shown = ++updatesShown
+        val U = com.dividetask.crimsonsteel.net.AppUpdater
         box.addView(Ui.text(this, "This app: ${Ui.versionName}", 14f, Ui.TEXT), Ui.matchWidth())
         if (Session.api == null) {
             box.addView(Ui.text(this, "Connect to the server to check for updates.", 13f, Ui.TEXT_FAINT), Ui.matchWidth(Ui.dp(this, 4)))
@@ -165,35 +169,28 @@ class SettingsActivity : Activity() {
         val serverLine = Ui.text(this, status ?: "Server: checking\u2026", 14f, Ui.TEXT_DIM)
         box.addView(serverLine, Ui.matchWidth(Ui.dp(this, 2)))
         if (status != null) return
-        com.dividetask.crimsonsteel.net.AppUpdater.latest { r ->
-            if (isFinishing) return@latest
-            val v = r.getOrNull()
-            val theirs = com.dividetask.crimsonsteel.net.AppUpdater.parse(v)
+        U.latest { r ->
+            if (isFinishing || shown != updatesShown) return@latest
+            val rel = r.getOrNull()
+            val theirs = U.parse(rel?.version)
+            val mine = U.parse(Ui.versionName)
             when {
                 r.isFailure -> serverLine.text = "Server: could not check (${r.exceptionOrNull()?.message})"
-                v == null || theirs == null -> serverLine.text = "Server: has no app build."
-                mine == null -> serverLine.text = "Server: $v"
-                com.dividetask.crimsonsteel.net.AppUpdater.compare(theirs, mine) == 0 -> serverLine.text = "Server: $v \u2014 up to date."
-                com.dividetask.crimsonsteel.net.AppUpdater.compare(theirs, mine) < 0 ->
-                    serverLine.text = "Server: $v \u2014 older than this app. Android cannot install an older build over a newer one; pull the server to get the newest."
-                else -> {
-                    serverLine.text = "Server: $v \u2014 a newer version."
-                    box.addView(button("Update to $v", primary = true) { startUpdate(v) }, Ui.matchWidth(Ui.dp(this, 6)))
+                rel == null || theirs == null -> serverLine.text = "Server: has no app build."
+                U.needsUpdate(rel, Ui.versionName) -> {
+                    serverLine.text = "Server: ${rel.version} \u2014 a newer build."
+                    box.addView(button("Update to ${rel.version}", primary = true) { startUpdate(rel.version) },
+                        Ui.matchWidth(Ui.dp(this, 6)))
                 }
+                mine != null && U.compare(theirs, mine) < 0 ->
+                    serverLine.text = "Server: ${rel.version} \u2014 older than this app. Android cannot install an older build over a newer one; pull the server to get the newest."
+                else -> serverLine.text = "Server: ${rel.version} \u2014 up to date."
             }
         }
     }
 
     private fun startUpdate(version: String) {
-        // Android asks once to allow installs from this app.
-        if (android.os.Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
-            toast("Allow Crimson Steel to install apps, then tap Update again.")
-            startActivity(android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                android.net.Uri.parse("package:$packageName")))
-            return
-        }
-        DebugLog.i("update", "updating to $version")
-        com.dividetask.crimsonsteel.net.AppUpdater.install(this, version) { msg -> showUpdates(msg) }
+        com.dividetask.crimsonsteel.net.AppUpdater.start(this, version) { msg -> showUpdates(msg) }
     }
 
     override fun onNewIntent(intent: android.content.Intent) {

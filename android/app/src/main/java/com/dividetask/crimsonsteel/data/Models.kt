@@ -20,13 +20,20 @@ private fun JSONObject.optStringOrNull(key: String): String? =
 
 data class CharacterRef(val id: Int, val name: String)
 
-data class Hello(val campaign: String, val device: String, val character: CharacterRef?, val diceColor: Int? = null) {
+/** The newest app build on the server: its version ("v0.040") and the commit it was built from. */
+data class AppRelease(val version: String, val commit: String?)
+
+data class Hello(val campaign: String, val device: String, val character: CharacterRef?, val diceColor: Int? = null,
+                 val app: AppRelease? = null) {
     companion object {
         fun from(j: JSONObject) = Hello(
             campaign = j.optString("campaign"),
             device = j.optString("device"),
             character = j.optJSONObject("character")?.let { CharacterRef(it.optInt("id"), it.optString("name")) },
             diceColor = com.dividetask.crimsonsteel.ui.Ui.parseHex(j.optStringOrNull("dice_color")),
+            app = j.optJSONObject("app")?.let { a ->
+                a.optStringOrNull("version")?.let { AppRelease(it, a.optStringOrNull("commit")) }
+            },
         )
     }
 }

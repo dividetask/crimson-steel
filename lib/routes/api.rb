@@ -242,6 +242,13 @@ helpers do
     nil
   end
 
+  # The newest app build on this server: phones older than it must update
+  # before they can play (docs/project/app_updates.md).
+  def api_app_release
+    rel = AppRelease.latest
+    rel && { version: rel[:version], commit: rel[:commit] }
+  end
+
   # In Combat as the players see it: combat running and the party's Phase is
   # Combat (the same condition the web Encounter page uses for the turn panel).
   def api_in_combat?
@@ -306,7 +313,8 @@ get '/api/hello' do
            campaign: (Chronicle.store.campaign_name rescue nil),
            device: assignment_short_id(current_device_id),
            character: info ? { id: cid, name: info[:name] } : nil,
-           dice_color: info ? DiceColors.instance.hex_for(cid) : nil)
+           dice_color: info ? DiceColors.instance.hex_for(cid) : nil,
+           app: api_app_release)
 end
 
 # The player's dice colour and every colour on offer, with who has each
@@ -505,7 +513,7 @@ end
 # docs/project/app_updates.md). Any device: an unassigned phone may update too.
 get '/api/app/latest' do
   rel = AppRelease.latest
-  api_json(ok: true, version: rel && rel[:version], size: rel && rel[:size], url: rel && '/api/app/apk')
+  api_json(ok: true, version: rel && rel[:version], commit: rel && rel[:commit], size: rel && rel[:size], url: rel && '/api/app/apk')
 end
 
 # The APK itself, for Settings → App updates on the phone.
