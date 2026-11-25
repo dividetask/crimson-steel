@@ -152,15 +152,30 @@ Scenarios.define 'simple_combat: four Common Orcs', seed_data: 'no_monsters' do
     check !j.dig('flow', 'blocking'), 'Standard Shield rolls nothing, so it does not hold up other requests'
   end
 
-  step "Thora's tablet: Cast Spiritual Hammer on Common Orc 1 with 7 dice" do
-    j = party['Thora'].request_action(key: 'cast:Spiritual Hammer', dice: 7, target_id: orcs.first['id'].to_s)
-    check j['ok'], "request: #{j.inspect}"
-    check j.dig('flow', 'summary').to_s.start_with?('Spiritual Hammer — 7 dice at Common Orc'), "summary #{j.dig('flow', 'summary')}"
+  # Spiritual Hammer is Tier 1 and always spends 2 dice: the tablet offers no
+  # dice choice. Fails until that rule change lands (another thread).
+  step "Thora's tablet: Cast Spiritual Hammer on Common Orc 1 (Tier 1, always 2 dice)", blocking: false do
+    opt = Array(party['Thora'].initiative['options']).find { _1['key'] == 'cast:Spiritual Hammer' }
+    check opt, "Thora's tablet offers Spiritual Hammer"
+    choices = Array(opt['dice']).map { _1['dice'] }
+    problems = []
+    problems << "Tier #{opt['tier'].inspect}, expected 1" unless opt['tier'] == 1
+    problems << "dice choices #{choices.inspect}, expected none or just 2" unless choices.empty? || choices == [2]
+    body = { key: 'cast:Spiritual Hammer', target_id: orcs.first['id'].to_s }
+    body[:dice] = choices.first if choices.size == 1
+    j = party['Thora'].request_action(**body)
+    if j['ok']
+      problems << "Combat Pool cost #{j.dig('flow', 'pool_cost').inspect}, expected 2" unless j.dig('flow', 'pool_cost') == 2
+      problems << "summary #{j.dig('flow', 'summary').inspect}" unless j.dig('flow', 'summary').to_s.include?('Spiritual Hammer')
+    else
+      problems << "request refused: #{j['error'] || j.inspect}"
+    end
+    check problems.empty?, problems.join('; ')
   end
 
   step "both requests wait on the DM's Player actions panel" do
     html = dm.http.get('/encounter/flows_panel').body
-    ['Standard Shield at Garroth Vask', 'Spiritual Hammer — 7 dice at Common Orc'].each do |s|
+    ['Standard Shield at Garroth Vask', 'Spiritual Hammer'].each do |s|
       check html.include?(s), "Player actions panel shows #{s}"
     end
   end

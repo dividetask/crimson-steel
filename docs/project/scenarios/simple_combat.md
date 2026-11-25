@@ -40,7 +40,10 @@ no magic toxicity, phase Downtime. Everything else is the example campaign.
     DM's Combat Tracker. *Fails until orc numbering lands (another thread).*
 13. Thora's tablet: Cast Standard Shield on Garroth. It rolls nothing, so it
     does not hold up her next request.
-14. Thora's tablet: Cast Spiritual Hammer on Common Orc 1 with 7 dice.
+14. Thora's tablet: Cast Spiritual Hammer on Common Orc 1. Spiritual Hammer
+    is Tier 1 and always spends 2 dice: the tablet offers no dice choice and
+    the request costs 2 from the Combat Pool. *Fails until that rule change
+    lands (another thread).*
 15. Check: both requests are on the DM's Player actions panel.
 16. Check: every die was scripted.
 
