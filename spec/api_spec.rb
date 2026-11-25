@@ -206,6 +206,20 @@ RSpec.describe 'Android app JSON API', type: :request do
       expect(last_response.content_type).to include('audio/mpeg')
     end
 
+    it 'says how many creatures act before the player' do
+      mine = start_combat_on_my_turn!
+      expect(api_get('/api/initiative')['me']['creatures_before']).to eq(0)
+      es = Encounter.state
+      # Whoever acts right after the player: everyone else is ahead of them again.
+      es.advance_turn
+      ahead = es.turns_before(mine[:id])
+      expect(ahead.length).to eq(es.combatants.length - 1)
+      expect(api_get('/api/initiative')['me']['creatures_before']).to eq(ahead.uniq.length)
+      # Each turn that ends leaves one fewer.
+      es.advance_turn
+      expect(api_get('/api/initiative')['me']['creatures_before']).to eq(ahead.uniq.length - 1)
+    end
+
     it 'offers no options when it is not their turn' do
       j = api_get('/api/initiative')
       expect(j['my_turn']).to be false

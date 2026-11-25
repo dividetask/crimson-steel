@@ -515,6 +515,31 @@ module Encounter
       @acting_combatant_id
     end
 
+    # The Combatants whose turns come before this Combatant's next one, in
+    # order, starting with the Acting Combatant (encounter_design.md → Turns
+    # Before). Walks the order advance_turn steps through — the rest of this
+    # Time Tick, then each Tick after it — leaving out Combatants that cannot
+    # act, which advance_turn skips. One entry per turn. Empty on the
+    # Combatant's own turn; nil when nobody is acting or it has no turn coming.
+    def turns_before(combatant_id)
+      return nil unless combat_active? && @acting_combatant_id
+      return [] if @acting_combatant_id == combatant_id
+      ahead = [@acting_combatant_id]
+      order = acting_combatants(@time_tick)
+      at    = order.index { |c| c[:id] == @acting_combatant_id }
+      queue = at ? order[(at + 1)..] : order
+      tick  = @time_tick
+      (@time_ticks_per_round + 1).times do
+        queue.each do |c|
+          return ahead if c[:id] == combatant_id
+          ahead << c[:id] if (creature_can_act?(c[:id]) rescue true)
+        end
+        tick  = tick >= @time_ticks_per_round ? 1 : tick + 1
+        queue = acting_combatants(tick)
+      end
+      nil
+    end
+
     # Apply Per-Turn Setup to the incoming Combatant: reset per-turn
     # Concentration Reservoirs to 0 (persistent reservoirs untouched).
     def apply_per_turn_setup(combatant_id)

@@ -104,8 +104,15 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
         initiativeSection(col, d)
         if (!d.myTurn) {
+            // Large: no mistaking that it is not this player's turn.
             val acting = d.order.find { it.acting }
-            col.addView(Ui.text(ctx, acting?.let { "Waiting for ${it.name}." } ?: "Waiting for the DM.", 14f, Ui.TEXT_DIM),
+            val ahead = d.creaturesBefore
+            val waiting = when {
+                acting == null -> "Waiting for the DM."
+                ahead != null && ahead > 0 -> "$ahead ${if (ahead == 1) "creature" else "creatures"} before you"
+                else -> "Waiting for ${acting.name}."
+            }
+            col.addView(Ui.text(ctx, waiting, 22f, Ui.TEXT, bold = true).apply { gravity = Gravity.CENTER },
                 Ui.matchWidth(Ui.dp(ctx, 14)))
         }
         // Everything on the player's turn; on anyone else's, their Free actions (Rage…).

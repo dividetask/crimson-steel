@@ -190,6 +190,14 @@ Behavior:
 
 Acting Combatants is an internal computation, not a public entry point — callers don't need to enumerate the list; they query the Acting Combatant directly via `acting_combatant_id`.
 
+### Turns Before
+
+Input: Combat ID.
+
+Returns: the Combat IDs whose turns come before that Combatant's next one, in order, starting with the Acting Combatant. These are the turns *Advance Turn* would step through: the rest of the current Time Tick's Acting Combatants, then each following Time Tick's, on into the next Round. Combatants for which *Creature Can Act?* is false are left out, as *Advance Turn* skips them. A Combatant with more than one turn in that stretch appears once per turn. Empty on the Combatant's own turn. Null when there is no Acting Combatant, or the Combatant has no turn scheduled.
+
+A read: nothing changes.
+
 ### Advance Time Tick
 
 Inputs: none.

@@ -513,6 +513,8 @@ data class Initiative(
     val actions: List<SharedAction> = emptyList(),
     /** What the DM committed lately. */
     val news: List<NewsItem> = emptyList(),
+    /** How many creatures act before the player's next turn; null when the server cannot say. */
+    val creaturesBefore: Int? = null,
 ) {
     companion object {
         fun from(j: JSONObject): Initiative {
@@ -568,6 +570,7 @@ data class Initiative(
                 },
                 prompts = Prompt.list(j.optJSONArray("prompts")),
                 busy = j.optBoolean("busy"),
+                creaturesBefore = me?.optIntOrNull("creatures_before"),
                 news = NewsItem.list(j.optJSONArray("news")),
                 actions = j.optJSONArray("actions").mapObjects { a ->
                     SharedAction(a.optString("flow_id"), 0, a.optString("action_line"),

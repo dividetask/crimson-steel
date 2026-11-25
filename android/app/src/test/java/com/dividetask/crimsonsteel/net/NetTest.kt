@@ -112,6 +112,14 @@ class NetTest {
         assertEquals("Attack with Rapier", i.options[0].copy(name = "Rapier").actionText)
     }
 
+    @Test fun parsesCreaturesBeforeYou() {
+        val waiting = Initiative.from(JSONObject(
+            """{"ok":true,"combat_active":true,"my_turn":false,"me":{"combatant_id":4,"creatures_before":3}}"""))
+        assertEquals(3, waiting.creaturesBefore)
+        // An older server does not say.
+        assertNull(Initiative.from(JSONObject("""{"ok":true,"combat_active":true,"me":{"combatant_id":4}}""")).creaturesBefore)
+    }
+
     @Test fun parsesPromptsTargetsAndFlows() {
         val j = JSONObject("""
             {"ok":true,"combat_active":true,"round_label":"Round 1","my_turn":false,"options":[],"requests":[],

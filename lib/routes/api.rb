@@ -401,7 +401,10 @@ get '/api/initiative' do
            main_actions_remaining: (es.main_actions_remaining(mine[:id]) rescue nil),
            mana: v && v[:mana], toxicity: v && v[:toxicity],
            # Full round attack (encounter_design.md): weapon attacks need no Main Action left.
-           weapon_attacks_only: es.weapon_attacks_only?(mine[:id]) }
+           weapon_attacks_only: es.weapon_attacks_only?(mine[:id]),
+           # How many creatures act before this one's next turn (0 on its own
+           # turn; nil when nobody is acting): the app's "3 creatures before you".
+           creatures_before: (es.turns_before(mine[:id]) rescue nil)&.uniq&.length }
   end
   key = mine && PlayerRequests.turn_key(es, mine[:id])
   map = api_target_map if api_in_combat?
