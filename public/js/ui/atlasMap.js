@@ -467,6 +467,7 @@ class AtlasCanvas {
     el.style.top = (t.y * BASE_CELL) + 'px';
     el.style.width = (t.size * BASE_CELL) + 'px';
     el.style.height = (t.size * BASE_CELL) + 'px';
+    if (t.ring) el.style.setProperty('--ring', t.ring);
     el.dataset.tokenId = t.id;
     el.dataset.creatureId = t.creature_id;
     if (t.combatant_id != null) el.dataset.combatantId = t.combatant_id;

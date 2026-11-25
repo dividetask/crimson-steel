@@ -127,6 +127,14 @@ module Creatures
       record
     end
 
+    # Rename a record and persist its source file.
+    def rename!(id, name)
+      rec = get(id) or return false
+      rec[:name] = name.to_s
+      persist_source!(rec[:source]) if rec[:source]
+      true
+    end
+
     def delete!(id)
       i = Integer(id)
       load! unless defined?(@records) && @records

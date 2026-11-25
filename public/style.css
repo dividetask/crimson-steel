@@ -3905,24 +3905,30 @@ body {
 
 /* Combatant ring (in the active Combat roster); thicker animated ring for
    the Acting Combatant. */
-.atlas-token-combatant { box-shadow: 0 0 0 2px #f1c40f, 0 1px 3px rgba(0, 0, 0, 0.6); }
+.atlas-token-combatant { box-shadow: 0 0 0 3px var(--ring, #f1c40f), 0 1px 3px rgba(0, 0, 0, 0.6); }
+/* The ring is the player's dice colour (or the DM's); the Acting Combatant's pulses. */
 .atlas-token-acting {
-  box-shadow: 0 0 0 3px #fff, 0 0 10px 2px #f1c40f;
+  box-shadow: 0 0 0 3px var(--ring, #fff), 0 0 10px 2px #f1c40f;
   animation: atlas-acting-pulse 1.2s ease-in-out infinite;
 }
 @keyframes atlas-acting-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 6px 1px #f1c40f; }
-  50%      { box-shadow: 0 0 0 3px #fff, 0 0 14px 4px #f1c40f; }
+  0%, 100% { box-shadow: 0 0 0 3px var(--ring, #fff), 0 0 6px 1px #f1c40f; }
+  50%      { box-shadow: 0 0 0 3px var(--ring, #fff), 0 0 14px 4px #f1c40f; }
 }
 
 /* Tier Color fills (ui_conventions.md). */
-.atlas-token.atlas-tier-0 { background: #e74c3c; }
-.atlas-token.atlas-tier-1 { background: #e67e22; }
-.atlas-token.atlas-tier-2 { background: #f1c40f; }
-.atlas-token.atlas-tier-3 { background: #2ecc71; }
-.atlas-token.atlas-tier-4 { background: #3498db; }
-.atlas-token.atlas-tier-5 { background: #9b59b6; }
+.atlas-token.atlas-tier-0 { background: #e74c3c; --tier: #e74c3c; }
+.atlas-token.atlas-tier-1 { background: #e67e22; --tier: #e67e22; }
+.atlas-token.atlas-tier-2 { background: #f1c40f; --tier: #f1c40f; }
+.atlas-token.atlas-tier-3 { background: #2ecc71; --tier: #2ecc71; }
+.atlas-token.atlas-tier-4 { background: #3498db; --tier: #3498db; }
+.atlas-token.atlas-tier-5 { background: #9b59b6; --tier: #9b59b6; }
 .atlas-token.atlas-tier-unknown { background: #7f8c8d; }
+/* Inner circle in the token's Tier colour, inside the player's ring. */
+.atlas-token::after {
+  content: ''; position: absolute; inset: 2px; border-radius: 50%;
+  border: 3px solid var(--tier, transparent); pointer-events: none;
+}
 
 /* --- Hover tooltip (atlas_token_tooltip.md) --- */
 .atlas-tooltip {
@@ -5027,3 +5033,6 @@ tr.lr-row.lr-flash { animation: lr-flash 0.6s ease 2; }
 /* Kesser's Gambit from a phone, in the DM's builder (liveSync.js). */
 .lr-reactions { margin-top: 10px; }
 .lr-react-line { margin: 4px 0; font-size: 0.9em; }
+
+/* Full round attack badge on the turn header (views/_turn_action.erb). */
+.ta-full-round { background: #fef3c7; color: #92400e; border-radius: 4px; padding: 1px 6px; font-weight: bold; }

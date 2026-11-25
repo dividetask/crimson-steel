@@ -28,6 +28,10 @@
 #       Value Adjustment (Insight). Sign on `amount` carries direction.
 #   { kind: "set_value", target: "<derived>", value: <int|formula> }
 #   { kind: "scale_value", target: "<derived>", factor: <number> }
+#       Read through Conditions.adjust_value for the targets str, dex,
+#       con, int, wis, cha, speed and combat_pool. scale_value keeps
+#       `factor` of the value: the reduction is rounded down (factor 0.75
+#       on 15 → 15 - floor(3.75) = 12). set_value wins over scale_value.
 #   { kind: "flag", flag: "<name>" }
 #   { kind: "display", text: "<rule for the DM>" }
 #
@@ -222,13 +226,80 @@ Effect Names:
       - kind: flag
         flag: raging
 
+  # Fatigue track (lib/conditions/instance.rb FATIGUE_TRACK): winded → tired →
+  # exhausted. Gaining fatigue moves up one stage (or straight to the stage
+  # applied, if higher); gaining it while exhausted adds unconscious. Each
+  # stage's duration comes from the Effect that grants it.
+  winded:
+    description: "Fatigue track stage 1 of 3: Strength, Combat Pool and speed reduced by 25%. Gaining fatigue again moves to tired."
+    mechanics:
+      - kind: scale_value
+        target: str
+        factor: 0.75
+      - kind: scale_value
+        target: combat_pool
+        factor: 0.75
+      - kind: scale_value
+        target: speed
+        factor: 0.75
+      - kind: flag
+        flag: fatigued
+
+  tired:
+    description: "Fatigue track stage 2 of 3: Strength, Combat Pool and speed reduced by 50%. Gaining fatigue again moves to exhausted."
+    mechanics:
+      - kind: scale_value
+        target: str
+        factor: 0.5
+      - kind: scale_value
+        target: combat_pool
+        factor: 0.5
+      - kind: scale_value
+        target: speed
+        factor: 0.5
+      - kind: flag
+        flag: fatigued
+
   exhausted:
-    description: "Worn out after a rage ends: lasts 10 minutes. You cannot enter a rage while exhausted."
+    description: "Fatigue track stage 3 of 3: Strength, Combat Pool and speed reduced by 75%. Gaining fatigue again moves to unconscious."
+    mechanics:
+      - kind: scale_value
+        target: str
+        factor: 0.25
+      - kind: scale_value
+        target: combat_pool
+        factor: 0.25
+      - kind: scale_value
+        target: speed
+        factor: 0.25
+      - kind: flag
+        flag: fatigued
+
+  # Not on the fatigue track.
+  unconscious:
+    description: "Helpless and unaware. Strength, Dexterity, Wisdom, Intelligence and Combat Pool are 0."
     mechanics:
       - kind: flag
-        flag: exhausted
-      - kind: display
-        text: "Exhausted: cannot rage."
+        flag: cannot_act
+      - kind: flag
+        flag: helpless
+      - kind: flag
+        flag: unaware
+      - kind: set_value
+        target: str
+        value: 0
+      - kind: set_value
+        target: dex
+        value: 0
+      - kind: set_value
+        target: wis
+        value: 0
+      - kind: set_value
+        target: int
+        value: 0
+      - kind: set_value
+        target: combat_pool
+        value: 0
 
   martial_devotion:
     mechanics:

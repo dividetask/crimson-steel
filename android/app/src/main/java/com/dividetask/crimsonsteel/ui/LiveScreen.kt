@@ -13,11 +13,18 @@ import android.widget.ScrollView
 abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (Throwable) -> Unit) {
 
     private val scroll = ScrollView(ctx).apply { isFillViewport = true }
+    /** Pinned under the scrolling content, always in view ([buildFooter]). */
+    private val footer = android.widget.FrameLayout(ctx)
+    private val root = android.widget.LinearLayout(ctx).apply {
+        orientation = android.widget.LinearLayout.VERTICAL
+        addView(scroll, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        addView(footer, Ui.matchWidth())
+    }
     private var lastJson: String? = null
     protected var data: T? = null
         private set
 
-    val view: View get() = scroll
+    val view: View get() = root
 
     init {
         scroll.addView(Ui.text(ctx, "Loading…", 15f, Ui.TEXT_DIM).apply {
@@ -29,6 +36,9 @@ abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (T
     protected abstract fun fetch(done: (Result<Pair<T, String>>) -> Unit)
 
     protected abstract fun build(d: T): View
+
+    /** What stays in view under the scrolling content, or null for nothing. */
+    protected open fun buildFooter(d: T): View? = null
 
     /**
      * While true (e.g. dice are rolling on screen), new data is kept but the
@@ -62,6 +72,8 @@ abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (T
         val keepY = scroll.scrollY
         scroll.removeAllViews()
         scroll.addView(build(d))
+        footer.removeAllViews()
+        buildFooter(d)?.let { footer.addView(it) }
         scroll.post { scroll.scrollTo(0, keepY) }
     }
 

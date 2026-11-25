@@ -138,7 +138,8 @@ function state(root, container) {
     choices, target_id: /^\d+$/.test(tgt) ? parseInt(tgt, 10) : null,
     action_label: actionLabel(container, kind, root._cb.choices || {}),
     step: step ? stepState(root, step) : null,
-    rolls: diceUp(root) ? rollsState(root) : null,
+    // A no-roll action (a buff Cast such as Standard Shield) has no Rolls for the phones.
+    rolls: diceUp(root) && !root._cb.noRoll ? rollsState(root) : null,
   };
 }
 

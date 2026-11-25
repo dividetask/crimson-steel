@@ -64,8 +64,13 @@ Channel Divinity) may answer **any attack or spell roll, by anyone**.
 
 **End Rage** appears in a raging player's actions. It takes 1 minute and
 goes to the DM for approval like any request. Approved, the rage's Effects
-end and the Creature gains **Exhausted** for 10 minutes (100 Rounds); Rage
-cannot be used while exhausted.
+end and the Creature gains **Exhausted** for 10 minutes (100 Rounds) — the
+last stage of the fatigue track (Winded → Tired → Exhausted: Strength,
+Combat Pool and speed −25% / −50% / −75%, reductions rounded down; see
+[conditions_effect_names.yaml](../common/conditions/conditions_effect_names.yaml)).
+Already exhausted, it adds **Unconscious** (helpless, unaware; Strength,
+Dexterity, Wisdom, Intelligence and Combat Pool 0). Rage cannot be used at any fatigue
+stage.
 
 ## Fudging
 

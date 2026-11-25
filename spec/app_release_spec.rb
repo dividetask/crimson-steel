@@ -23,6 +23,15 @@ RSpec.describe 'App updates from the server', type: :request do
     expect(AppRelease.pending_warning).to be_nil
   end
 
+  it 'tells the app which commit the newest APK was built from, in /api/hello too' do
+    get '/api/app/latest', {}, 'REMOTE_ADDR' => '192.168.1.50'
+    j = JSON.parse(last_response.body)
+    msg = `git -C #{File.dirname(AppRelease::DIR)} log -1 --format=%s -- #{File.join(AppRelease::DIR, j['version'] + '.apk')}`
+    expect(j['commit']).to eq(msg[/\(from ([0-9a-f]+)\)/, 1])
+    get '/api/hello', {}, 'REMOTE_ADDR' => '192.168.1.50'
+    expect(JSON.parse(last_response.body)['app']).to eq('version' => j['version'], 'commit' => j['commit'])
+  end
+
   it 'reads the version the checkout builds as' do
     expect(AppRelease.checkout_version).to match(/\Av\d+\.\d+ [a-z]+\z/)
   end

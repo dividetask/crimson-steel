@@ -335,6 +335,29 @@ module Conditions
       results
     end
 
+    # Fatigue track, mildest first (conditions_effect_names.yaml).
+    FATIGUE_TRACK = %w[winded tired exhausted].freeze
+
+    # The fatigue stage the Creature is at, or nil.
+    def fatigue_stage
+      names = active_effect_names
+      FATIGUE_TRACK.reverse.find { |n| names.include?(n) }
+    end
+
+    # +value+ after this Creature's set_value / scale_value mechanics for +target+.
+    def adjusted_value(target, value)
+      t = target.to_s
+      mechs = @state.named_effect_mechanics.select do |m|
+        d = m[:data] || {}
+        %w[set_value scale_value].include?(m[:kind].to_s) && (d['target'] || d[:target]).to_s == t
+      end
+      return value if mechs.empty?
+      sets = mechs.select { |m| m[:kind].to_s == 'set_value' }.map { |m| (m[:data]['value'] || m[:data][:value]).to_i }
+      return sets.min unless sets.empty?
+      factor = mechs.map { |m| Rational((m[:data]['factor'] || m[:data][:factor]).to_s) }.min
+      value - (value * (1 - factor)).floor
+    end
+
     # ===== Apply Effect =====
     def apply_effect(effect)
       e = State.normalize_effect(effect)
@@ -616,6 +639,9 @@ module Conditions
     # own deciding the bindings (per the design); Conditions just does the
     # arithmetic. Without `bindings`, a Formula amount stays 0 as before.
     def apply_named_effect(name, source_id:, ends_on_round: nil, metadata: {}, bindings: {})
+      if FATIGUE_TRACK.include?(name.to_s) && !@stepping_fatigue
+        return apply_fatigue(name.to_s, source_id: source_id, ends_on_round: ends_on_round, metadata: metadata)
+      end
       entry = @catalog.effect_name(name)
       mechanics = entry['mechanics'] || []
       applied_ids = []
@@ -720,6 +746,34 @@ module Conditions
       hp_total = @state.hp_damage.values.sum
       hp_total >= max_hit_points &&
         hp_total < (@catalog.death_multiplier * max_hit_points).floor
+    end
+
+    # Gaining fatigue: up one stage from the current one, or straight to
+    # +stage+ when that is higher. Already exhausted: unconscious as well.
+    # The new stage replaces the old one; its duration is the grantor's.
+    def apply_fatigue(stage, source_id:, ends_on_round: nil, metadata: {})
+      current = fatigue_stage
+      idx = FATIGUE_TRACK.index(stage)
+      if current == FATIGUE_TRACK.last
+        return apply_named_effect('unconscious', source_id: source_id.sub(/[^:]*\z/, 'unconscious'),
+                                                 ends_on_round: ends_on_round, metadata: metadata)
+      end
+      idx = [idx, FATIGUE_TRACK.index(current) + 1].max if current
+      remove_effects_named(FATIGUE_TRACK)
+      @stepping_fatigue = true
+      apply_named_effect(FATIGUE_TRACK[idx], source_id: source_id, ends_on_round: ends_on_round, metadata: metadata)
+    ensure
+      @stepping_fatigue = false
+    end
+
+    # Remove every mechanic of the named Effects.
+    def remove_effects_named(names)
+      names = Array(names).map(&:to_s)
+      @state.named_effect_mechanics = @state.named_effect_mechanics.reject { |m| names.include?(m[:effect_name].to_s) }
+      @state.effects = @state.effects.reject do |e|
+        nm = e[:metadata] && (e[:metadata]['effect_name'] || e[:metadata][:effect_name])
+        names.include?(nm.to_s)
+      end
     end
 
     # ===== Has a "cannot act" Active Effect? =====

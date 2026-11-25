@@ -54,6 +54,7 @@ class ActionFlow
   attr_reader :id, :kind, :actor_id, :actor_name, :turn_key, :blob, :choices, :tasks, :rolls, :created_at, :ability,
               :last_sync
   attr_accessor :stage, :status, :needs_open
+  attr_reader :category
 
   # +kind+: attack / cast / item / special. +blob+: the builder blob (symbol
   # keys) of a player's request, or nil. +declare+: the player's choices as
@@ -61,8 +62,10 @@ class ActionFlow
   # display name. +dm_started+: created by the DM's builder (no request).
   def initialize(turn_key:, blob:, kind: 'attack', actor_id: nil, actor_name: nil, declare: nil, summary: nil,
                  pool_cost: nil, ability: nil, names: {}, dm_started: false,
-                 attacker_id: nil, attacker_name: nil, target_id: nil, action_value: nil)
+                 attacker_id: nil, attacker_name: nil, target_id: nil, action_value: nil, category: nil)
     raise ArgumentError, "unknown kind #{kind}" unless KINDS.include?(kind.to_s)
+    # The action's time (main / bonus / free / minute): which ones count as Main Actions.
+    @category = (category || (kind.to_s == 'attack' ? 'main' : nil))&.to_s
     @id          = SecureRandom.hex(5)
     @kind        = kind.to_s
     @actor_id    = actor_id || attacker_id

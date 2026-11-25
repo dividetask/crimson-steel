@@ -20,13 +20,20 @@ private fun JSONObject.optStringOrNull(key: String): String? =
 
 data class CharacterRef(val id: Int, val name: String)
 
-data class Hello(val campaign: String, val device: String, val character: CharacterRef?, val diceColor: Int? = null) {
+/** The newest app build on the server: its version ("v0.040") and the commit it was built from. */
+data class AppRelease(val version: String, val commit: String?)
+
+data class Hello(val campaign: String, val device: String, val character: CharacterRef?, val diceColor: Int? = null,
+                 val app: AppRelease? = null) {
     companion object {
         fun from(j: JSONObject) = Hello(
             campaign = j.optString("campaign"),
             device = j.optString("device"),
             character = j.optJSONObject("character")?.let { CharacterRef(it.optInt("id"), it.optString("name")) },
             diceColor = com.dividetask.crimsonsteel.ui.Ui.parseHex(j.optStringOrNull("dice_color")),
+            app = j.optJSONObject("app")?.let { a ->
+                a.optStringOrNull("version")?.let { AppRelease(it, a.optStringOrNull("commit")) }
+            },
         )
     }
 }
@@ -200,6 +207,8 @@ data class TurnOption(
     val sound: String? = null,
     /** Magic toxicity it adds to the user (a potion); 0 when none. */
     val toxicity: Int = 0,
+    /** Spells: the catalog description, shown on the card. */
+    val description: String = "",
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
 
@@ -348,7 +357,12 @@ data class Prompt(
 }
 
 /** One of this player's own attacks in progress, for the status lines. */
-data class FlowStatus(val flowId: String, val stage: String, val summary: String, val poolCost: Int, val steps: List<FlowStep>)
+data class FlowStatus(val flowId: String, val stage: String, val summary: String, val poolCost: Int, val steps: List<FlowStep>,
+                      val kind: String = "", val category: String? = null) {
+    /** A Main Action that is not a weapon attack: ends a full round attack. */
+    val breaksFullRound: Boolean get() = kind != "attack" && category in setOf("main", "minute")
+    val isMainAction: Boolean get() = category == "main" || category == "minute"
+}
 data class FlowStep(
     val step: String, val owner: String, val status: String, val summary: String?,
     /** A roll's dice once it is in (drawn coloured by result). */
@@ -394,7 +408,9 @@ data class MapShape(val ellipse: Boolean, val x0: Float, val y0: Float, val x1: 
     }
 }
 
-data class MapToken(val x: Float, val y: Float, val size: Float, val label: String, val image: String?, val combatantId: Int?)
+/** [color]: the ring — the owning player's dice colour, or the DM's. */
+data class MapToken(val x: Float, val y: Float, val size: Float, val label: String, val image: String?, val combatantId: Int?,
+                    val color: Int? = null, val tier: Int? = null)
 
 /** The Active Map as a player sees it (GET /api/initiative → map). Units are grid squares. */
 data class MapSnapshot(
@@ -407,7 +423,8 @@ data class MapSnapshot(
             image = j.optStringOrNull("image"),
             tokens = j.optJSONArray("tokens").mapObjects {
                 MapToken(it.optDouble("x").toFloat(), it.optDouble("y").toFloat(), it.optDouble("size", 1.0).toFloat(),
-                    it.optString("label"), it.optStringOrNull("image"), it.optIntOrNull("combatant_id"))
+                    it.optString("label"), it.optStringOrNull("image"), it.optIntOrNull("combatant_id"),
+                    com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")), it.optIntOrNull("tier"))
             },
             terrain = j.optJSONArray("terrain").mapObjects { MapShape.from(it) }.filterNotNull(),
             fog = j.optJSONArray("fog").mapObjects { MapShape.from(it) }.filterNotNull(),
@@ -421,6 +438,8 @@ data class Initiative(
     val myTurn: Boolean,
     val pool: Meter?,
     val mainActionsRemaining: Int?,
+    /** Full round attack: only weapon attacks so far this turn, so they need no Main Action left. */
+    val weaponAttacksOnly: Boolean = false,
     val mana: Meter?,
     /** The player's magic toxicity now, against their threshold (max). */
     val toxicity: Meter? = null,
@@ -451,6 +470,7 @@ data class Initiative(
                 myTurn = j.optBoolean("my_turn"),
                 pool = pool,
                 mainActionsRemaining = me?.optIntOrNull("main_actions_remaining"),
+                weaponAttacksOnly = me?.optBoolean("weapon_attacks_only") ?: false,
                 mana = Meter.from(me?.optJSONObject("mana")),
                 toxicity = Meter.from(me?.optJSONObject("toxicity"), maxKey = "threshold"),
                 map = j.optJSONObject("map")?.let { MapSnapshot.from(it) },
@@ -485,6 +505,7 @@ data class Initiative(
                         ranged = o.optBoolean("ranged"),
                         sound = o.optStringOrNull("sound"),
                         toxicity = o.optInt("toxicity"),
+                        description = o.optStringOrNull("description") ?: "",
                     )
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),
@@ -509,7 +530,7 @@ data class Initiative(
                                 dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
                                 final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
                                 tn = it.optInt("tn"), startingValue = it.optInt("starting_value"))
-                        })
+                        }, kind = f.optString("kind"), category = f.optStringOrNull("category"))
                 },
             )
         }
