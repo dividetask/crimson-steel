@@ -12,8 +12,8 @@ lives in this folder; its test lives in `test/scenarios/<name>.rb`.
 | Scouting Fort | — | To define |
 | Assault on Cultists | — | To define |
 | Stumpy Dream Encounter | — | To define |
-| Character Creation | — | To define: a level 1 Barbarian, Cleric, Rogue and Bard |
-| Level Up to 6 | — | To define: the four new characters to level 6; waits on levelling on the tablets |
+| Character Creation | — | To define: a level 1 Barbarian, Cleric, Rogue and Bard. The DM assigns a tablet to *New Character*; the tablet walks the player through creation. Not on the tablets yet |
+| Level Up to 6 | — | To define: the four new characters to level 6. A DM Level Up button (placement to be decided) adds a level-up button to that Character's sheet on their tablet, where the player goes through it. Not built yet |
 
 `connect` is a smoke test for the harness itself.
 
