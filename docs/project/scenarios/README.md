@@ -12,6 +12,8 @@ lives in this folder; its test lives in `test/scenarios/<name>.rb`.
 | Scouting Fort | — | To define |
 | Assault on Cultists | — | To define |
 | Stumpy Dream Encounter | — | To define |
+| Character Creation | — | To define: a level 1 Barbarian, Cleric, Rogue and Bard |
+| Level Up to 6 | — | To define: the four new characters to level 6; waits on levelling on the tablets |
 
 `connect` is a smoke test for the harness itself.
 
