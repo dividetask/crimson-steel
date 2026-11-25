@@ -1,4 +1,4 @@
-# Test-only routes for scripted dice (lib/test_dice.rb). Loaded only when the
+# Test-only routes: scripted dice (lib/test_dice.rb) and state checks. Loaded only when the
 # server starts with CRIMSON_TEST_DICE=1; DM host only.
 helpers do
   def require_test_dm!
@@ -28,4 +28,25 @@ get '/test/dice/next' do
   test_dice_json(face: TestDice.next_face(1, size.positive? ? size : 10, 'browser'))
 rescue ArgumentError => e
   [409, { 'Content-Type' => 'application/json' }, JSON.generate(ok: false, error: e.message)]
+end
+
+# An owner's Item Stacks, for checking generated loot ("creature:2003").
+get '/test/inventory' do
+  require_test_dm!
+  stacks = Array(Equipment.instance.get_inventory(params[:owner].to_s))
+  test_dice_json(stacks.map do |s|
+    { item: s.item_type, quantity: s.quantity, equipped: s.equipped, value_in_gold: s.value_in_gold }
+  end)
+end
+
+# The encounter as the server holds it: phase, combatants, turn order.
+get '/test/encounter' do
+  require_test_dm!
+  es = encounter_state
+  name = ->(c) { (Creatures.lookup(c[:creature_id])&.name rescue nil) }
+  test_dice_json(
+    phase: es.phase.to_s, acting_combatant_id: es.acting_combatant_id,
+    combatants: es.combatants.map { |c| { id: c[:id], creature_id: c[:creature_id].to_s, name: name.call(c), initiative: c[:initiative_string] } },
+    order: es.acting_combatants.map { _1[:id] }
+  )
 end

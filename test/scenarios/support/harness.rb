@@ -21,6 +21,17 @@ module Scenarios
     def ok? = status.between?(200, 399)
   end
 
+  # A fresh data folder, seeded from test/scenarios/data/<seed> when given.
+  def self.prepare_data_dir(seed)
+    dir = Dir.mktmpdir('crimson-scenario-data')
+    if seed
+      src = File.join(ROOT, 'test', 'scenarios', 'data', seed.to_s)
+      raise "no seed data folder #{src}" unless File.directory?(src)
+      FileUtils.cp_r(File.join(src, '.'), dir)
+    end
+    dir
+  end
+
   def self.lan_ip
     Socket.ip_address_list.find { |a| a.ipv4? && !a.ipv4_loopback? }&.ip_address or
       raise 'no non-loopback IPv4 address: tablets would look like the DM'
@@ -59,7 +70,7 @@ module Scenarios
         k, v = c.split(';', 2).first.split('=', 2)
         @cookies[k] = v
       end
-      Response.new(res.code.to_i, res.body.to_s)
+      Response.new(res.code.to_i, res.body.to_s.dup.force_encoding(Encoding::UTF_8))
     end
   end
 
@@ -147,6 +158,9 @@ module Scenarios
     def dice(*faces, reset: false) = @dice.push(faces.flatten, reset: reset)
     def dice_status = @dice.status
 
+    # The Item Stacks an owner holds ("creature:2003"), via the test routes.
+    def inventory(owner) = @http.get('/test/inventory', owner: owner).json
+
     def close = @browser&.quit
   end
 
@@ -173,8 +187,7 @@ module Scenarios
 
     def initialize(port: 4590, seed_data: nil)
       @port = port
-      @data_dir = Dir.mktmpdir('crimson-scenario-data')
-      FileUtils.cp_r(File.join(seed_data, '.'), @data_dir) if seed_data
+      @data_dir = Scenarios.prepare_data_dir(seed_data)
     end
 
     def start

@@ -14,17 +14,29 @@ module Scenarios
   #     step 'DM starts combat', browser: true do ... end
   #   end
   class Definition
-    attr_reader :name, :steps, :options
+    attr_reader :name, :steps, :options, :helper_module
 
     def initialize(name, **options, &block)
-      @name, @options, @steps = name, options, []
+      @name, @options, @steps, @before = name, options, [], {}
+      @helper_module = Module.new
       instance_eval(&block)
+      missing = @before.keys - @steps.map { _1[:title] }
+      raise ArgumentError, "before_step for unknown steps: #{missing.inspect}" unless missing.empty?
+      @steps.each { |s| s[:before] = @before[s[:title]] }
     end
 
     # browser: true marks DM clicks. fast: is the same step by route, used on
     # the fast track (no browser); without it the step is skipped there.
-    def step(title, browser: false, fast: nil, &block)
-      @steps << { title: title, browser: browser, fast: fast, block: block }
+    # blocking: false lets the later steps run when this one fails (a check
+    # that nothing after it depends on); the scenario still fails.
+    # Methods the steps can call (they run in the step's context).
+    def helpers(&block) = @helper_module.module_eval(&block)
+
+    # Runs before the named step on both tracks, e.g. queuing the dice it rolls.
+    def before_step(title, &block) = @before[title] = block
+
+    def step(title, browser: false, fast: nil, blocking: true, &block)
+      @steps << { title: title, browser: browser, fast: fast, blocking: blocking, block: block }
     end
   end
 
@@ -74,6 +86,7 @@ module Scenarios
   Result = Struct.new(:title, :status, :message)
 
   def self.run(definition, context)
+    context.extend(definition.helper_module)
     results = []
     failed = false
     definition.steps.each do |s|
@@ -84,10 +97,11 @@ module Scenarios
       else
         begin
           body = s[:browser] && !context.browser_available? ? s[:fast] : s[:block]
+          context.instance_exec(&s[:before]) if s[:before]
           context.instance_exec(&body)
           results << Result.new(s[:title], :pass, nil)
         rescue StepFailed, StandardError => e
-          failed = true
+          failed = true if s[:blocking]
           msg = e.is_a?(StepFailed) ? e.message : "#{e.class}: #{e.message}\n    #{e.backtrace.first(3).join("\n    ")}"
           results << Result.new(s[:title], :fail, msg)
         end
