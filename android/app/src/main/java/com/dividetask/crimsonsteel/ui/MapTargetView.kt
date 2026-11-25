@@ -72,7 +72,7 @@ object MapImages {
 class MapTargetView(
     ctx: Context,
     private val map: MapSnapshot,
-    /** Combatant id → shown as an enemy (red ring) or an ally (blue ring). */
+    /** Combatant ids that can be picked (others are faded). */
     private val selectable: Map<Int, Boolean>,
     private val selected: Int?,
     private val onPick: (Int) -> Unit,
@@ -216,17 +216,20 @@ class MapTargetView(
             c.drawText(t.label.take(1), r.centerX(), r.centerY() + paint.textSize / 3, paint)
         }
         c.restore()
+        // Ring: the player's dice colour (or the DM's); the chosen target gets a gold ring outside it.
         paint.reset(); paint.isAntiAlias = true
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = if (id == selected) cell * 0.12f else cell * 0.06f
-        paint.color = when {
-            id != null && id == selected -> Ui.GOLD
-            !pickable -> Color.argb(alpha, 120, 120, 120)
-            selectable[id] == true -> Ui.DIE_FAIL
-            else -> 0xFF60A5FA.toInt()
-        }
+        paint.strokeWidth = cell * 0.1f
+        val ring = t.color ?: Color.LTGRAY
+        paint.color = if (pickable) ring else Color.argb(alpha, Color.red(ring), Color.green(ring), Color.blue(ring))
         c.drawOval(r, paint)
-        if (id == selected) {
+        if (id != null && id == selected) {
+            val out = RectF(r).apply { inset(-cell * 0.1f, -cell * 0.1f) }
+            paint.strokeWidth = cell * 0.08f
+            paint.color = Ui.GOLD
+            c.drawOval(out, paint)
+        }
+        if (id != null && id == selected) {
             paint.style = Paint.Style.FILL
             paint.color = Ui.GOLD
             paint.textAlign = Paint.Align.CENTER

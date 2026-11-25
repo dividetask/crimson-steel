@@ -112,10 +112,13 @@ Spells that take a minute or longer to cast are not offered, as on the web.
 
 When there is an Active Map (`/api/initiative` → `map`: the player's view,
 with fogged and hidden Tokens left out), the target is picked by tapping its
-token: enemies ringed red, allies blue, the choice gold with its name;
-tokens that cannot be targeted are faded. Pinch to zoom, drag to move.
-Targets not on the map keep a button below it; with no map, every target is
-a button.
+token. Each token is ringed in its player's dice colour
+([dice_colors.md](dice_colors.md)); monsters and Characters with no phone use
+the DM's. The chosen target gets a gold ring outside that, with its name;
+tokens that cannot be targeted are faded. Pinch to zoom, drag to move. Every
+target also has a name button under the map. A target whose token is not on
+the Active Map (never placed, hidden, or under fog) can only be picked by its
+button. Tokens are not placed automatically: the DM places them.
 
 ### Requests
 

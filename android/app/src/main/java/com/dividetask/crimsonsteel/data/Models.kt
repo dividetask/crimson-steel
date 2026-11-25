@@ -401,7 +401,9 @@ data class MapShape(val ellipse: Boolean, val x0: Float, val y0: Float, val x1: 
     }
 }
 
-data class MapToken(val x: Float, val y: Float, val size: Float, val label: String, val image: String?, val combatantId: Int?)
+/** [color]: the ring — the owning player's dice colour, or the DM's. */
+data class MapToken(val x: Float, val y: Float, val size: Float, val label: String, val image: String?, val combatantId: Int?,
+                    val color: Int? = null)
 
 /** The Active Map as a player sees it (GET /api/initiative → map). Units are grid squares. */
 data class MapSnapshot(
@@ -414,7 +416,8 @@ data class MapSnapshot(
             image = j.optStringOrNull("image"),
             tokens = j.optJSONArray("tokens").mapObjects {
                 MapToken(it.optDouble("x").toFloat(), it.optDouble("y").toFloat(), it.optDouble("size", 1.0).toFloat(),
-                    it.optString("label"), it.optStringOrNull("image"), it.optIntOrNull("combatant_id"))
+                    it.optString("label"), it.optStringOrNull("image"), it.optIntOrNull("combatant_id"),
+                    com.dividetask.crimsonsteel.ui.Ui.parseHex(it.optStringOrNull("color")))
             },
             terrain = j.optJSONArray("terrain").mapObjects { MapShape.from(it) }.filterNotNull(),
             fog = j.optJSONArray("fog").mapObjects { MapShape.from(it) }.filterNotNull(),

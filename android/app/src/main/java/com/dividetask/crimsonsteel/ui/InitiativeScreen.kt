@@ -489,8 +489,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         } else {
             card.addView(Ui.text(ctx, "Target", 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 10)))
         }
-        // Targets not on the map (or no map): one button each.
-        val targets = if (map != null && mapped.isNotEmpty()) all - mapped.toSet() else all
+        // A button for every target as well, under the map.
+        val targets = all
         var row: LinearLayout? = null
         targets.forEachIndexed { i, t ->
             if (i % 2 == 0) {

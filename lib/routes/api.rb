@@ -231,10 +231,12 @@ helpers do
   def api_target_map
     snap = atlas_map_snapshot(:player)
     m = snap[:map] or return nil
+    assigned = DeviceRegistry.instance.list.map { |d| d['character_id'].to_s }.reject(&:empty?)
     { width: m[:width], height: m[:height], image: m[:image],
       origin: (m[:grid] || {})[:origin] || [0, 0],
       tokens: snap[:tokens].map do |t|
-        { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id] }
+        { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id],
+          color: token_color(t[:creature_id], assigned) }
       end,
       terrain: snap[:terrain].map { |t| { shape: t[:shape_kind], points: t[:points], texture: t[:texture] } },
       fog: snap[:fog].map { |f| { shape: f[:shape_kind], points: f[:points] } } }
@@ -247,6 +249,13 @@ helpers do
   def api_app_release
     rel = AppRelease.latest
     rel && { version: rel[:version], commit: rel[:commit] }
+  end
+
+  # A token's ring: the dice colour of the player whose phone has that
+  # Character; anyone without one (monsters, unassigned Characters) is the DM's.
+  def token_color(creature_id, assigned)
+    who = assigned.include?(creature_id.to_s) ? creature_id.to_s : DiceColors::DM
+    DiceColors.instance.hex_for(who)
   end
 
   # In Combat as the players see it: combat running and the party's Phase is
