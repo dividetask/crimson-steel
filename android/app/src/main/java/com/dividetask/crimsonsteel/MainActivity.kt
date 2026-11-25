@@ -158,6 +158,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The installer's answer can arrive after this screen was closed: it is reopened with it.
+        com.dividetask.crimsonsteel.net.AppUpdater.handleStatus(this, intent)?.let { updateStatus = it }
         Session.init(this)
         savedInstanceState?.getString(KEY_TAB)?.let { n -> Tab.entries.find { it.name == n }?.let { current = it } }
         root = FrameLayout(this).apply {

@@ -35,6 +35,31 @@ RSpec.describe 'Creatures encounter operations', type: :model do
       expect(Creatures.lookup(new_id).record[:loot_table]).to eq('captain_loot')
     end
 
+    describe 'unique names' do
+      def spawn = Creatures.lookup(Creatures.spawn_from_template(101))
+      let(:base) { Creatures.lookup(101).name }
+      # Spawns left over from earlier examples share the dataset; start clean.
+      before do
+        Creatures::Dataset.all.values.select { |r| r[:spawned_from] == 101 }.each { |r| Creatures.delete(r[:id]) }
+      end
+
+      it 'keeps the plain name for the first, numbers both once a second arrives' do
+        a = spawn
+        expect(a.name).to eq(base)
+        b = spawn
+        expect(Creatures.lookup(a.id).name).to eq("#{base} 1")
+        expect(b.name).to eq("#{base} 2")
+        expect(Creatures.lookup(101).name).to eq(base) # the template is never renamed
+      end
+
+      it 'takes the lowest free number' do
+        ids = Array.new(5) { spawn.id }
+        Creatures.delete(ids[2]) # "… 3"
+        expect(spawn.name).to eq("#{base} 3")
+        expect(spawn.name).to eq("#{base} 6")
+      end
+    end
+
     it 'rejects an unknown template id' do
       expect { Creatures.spawn_from_template(9999) }.to raise_error(ArgumentError, /no template/)
     end

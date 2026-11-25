@@ -38,6 +38,8 @@ class SettingsActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The installer's answer can arrive after this screen was closed: it is reopened with it.
+        com.dividetask.crimsonsteel.net.AppUpdater.handleStatus(this, intent)?.let { toast(it) }
         Session.init(this)
         DebugLog.i("settings", "opened")
 
