@@ -5033,3 +5033,6 @@ tr.lr-row.lr-flash { animation: lr-flash 0.6s ease 2; }
 /* Kesser's Gambit from a phone, in the DM's builder (liveSync.js). */
 .lr-reactions { margin-top: 10px; }
 .lr-react-line { margin: 4px 0; font-size: 0.9em; }
+
+/* Full round attack badge on the turn header (views/_turn_action.erb). */
+.ta-full-round { background: #fef3c7; color: #92400e; border-radius: 4px; padding: 1px 6px; font-weight: bold; }

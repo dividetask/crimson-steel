@@ -178,6 +178,15 @@ get '/encounter' do
 end
 
 helpers do
+  # Whether casting +name+ takes a Main Action (not Bonus / Free / Reaction).
+  # A per-Tier name ("Standard Shield") falls back to its base Spell.
+  def main_action_spell?(name)
+    return true if name.to_s.empty?
+    act = (Abilities.resolve_activation(name) rescue nil)
+    act ||= (Abilities.resolve_activation(spell_base_axis(name).first) rescue nil)
+    !(act && %w[bonus free reaction].include?(act[:alias].to_s))
+  end
+
   def encounter_state
     Encounter.state
   end
@@ -1123,6 +1132,7 @@ post '/encounter/retarget_active_spell' do
     remaining = (encounter_state.combat_pool_remaining(combatant_id) rescue 0).to_i
     encounter_state.spend_combat_pool(combatant_id, [cost, remaining].min) if remaining.positive?
     encounter_state.spend_main_action(combatant_id)
+    encounter_state.end_weapon_attacks_only(combatant_id)
     encounter_state.set_concentration_target(combatant_id, spell_name, target_id)
     variant = (resolve_named_spell(spell_name) rescue nil)
     retarget_defend_action!(combatant_id, spell_name, target_id) if variant && spell_defends_spec(variant)
@@ -1147,6 +1157,7 @@ post '/encounter/refill_active_spell' do
     if spend.positive? && encounter_state.refill_reservoir(combatant_id, spell_name, spend)
       encounter_state.spend_combat_pool(combatant_id, spend)
       encounter_state.spend_main_action(combatant_id)
+      encounter_state.end_weapon_attacks_only(combatant_id)
     end
   end
   redirect back || '/encounter'
@@ -1169,6 +1180,8 @@ post '/encounter/resolve_attack' do
   if result[:committed]
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('attacker', 'id').to_i)
+    # A spell's strike (Spiritual Weapon) is not a weapon attack: it ends a full round attack.
+    encounter_state.end_weapon_attacks_only(payload.dig('attacker', 'id').to_i) unless payload['active_spell_name'].to_s.empty?
     # A player-driven attack (lib/action_flow.rb) finished in the pre-filled
     # builder: it is done, so it leaves the Player actions panel and the phones.
     if payload['flow_id'] && (f = ActionFlows.instance.find(payload['flow_id']))
@@ -1277,6 +1290,10 @@ post '/encounter/resolve_cast' do
     result = result.merge(item_consumed: consumed) if consumed
     Conditions.store.persist!
     encounter_state.spend_main_action(payload.dig('caster', 'id').to_i) # Cast is a Main Action
+    # An Item, or a Spell that is not a Bonus / Free / Reaction one, ends a full round attack.
+    if payload['item'] || main_action_spell?(payload.dig('spell', 'name'))
+      encounter_state.end_weapon_attacks_only(payload.dig('caster', 'id').to_i)
+    end
     if payload['flow_id'] && (f = ActionFlows.instance.find(payload['flow_id'])) # a cast / item in a flow
       f.done!(cast_outcome(f, result))
     end

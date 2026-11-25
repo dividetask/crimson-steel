@@ -60,7 +60,7 @@ helpers do
   # not shared).
   def flow_status_view(flow)
     mine = [flow.actor_id]
-    { flow_id: flow.id, kind: flow.kind, stage: flow.stage, summary: flow.summary, blocking: flow.blocking?,
+    { flow_id: flow.id, kind: flow.kind, category: flow.category, stage: flow.stage, summary: flow.summary, blocking: flow.blocking?,
       pool_cost: flow.declared_pool_cost,
       tasks: flow.tasks.reject { |t| t['kind'] == 'declare' }.map do |t|
         shown = t['kind'] != 'roll' || flow.visible_to?(t, mine)
@@ -257,7 +257,7 @@ helpers do
             else ''
             end
     n_text = opt[:dice].empty? ? '' : " \u2014 #{n} dice"
-    flow = ActionFlow.new(kind: opt[:kind], actor_id: combatant[:id], actor_name: tracker_name(combatant),
+    flow = ActionFlow.new(kind: opt[:kind], category: opt[:category], actor_id: combatant[:id], actor_name: tracker_name(combatant),
                           turn_key: PlayerRequests.turn_key(encounter_state, combatant[:id]), blob: blob,
                           declare: [['spell', spell[:value]], ['dice', dice_opt[:value]], ['target', target]],
                           summary: "#{opt[:name]}#{n_text}#{where}", pool_cost: n, names: flow_names)
@@ -285,7 +285,7 @@ helpers do
       cost = n
       summary = "#{opt[:name]} \u2014 #{n} dice"
     end
-    flow = ActionFlow.new(kind: 'special', actor_id: combatant[:id], actor_name: tracker_name(combatant),
+    flow = ActionFlow.new(kind: 'special', category: opt[:category], actor_id: combatant[:id], actor_name: tracker_name(combatant),
                           turn_key: PlayerRequests.turn_key(encounter_state, combatant[:id]), blob: blob,
                           declare: declare, summary: summary, pool_cost: cost, ability: name, names: flow_names)
     [action_flows.add(flow), nil]

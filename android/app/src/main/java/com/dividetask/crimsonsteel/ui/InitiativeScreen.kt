@@ -69,8 +69,12 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private fun poolLeft(d: Initiative) = (d.pool?.current ?: 0) - pending(d)
     private fun mainLeft(d: Initiative): Int? =
         d.mainActionsRemaining?.takeIf { it >= 0 }?.let {
-            it - d.requests.count { r -> r.category == ActionCategory.MAIN } - d.flows.size  // an Attack is a Main Action
+            it - d.requests.count { r -> r.category == ActionCategory.MAIN } - d.flows.count { f -> f.isMainAction }
         }
+
+    /** Full round attack still on: nothing but weapon attacks asked for this turn (Move / Main-action spell / Item end it). */
+    private fun fullRound(d: Initiative) = d.weaponAttacksOnly &&
+        d.requests.none { it.category == ActionCategory.MAIN } && d.flows.none { it.breaksFullRound }
     private fun manaLeft(d: Initiative): Int? = d.mana?.let { m -> m.current - d.requests.sumOf { it.manaCost } }
 
     override fun build(d: Initiative): View {
@@ -257,6 +261,10 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         flowsSection(col, d)
 
         col.addView(Ui.sectionHeader(ctx, if (d.myTurn) "Actions" else "Free actions"))
+        if (d.myTurn && fullRound(d) && (mainLeft(d) ?: 1) <= 0) {
+            col.addView(Ui.text(ctx, "Full round attack: keep attacking while your Combat Pool lasts.", 13f, Ui.GOLD),
+                Ui.matchWidth(Ui.dp(ctx, 2)))
+        }
         // A die roll waiting on this player comes first: the actions come back
         // once it is rolled.
         if (d.busy) {
@@ -328,7 +336,9 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private fun blocker(d: Initiative, opt: TurnOption, dice: Int?): String? {
         if (opt.isEndTurn) return null
         opt.disabledReason?.let { return it.replaceFirstChar { c -> c.uppercase() } + "." }
-        if (opt.category == ActionCategory.MAIN && (mainLeft(d) ?: 1) <= 0) return "No Main Actions left."
+        if (opt.category == ActionCategory.MAIN && (mainLeft(d) ?: 1) <= 0 && !(opt.kind == "attack" && fullRound(d))) {
+            return "No Main Actions left."
+        }
         if (opt.manaCost > 0 && (manaLeft(d) ?: Int.MAX_VALUE) < opt.manaCost) return "Not enough mana."
         if (opt.dice.isNotEmpty()) {
             if (dice == null) {

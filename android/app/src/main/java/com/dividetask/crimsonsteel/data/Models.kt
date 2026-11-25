@@ -357,7 +357,12 @@ data class Prompt(
 }
 
 /** One of this player's own attacks in progress, for the status lines. */
-data class FlowStatus(val flowId: String, val stage: String, val summary: String, val poolCost: Int, val steps: List<FlowStep>)
+data class FlowStatus(val flowId: String, val stage: String, val summary: String, val poolCost: Int, val steps: List<FlowStep>,
+                      val kind: String = "", val category: String? = null) {
+    /** A Main Action that is not a weapon attack: ends a full round attack. */
+    val breaksFullRound: Boolean get() = kind != "attack" && category in setOf("main", "minute")
+    val isMainAction: Boolean get() = category == "main" || category == "minute"
+}
 data class FlowStep(
     val step: String, val owner: String, val status: String, val summary: String?,
     /** A roll's dice once it is in (drawn coloured by result). */
@@ -433,6 +438,8 @@ data class Initiative(
     val myTurn: Boolean,
     val pool: Meter?,
     val mainActionsRemaining: Int?,
+    /** Full round attack: only weapon attacks so far this turn, so they need no Main Action left. */
+    val weaponAttacksOnly: Boolean = false,
     val mana: Meter?,
     /** The player's magic toxicity now, against their threshold (max). */
     val toxicity: Meter? = null,
@@ -463,6 +470,7 @@ data class Initiative(
                 myTurn = j.optBoolean("my_turn"),
                 pool = pool,
                 mainActionsRemaining = me?.optIntOrNull("main_actions_remaining"),
+                weaponAttacksOnly = me?.optBoolean("weapon_attacks_only") ?: false,
                 mana = Meter.from(me?.optJSONObject("mana")),
                 toxicity = Meter.from(me?.optJSONObject("toxicity"), maxKey = "threshold"),
                 map = j.optJSONObject("map")?.let { MapSnapshot.from(it) },
@@ -522,7 +530,7 @@ data class Initiative(
                                 dice = it.optJSONArray("dice").ints(), rerolled = it.optJSONArray("rerolled").intsOrNull(),
                                 final = it.optJSONArray("final").ints(), successes = it.optIntOrNull("successes"),
                                 tn = it.optInt("tn"), startingValue = it.optInt("starting_value"))
-                        })
+                        }, kind = f.optString("kind"), category = f.optStringOrNull("category"))
                 },
             )
         }

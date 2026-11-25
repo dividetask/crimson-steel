@@ -217,6 +217,13 @@ helpers do
     end
 
     out << end_turn
+    # Reckless Attacks dice already spent: only weapon attacks are left this turn.
+    if (es.full_round_dice_spent?(combatant[:id]) rescue false)
+      out.each do |o|
+        next if o[:kind] == 'attack' || !%w[main minute].include?(o[:category].to_s)
+        o[:disabled_reason] ||= 'only weapon attacks are left (Reckless Attacks dice spent)'
+      end
+    end
     out.each { |o| o[:disabled] = !o[:disabled_reason].nil? }
     # A sound tied to the action (config/action_sounds.yml): the app offers a
     # button to play it on the device.
@@ -385,7 +392,9 @@ get '/api/initiative' do
     me = { combatant_id: mine[:id],
            pool: pool_max && { remaining: (es.combat_pool_remaining(mine[:id]) rescue 0), max: pool_max },
            main_actions_remaining: (es.main_actions_remaining(mine[:id]) rescue nil),
-           mana: v && v[:mana], toxicity: v && v[:toxicity] }
+           mana: v && v[:mana], toxicity: v && v[:toxicity],
+           # Full round attack (encounter_design.md): weapon attacks need no Main Action left.
+           weapon_attacks_only: es.weapon_attacks_only?(mine[:id]) }
   end
   key = mine && PlayerRequests.turn_key(es, mine[:id])
   map = api_target_map if api_in_combat?

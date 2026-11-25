@@ -323,6 +323,7 @@ module Encounter
       remaining = spend_combat_pool(combatant_id, cost)
       return { ok: false, error: 'not enough Combat Pool' } if remaining.nil?
       spend_main_action(combatant_id) # Move is a Main Action
+      end_weapon_attacks_only(combatant_id)
       { ok: true, pool_spent: cost, pool_remaining: remaining }
     end
 
@@ -1283,6 +1284,7 @@ module Encounter
       c = combatant_for(combatant_id) or return nil
       c[:combat_pool_spent] = 0
       c[:main_actions_remaining] = MAIN_ACTIONS_PER_TURN
+      c[:weapon_attacks_only] = true
       apply_per_turn_setup(combatant_id)
       round = current_abs_round
       cleared = round ? conditions_for(c[:creature_id]).clear_expired_effects(round) : []
@@ -1337,6 +1339,37 @@ module Encounter
       c[:main_actions_remaining]
     end
 
+    # ---------- Full round attack ----------
+    #
+    # weapon_attacks_only (encounter_design.md → Full round attack): true at
+    # the start of a turn; any Main Action other than a weapon attack (a Move,
+    # a Main-action Cast, an Item, a Special, a spell strike) ends it. While it
+    # holds, weapon attacks are limited only by the Combat Pool, not by the
+    # Main Actions left. Bonus, Reaction and Free actions leave it alone.
+    def weapon_attacks_only?(combatant_id)
+      c = combatant_for(combatant_id) or return false
+      !!c[:weapon_attacks_only]
+    end
+
+    def end_weapon_attacks_only(combatant_id)
+      c = combatant_for(combatant_id) or return nil
+      return false unless c[:weapon_attacks_only]
+      c[:weapon_attacks_only] = false
+      persist!
+      true
+    end
+
+    # Combat Pool dice that only a full round attack grants (Reckless Attacks)
+    # are already spent: only weapon attacks are left this turn.
+    def full_round_dice_spent?(combatant_id)
+      c = combatant_for(combatant_id) or return false
+      creature = lookup!(c[:creature_id]) or return false
+      base = CombatPool.size_for(creature) + combat_pool_ability_bonus(creature, c[:creature_id], full_round: false)
+      c[:combat_pool_spent].to_i > fatigue_adjusted_pool(c[:creature_id], base)
+    rescue StandardError
+      false
+    end
+
     # ---------- Special Actions ----------
 
     # Usable Special-action Abilities for a Combatant (turn_action_stub.md →
@@ -1358,6 +1391,7 @@ module Encounter
       c = combatant_for(combatant_id) or return { ok: false, error: 'unknown combatant' }
       cid = c[:creature_id]
       return { ok: false, error: 'not raging' } unless raging?(cid)
+      end_weapon_attacks_only(combatant_id) # takes a minute: not a weapon attack
       inst = conditions_for(cid)
       inst.remove_effects_by_prefix("special:#{cid}:Rage:")
       base = current_abs_round
@@ -1454,6 +1488,8 @@ module Encounter
       return { ok: false, error: 'not enough Mana' } if mana_cost.positive? && mana_rem && mana_rem < mana_cost
 
       spend_combat_pool(combatant_id, pool_cost)
+      # A Main-action Special ends a full round attack; Bonus / Free / Reaction ones do not.
+      end_weapon_attacks_only(combatant_id) unless activation && %w[bonus free reaction].include?(activation[:alias].to_s)
       if mana_cost.positive? && creature.respond_to?(:max_mana) && creature.max_mana
         inst.apply_mana_cost(amount: mana_cost, mana_max: creature.max_mana)
       end
@@ -2090,15 +2126,22 @@ module Encounter
     # needs `rage`), the bonus applies only while that Effect is active on the
     # Creature. So a raging barbarian's pool grows by her class level, and
     # shrinks back when the rage ends.
-    def combat_pool_ability_bonus(creature, creature_id)
+    # +full_round+: whether a full round attack is under way (an ability with
+    # `requires_weapon_attacks_only`, Reckless Attacks, adds its dice only then).
+    def combat_pool_ability_bonus(creature, creature_id, full_round: nil)
       abilities = (creature.granted_abilities rescue [])
       return 0 if abilities.empty?
       active = active_condition_names(creature_id)
+      if full_round.nil?
+        c = @combatants.find { |x| x[:creature_id].to_s == creature_id.to_s }
+        full_round = !!(c && c[:weapon_attacks_only])
+      end
       abilities.sum do |g|
         name = g[:name].to_s
         defn = ability_def(name) or next 0
         req = defn['required_condition']
         next 0 if req && !active.include?(req.to_s)
+        next 0 if defn['requires_weapon_attacks_only'] && !full_round
         binds = { 'level' => (creature.level_for_ability(name) rescue 0),
                   'tier'  => (creature.tier rescue 0) }
         Array(defn['modifiers'])
@@ -2135,7 +2178,8 @@ module Encounter
     def blank_combatant(id, creature_id, name)
       { id: id, creature_id: creature_id, name: name,
         initiative_string: '', combat_pool_spent: 0, time_tick_schedule: [],
-        luck_points: 0, concentration: [], casting: [], main_actions_remaining: -1 }
+        luck_points: 0, concentration: [], casting: [], main_actions_remaining: -1,
+        weapon_attacks_only: false }
     end
 
     def recompute_schedules!
@@ -2498,7 +2542,8 @@ module Encounter
         casting:             (c['casting'] || []).map { |e| symbolize(e) },
         # Main Actions left this turn. -1 = the Combatant has not begun a turn
         # yet (pre-combat / not their turn); a turn-start sets it to 2.
-        main_actions_remaining: Integer(c['main_actions_remaining'] || -1)
+        main_actions_remaining: Integer(c['main_actions_remaining'] || -1),
+        weapon_attacks_only: c['weapon_attacks_only'] == true
       }
     end
 
@@ -2509,7 +2554,8 @@ module Encounter
         'time_tick_schedule' => c[:time_tick_schedule], 'luck_points' => c[:luck_points],
         'concentration' => c[:concentration].map { |e| stringify(e) },
         'casting' => c[:casting].map { |e| stringify(e) },
-        'main_actions_remaining' => c[:main_actions_remaining]
+        'main_actions_remaining' => c[:main_actions_remaining],
+        'weapon_attacks_only' => !!c[:weapon_attacks_only]
       }
     end
 
