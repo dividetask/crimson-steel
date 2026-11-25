@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 module Equipment
   # Loot Table rolling. Mixed into Instance. Resolves the four Roll Row
   # shapes, Roll Variables (`as` / `key` / `when`), Option Lists (named
@@ -7,7 +8,7 @@ module Equipment
   module LootRolling
     # Returns the produced Item Stacks. Persistence is the caller's job.
     def roll_loot_table(table_id, seed: nil, rng: nil, vars: {})
-      rng ||= seed ? Random.new(seed) : @rng
+      rng ||= seed ? Random.new(seed) : (TestDice.enabled? ? TestDice.rng('loot') : @rng)
       table = loot.table(table_id)
       return ERROR unless table
 
