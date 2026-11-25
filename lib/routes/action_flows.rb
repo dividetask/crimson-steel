@@ -178,9 +178,11 @@ helpers do
   def action_views(acc)
     mine = my_combatant_ids(acc)
     flows = action_flows.active.select { |f| f.stage == 'builder' && f.roll_tasks.any? } + action_flows.recent_shared
-    flows.uniq(&:id).map do |f|
-      { flow_id: f.id, action_line: f.title_line(mine), headline: f.headline(mine),
-        rolls: f.public_roll_overview(mine).map { |r| r.except(:claimed, :by).merge(color: roll_color(r[:owner_id])) } }
+    # An action with no dice (a no-roll Cast such as Standard Shield) is left out.
+    flows.uniq(&:id).filter_map do |f|
+      rolls = f.public_roll_overview(mine).map { |r| r.except(:claimed, :by).merge(color: roll_color(r[:owner_id])) }
+      next if rolls.empty?
+      { flow_id: f.id, action_line: f.title_line(mine), headline: f.headline(mine), rolls: rolls }
     end
   end
 
@@ -188,11 +190,12 @@ helpers do
   # phone in combat throws their dice once, as if just rolled.
   def shared_actions(acc)
     mine = my_combatant_ids(acc)
-    action_flows.recent_shared.map do |f|
-      { flow_id: f.id, version: f.shared_version, action_line: f.title_line(mine),
-        rolls: f.public_roll_overview(mine).select { |r| r[:final] }.map do |r|
-          r.except(:claimed, :by).merge(color: roll_color(r[:owner_id]))
-        end }
+    action_flows.recent_shared.filter_map do |f|
+      rolls = f.public_roll_overview(mine).select { |r| r[:final] }.map do |r|
+        r.except(:claimed, :by).merge(color: roll_color(r[:owner_id]))
+      end
+      next if rolls.empty?
+      { flow_id: f.id, version: f.shared_version, action_line: f.title_line(mine), rolls: rolls }
     end
   end
 

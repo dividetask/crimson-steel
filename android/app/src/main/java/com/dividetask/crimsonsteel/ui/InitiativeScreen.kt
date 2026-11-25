@@ -87,7 +87,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         if (d.prompts.isNotEmpty()) promptsSection(col, d)
         // Every other action with dice on the table: everyone sees it, rolling or not.
         val asked = d.prompts.map { it.flowId }.toSet()
-        val watching = d.actions.filter { it.flowId !in asked }
+        val watching = d.actions.filter { it.flowId !in asked && it.rolls.isNotEmpty() }
         if (watching.isNotEmpty()) {
             col.addView(Ui.sectionHeader(ctx, "In play"))
             for (a in watching) col.addView(rollCard(viewOf(a)), Ui.matchWidth(Ui.dp(ctx, 6)))
@@ -776,7 +776,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
         }
         card.addView(Ui.text(ctx, p.headline ?: p.title, 19f, Ui.GOLD, bold = true))
         val lines = p.allRolls.ifEmpty {
-            val r = p.roll!!
+            val r = p.roll ?: return card // an action with no dice
             listOf(com.dividetask.crimsonsteel.data.RollLine(p.taskId, "", r.name, r.diceCount, r.tn, r.startingValue,
                 r.positiveReroll, r.negativeReroll, p.status, p.summary, what = r.name))
         }
