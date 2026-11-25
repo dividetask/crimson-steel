@@ -116,8 +116,10 @@ Rules:
   ensures every build is always higher than the last, regardless of branch, so
   APKs from different `claude/*` branches can be installed over each other
   without uninstalling first. Never set `versionCode` by hand.
-- Bump the number/letter on every commit that changes the app, and put the
-  hand-set part at the end of the commit message, e.g.
+- Bump the number/letter on **every commit you push**, even one that changes
+  only the server or docs: the build automation makes an APK from every
+  pushed tip, so a skipped bump leaves that APK labelled with the previous
+  version. Put the hand-set part at the end of the commit message, e.g.
   `Bigger aspect glyph tiles (v0.024 b)`.
 - Enable `buildConfig = true` so the app can show `BuildConfig.VERSION_NAME`.
 
