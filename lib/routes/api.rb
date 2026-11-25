@@ -231,12 +231,11 @@ helpers do
   def api_target_map
     snap = atlas_map_snapshot(:player)
     m = snap[:map] or return nil
-    assigned = DeviceRegistry.instance.list.map { |d| d['character_id'].to_s }.reject(&:empty?)
     { width: m[:width], height: m[:height], image: m[:image],
       origin: (m[:grid] || {})[:origin] || [0, 0],
       tokens: snap[:tokens].map do |t|
         { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id],
-          color: token_color(t[:creature_id], assigned) }
+          color: t[:ring] }
       end,
       terrain: snap[:terrain].map { |t| { shape: t[:shape_kind], points: t[:points], texture: t[:texture] } },
       fog: snap[:fog].map { |f| { shape: f[:shape_kind], points: f[:points] } } }

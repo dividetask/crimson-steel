@@ -3905,14 +3905,15 @@ body {
 
 /* Combatant ring (in the active Combat roster); thicker animated ring for
    the Acting Combatant. */
-.atlas-token-combatant { box-shadow: 0 0 0 2px #f1c40f, 0 1px 3px rgba(0, 0, 0, 0.6); }
+.atlas-token-combatant { box-shadow: 0 0 0 3px var(--ring, #f1c40f), 0 1px 3px rgba(0, 0, 0, 0.6); }
+/* The ring is the player's dice colour (or the DM's); the Acting Combatant's pulses. */
 .atlas-token-acting {
-  box-shadow: 0 0 0 3px #fff, 0 0 10px 2px #f1c40f;
+  box-shadow: 0 0 0 3px var(--ring, #fff), 0 0 10px 2px #f1c40f;
   animation: atlas-acting-pulse 1.2s ease-in-out infinite;
 }
 @keyframes atlas-acting-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 6px 1px #f1c40f; }
-  50%      { box-shadow: 0 0 0 3px #fff, 0 0 14px 4px #f1c40f; }
+  0%, 100% { box-shadow: 0 0 0 3px var(--ring, #fff), 0 0 6px 1px #f1c40f; }
+  50%      { box-shadow: 0 0 0 3px var(--ring, #fff), 0 0 14px 4px #f1c40f; }
 }
 
 /* Tier Color fills (ui_conventions.md). */

@@ -115,7 +115,8 @@ with fogged and hidden Tokens left out), the target is picked by tapping its
 token. Each token is ringed in its player's dice colour
 ([dice_colors.md](dice_colors.md)); monsters and Characters with no phone use
 the DM's. The chosen target gets a gold ring outside that, with its name;
-tokens that cannot be targeted are faded. Pinch to zoom, drag to move. Every
+tokens that cannot be targeted are faded. Pinch to zoom, drag to move. The DM's
+Encounter map rings Combatant tokens the same way. Every
 target also has a name button under the map. A target whose token is not on
 the Active Map (never placed, hidden, or under fog) can only be picked by its
 button. Tokens are not placed automatically: the DM places them.
