@@ -77,11 +77,54 @@ data class Meter(val current: Int, val max: Int) {
     }
 }
 
-data class SheetAttribute(val key: String, val label: String, val score: Int, val check: RollSpec?, val save: RollSpec?)
+/** A table inside a [StatMath]: every cell is text. */
+data class MathTable(val head: List<String>, val rows: List<List<String>>, val foot: List<String>)
+
+/**
+ * The math behind one number on the sheet (the "?" on the Sheet tab). The
+ * server writes every line (lib/sheet_math.rb); the app shows it as it comes.
+ */
+data class StatMath(val title: String, val lines: List<String>, val table: MathTable?, val note: String?) {
+    companion object {
+        fun from(j: JSONObject?): StatMath? {
+            if (j == null) return null
+            return StatMath(
+                title = j.optString("title"),
+                lines = strings(j.optJSONArray("lines")),
+                table = j.optJSONObject("table")?.let { t ->
+                    val rows = t.optJSONArray("rows")
+                    MathTable(
+                        head = strings(t.optJSONArray("head")),
+                        rows = if (rows == null) emptyList() else (0 until rows.length()).map { strings(rows.optJSONArray(it)) },
+                        foot = strings(t.optJSONArray("foot")),
+                    )
+                },
+                note = j.optStringOrNull("note"),
+            )
+        }
+
+        /** Keyed as the server keys them: "hp", "mana", "combat_pool"… */
+        fun mapFrom(j: JSONObject?): Map<String, StatMath> {
+            if (j == null) return emptyMap()
+            val out = mutableMapOf<String, StatMath>()
+            for (key in j.keys()) from(j.optJSONObject(key))?.let { out[key] = it }
+            return out
+        }
+
+        private fun strings(a: JSONArray?): List<String> =
+            if (a == null) emptyList() else (0 until a.length()).map { a.optString(it) }
+    }
+}
+
+data class SheetAttribute(
+    val key: String, val label: String, val score: Int, val check: RollSpec?, val save: RollSpec?,
+    val math: StatMath? = null, val checkMath: StatMath? = null, val saveMath: StatMath? = null,
+)
 
 data class SheetSkill(
     val key: String, val name: String, val attribute: String, val ranks: Int,
     val trained: Boolean, val dice: Int, val bonus: Int, val roll: RollSpec?,
+    val math: StatMath? = null,
 )
 
 data class Ability(val name: String, val description: String)
@@ -102,7 +145,14 @@ data class Sheet(
     val attributes: List<SheetAttribute>,
     val skills: List<SheetSkill>,
     val abilities: List<Ability>,
+    val combatPool: Int? = null,
+    /** The math behind each vital, by the server's key ("hp", "mana", "combat_pool"…). */
+    val math: Map<String, StatMath> = emptyMap(),
 ) {
+    /** Whether the server sent any math: without it there is nothing for "?" to show. */
+    val hasMath: Boolean
+        get() = math.isNotEmpty() || attributes.any { it.math != null } || skills.any { it.math != null }
+
     companion object {
         fun from(j: JSONObject): Sheet {
             val v = j.optJSONObject("vitals") ?: JSONObject()
@@ -121,14 +171,18 @@ data class Sheet(
                 speed = j.optInt("speed"),
                 attributes = j.optJSONArray("attributes").mapObjects {
                     SheetAttribute(it.optString("key"), it.optString("label"), it.optInt("score"),
-                        rollSpecFrom(it.optJSONObject("check")), rollSpecFrom(it.optJSONObject("save")))
+                        rollSpecFrom(it.optJSONObject("check")), rollSpecFrom(it.optJSONObject("save")),
+                        StatMath.from(it.optJSONObject("math")), StatMath.from(it.optJSONObject("check_math")),
+                        StatMath.from(it.optJSONObject("save_math")))
                 },
                 skills = j.optJSONArray("skills").mapObjects {
                     SheetSkill(it.optString("key"), it.optString("name"), it.optString("attribute"),
                         it.optInt("ranks"), it.optBoolean("trained"), it.optInt("dice"), it.optInt("bonus"),
-                        rollSpecFrom(it.optJSONObject("roll")))
+                        rollSpecFrom(it.optJSONObject("roll")), StatMath.from(it.optJSONObject("math")))
                 },
                 abilities = j.optJSONArray("abilities").mapObjects { Ability(it.optString("name"), it.optString("description")) },
+                combatPool = v.optIntOrNull("combat_pool"),
+                math = StatMath.mapFrom(v.optJSONObject("math")),
             )
         }
     }

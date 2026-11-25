@@ -61,19 +61,24 @@ helpers do
     d = CreatureSheet.build(acc)
     h = d[:header]
     v = d[:vitals]
+    # The math behind each number (SheetMath), for the app's "?". It names
+    # the Tier, so a Creature whose Tier is hidden gets none.
+    explain = !h[:hide_tier]
     attributes = Array(d[:attributes_table]).map do |a|
-      save_tokens = Array(a.dig(:save, :tokens)).reject { |t| t[:conditional] }
-                                                .map { |t| [(t[:type] || 'Resistance').to_s, t[:amount].to_i] }
-      { key: a[:key].to_s, label: a[:attr], score: a[:score],
-        check: api_roll("#{a[:attr]} check", a.dig(:check, :dice), api_competency(a.dig(:check, :bonus))),
-        save:  api_roll("#{a[:attr]} save", a.dig(:save, :dice),
-                        api_competency(a.dig(:save, :bonus)) + save_tokens, ranks: a.dig(:save, :ranks)) }
+      row = { key: a[:key].to_s, label: a[:attr], score: a[:score],
+              check: api_roll("#{a[:attr]} check", a.dig(:check, :dice), api_competency(a.dig(:check, :bonus))),
+              save:  api_roll("#{a[:attr]} save", a.dig(:save, :dice),
+                              api_competency(a.dig(:save, :bonus)) + SheetMath.save_modifiers(a),
+                              ranks: a.dig(:save, :ranks)) }
+      next row unless explain
+      row.merge(math: SheetMath.attribute(a), check_math: SheetMath.check(a), save_math: SheetMath.save(acc, a))
     end
     skills = CreatureSheet.all_skills(acc).map do |s|
       r = CreatureSheet.skill_roll(acc, s[:key])
       roll = r ? { name: r[:roll_name], dice_count: r[:dice_count], tn: r[:tn], starting_value: r[:starting_value],
                    base_tn: r[:base_tn], bonus_penalty_list: r[:bonus_penalty_list], ranks: r[:ranks] } : nil
-      s.merge(roll: roll)
+      row = s.merge(roll: roll)
+      explain ? row.merge(math: SheetMath.skill(acc, s[:key])) : row
     end
     {
       ok: true,
@@ -81,7 +86,9 @@ helpers do
       tier: (h[:hide_tier] ? nil : h[:tier]),
       vitals: {
         hp: v[:hp], temp_hp: v[:temp_hp].to_i, mana: v[:mana], toxicity: v[:toxicity],
-        damage_reduction: v[:damage_reduction].to_i, damage_resilience: v[:damage_resilience].to_i
+        damage_reduction: v[:damage_reduction].to_i, damage_resilience: v[:damage_resilience].to_i,
+        combat_pool: v[:combat_pool].to_i,
+        math: (explain ? SheetMath.vitals(acc, v) : {})
       },
       speed: d[:speed], initiative_dice: d.dig(:initiative, :dice_count), perception: d[:perception],
       attributes: attributes, skills: skills,

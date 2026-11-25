@@ -13,10 +13,13 @@ import android.widget.ScrollView
 abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (Throwable) -> Unit) {
 
     private val scroll = ScrollView(ctx).apply { isFillViewport = true }
+    /** Pinned over the scrolling content, always in view ([buildHeader]). */
+    private val header = android.widget.FrameLayout(ctx)
     /** Pinned under the scrolling content, always in view ([buildFooter]). */
     private val footer = android.widget.FrameLayout(ctx)
     private val root = android.widget.LinearLayout(ctx).apply {
         orientation = android.widget.LinearLayout.VERTICAL
+        addView(header, Ui.matchWidth())
         addView(scroll, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         addView(footer, Ui.matchWidth())
     }
@@ -36,6 +39,9 @@ abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (T
     protected abstract fun fetch(done: (Result<Pair<T, String>>) -> Unit)
 
     protected abstract fun build(d: T): View
+
+    /** What stays in view over the scrolling content, or null for nothing. */
+    protected open fun buildHeader(d: T): View? = null
 
     /** What stays in view under the scrolling content, or null for nothing. */
     protected open fun buildFooter(d: T): View? = null
@@ -72,6 +78,8 @@ abstract class LiveScreen<T>(protected val ctx: Context, private val onError: (T
         val keepY = scroll.scrollY
         scroll.removeAllViews()
         scroll.addView(build(d))
+        header.removeAllViews()
+        buildHeader(d)?.let { header.addView(it) }
         footer.removeAllViews()
         buildFooter(d)?.let { footer.addView(it) }
         scroll.post { scroll.scrollTo(0, keepY) }

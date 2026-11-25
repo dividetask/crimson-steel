@@ -50,6 +50,37 @@ class NetTest {
         assertEquals(6, s.attributes[0].save!!.tn)
         assertEquals(listOf("Competency" to 1, "Guidance" to 1), s.attributes[0].save!!.bonusPenaltyList)
         assertNull(s.skills[0].roll)
+        assertTrue(!s.hasMath)   // a server without the math: no "?" on the sheet
+    }
+
+    @Test fun parsesSheetMath() {
+        val j = JSONObject("""
+            {"ok":true,"id":1,"name":"Ash Windmere",
+             "vitals":{"hp":{"current":8,"max":14},"combat_pool":16,
+               "math":{"hp":{"title":"Hit Points","lines":["Tier 1: 14 CON = 14","14 − 6 damage = 8"]},
+                       "combat_pool":{"title":"Combat Pool","lines":["3 martial × 2 + 18 WIS = 24"],
+                         "table":{"head":["Dice","Each","Cost","Left"],"rows":[["1–4","free","0","24"]],
+                                  "foot":["16 dice","","24","0"]},
+                         "note":"Next die costs 4"}}},
+             "attributes":[{"key":"str","label":"Strength","score":12,
+               "math":{"title":"Strength","lines":["10 base + 1 racial + 1 inherent = 12"]},
+               "check_math":{"title":"Strength check","lines":["TN: 8 − 1 = 7"]}}],
+             "skills":[{"key":"arcana","name":"Arcana","attribute":"int","ranks":5,"dice":8,"bonus":2,"trained":true,
+               "math":{"title":"Arcana","lines":["Bard 3 · Aligned: floor(5 × level ÷ 3) = 5 ranks"]}}]}
+        """.trimIndent())
+        val s = Sheet.from(j)
+        assertTrue(s.hasMath)
+        assertEquals(16, s.combatPool)
+        assertEquals(listOf("Tier 1: 14 CON = 14", "14 − 6 damage = 8"), s.math["hp"]!!.lines)
+        val pool = s.math["combat_pool"]!!
+        assertEquals(listOf("Dice", "Each", "Cost", "Left"), pool.table!!.head)
+        assertEquals(listOf(listOf("1–4", "free", "0", "24")), pool.table!!.rows)
+        assertEquals("Next die costs 4", pool.note)
+        assertNull(s.math["hp"]!!.table)
+        assertEquals("Strength", s.attributes[0].math!!.title)
+        assertEquals("Strength check", s.attributes[0].checkMath!!.title)
+        assertNull(s.attributes[0].saveMath)
+        assertEquals("Arcana", s.skills[0].math!!.title)
     }
 
     @Test fun parsesInitiativeOptions() {

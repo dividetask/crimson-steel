@@ -60,6 +60,23 @@ Returns:
 | `dice_cap` | integer | The dice count returned by dice resolution's Prowess translator. The maximum dice the Creature can spend on a roll for this proficiency. |
 | `competency_modifier` | `(type_name, signed_value)` pair or null | Tagged Competency entry to be added to the Roll's `bonus_penalty_list`. Null when zero. |
 
+### Break down the Roll inputs for a Proficiency
+
+Same inputs and pipeline as *Compute Roll inputs for a Proficiency*, but returns every step, for a caller that shows the math. *Compute Roll inputs* is built from this, so the two cannot disagree.
+
+Returns:
+
+| Field | Type | Description |
+|---|---|---|
+| `key` | string | The queried key. |
+| `source_key` | string | The key whose Prowess won: `key` itself for Direct Prowess, the Substitution Map source for Substituted Prowess. |
+| `attribute`, `attribute_value`, `attribute_contribution` | attribute key, integer, integer | The winning source's driving attribute, its value, and `floor(value / Attribute Contribution Divisor)`. |
+| `base_ranks`, `floor_ranks`, `ranks` | integer | The source's ranks from the Creature accessor, the Floor Ability lift (zero when it does not apply), and the effective ranks — the higher of the two. |
+| `prowess` | integer | `ranks + attribute_contribution`. |
+| `trained` | boolean | `ranks > 0`. |
+| `dice_cap`, `bonus` | integer | The Prowess translated through dice resolution. |
+| `penalty` | integer | The Non-Proficiency Penalty when it applies (pipeline step 7), otherwise zero. The Competency Modifier's value is `bonus + penalty`. |
+
 ### Look up a Skill
 
 Pure conversion. Resolves a key against the catalog using Prefix Match.
@@ -121,7 +138,7 @@ The Substitution Map's source keys do not have to be Set Instances. Concrete cat
 
 Compares Direct Prowess and (if produced) Substituted Prowess. The higher value is the Proficiency Prowess. Direct Prowess wins ties.
 
-The Proficiency Prowess is fed to dice resolution's translator. The intermediate ranks and attribute are not exposed in the public return — only the translated `dice_cap` and `competency_modifier` are.
+The Proficiency Prowess is fed to dice resolution's translator. *Compute Roll inputs* returns only the translated `dice_cap` and `competency_modifier`; the intermediate ranks and attribute are returned by *Break down the Roll inputs*.
 
 ### Non-Proficiency Penalty
 

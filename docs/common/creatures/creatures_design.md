@@ -336,11 +336,14 @@ The interface returned by *Look up Creature*. Every method reads fresh from the 
 | `attribute_value(attr)` | integer | Equivalent to *Get Effective Attributes*`[attr]`. The value Proficiencies and Combat read. |
 | `base_attribute_value(attr)` | integer | The raw Base Attribute before Racial Adjustment and Inherent bonuses. UI surfaces consult this for display. |
 | `ranks_for(key)` | integer | The Creature's ranks in the given concrete proficiency key. See *Ranks Computation* in Operations. The key must not end in `_`. |
+| `rank_sources(key)` | list of `{class_key, level, category, rate, ranks}` | Each Class Entry's part in `ranks_for(key)`; the `ranks` sum to it. `category` is the Proficiency Category the Class gives the key (for a Skill, *Skill Rate Resolution* as if trained). `rate` is the category it advances at: null for a Skill the Class Entry has not trained, which gets no ranks. |
 | `has_ability(name)` | boolean | True iff `name` appears in the Granted Abilities list. |
 | `level_for_ability(name)` | integer | The level relevant to the granting source — Class Level when granted by a Class (including spells contributed via that Class's `choices.spellcasting` or `choices.deity`/`choices.domain`), the Creature's current Tier when granted by Race. Used by Proficiencies' Floor Ability and similar formulas. Zero when the Creature lacks the Ability. |
 | `speed` | integer | Equivalent to *Get Speed*. |
 | `max_hit_points` | integer | Equivalent to *Get Max Hit Points*. |
 | `max_mana` | integer | Equivalent to *Get Max Mana*. |
+| `hit_points_breakdown` | `{tier, formula, vars, base, modifiers, total}` | The parts behind *Get Max Hit Points*: the Tier's `HP Formula` entry, the values it read, its result, and the summed `hp_bonus` Aggregated Modifiers. `total` is `max_hit_points`. |
+| `mana_breakdown` | `{tier, formula, vars, base, classes, modifiers, total}` | The parts behind *Get Max Mana*. `classes` lists `{class_key, level, per_level, amount}` for each Class Entry. `total` is `max_mana`. |
 | `granted_abilities(source = null)` | list of `{name, source}` | Equivalent to *Get Granted Abilities*. |
 | `aggregated_modifiers(target = null)` | list of Aggregated Modifier Entry | Equivalent to *Get Aggregated Modifiers*. |
 | `tier_attribute_advancement` | list of attribute keys | The stored flat list of focused-bonus picks. The chunking by Tier is internal to *Effective Attribute Computation*. |

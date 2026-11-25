@@ -55,7 +55,7 @@ The API answers only for the assigned Character and uses the same rules as the w
 
 ## Character sheet
 
-Shows vitals (HP, Mana, magic toxicity, Damage Reduction, Damage Resilience), the six Attributes, every Skill, and the character's Abilities.
+Shows vitals (HP, Mana, magic toxicity, Damage Reduction, Damage Resilience, Combat Pool), the six Attributes, every Skill, and the character's Abilities.
 
 Rollable entries:
 
@@ -65,6 +65,21 @@ Rollable entries:
 The server computes every Roll's Dice Count, final TN and Starting Value (Proficiencies, Dice Resolution, and the Character's items and active Modifiers), so the app and the web sheet always agree. The app only throws and scores the dice ([dice_resolution_design.md](../common/dice_resolution/dice_resolution_design.md)). The full Dice Cap is always rolled from the sheet; only combat actions let the player commit fewer dice.
 
 Abilities are descriptive only (tap to expand) and are not rollable.
+
+### The math
+
+The line with the race, class, Tier and Speed is pinned at the top of the sheet, with a **?** button at its right. While **?** is on (gold), a tap opens the math behind a number instead of rolling; tapping **?** again goes back to rolling.
+
+| Tap | Shows |
+|---|---|
+| HP, Mana | The Tier's formula with the Character's values filled in, each Class's Mana per level, then the damage taken or Mana spent. |
+| Toxicity | The Toxicity Threshold. |
+| Damage Reduction, Damage Resilience | One line per source: the Tier, each piece of armor, each active effect. |
+| Combat Pool | The Budget and the price table of the web sheet's Combat Pool popup ([creatures_minimal_stub.md](../common/ui/creatures_minimal_stub.md)). |
+| An Attribute's name or score | Its base, racial, inherent and item parts. |
+| **Check**, **Save**, a **Skill** | For each Class, the rate the ranks advance at (Aligned, Unaligned or Opposed; for an untrained Skill, the rate it would have) and the ranks that gives; then the Prowess, the bonus and dice it becomes, and the TN. |
+
+The server writes every line (`lib/sheet_math.rb`) from the same code that computes the number, so the math always ends on what the sheet shows; the app only displays it. A Character whose Tier is hidden (`hide_tier`) gets no math and no **?**, because the math names the Tier.
 
 ## Rolling
 
@@ -183,7 +198,7 @@ All endpoints answer JSON for the device's assigned Character, or `409 {"error":
 | Endpoint | Returns / does |
 |---|---|
 | `GET /api/hello` | Server identity, campaign name, the device's short id, and the assigned Character (or `null`). |
-| `GET /api/sheet` | The character sheet with server-computed Rolls. |
+| `GET /api/sheet` | The character sheet with server-computed Rolls, and the math behind each number (`math`, `check_math`, `save_math`). |
 | `GET /api/inventory` | Equipped, carried and Sell Pile rows, as the web inventory stub shows them. |
 | `GET /api/initiative` | Combat state, turn order (no vitals), the player's pool / Main Actions / Mana, and on their turn the options and this turn's requests. |
 | `POST /api/turn/requests` | Body `{ "key": "<option key>", "dice": <n> }`. Records a request for the DM. |
