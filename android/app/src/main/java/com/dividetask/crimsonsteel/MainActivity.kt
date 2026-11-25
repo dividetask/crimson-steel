@@ -219,6 +219,13 @@ class MainActivity : Activity() {
             searching = false
             r.onSuccess { onHello(it) }
              .onFailure {
+                 if (!com.dividetask.crimsonsteel.net.LocalNetwork.onLocalNetwork(this)) {
+                     DebugLog.i(TAG, "not on Wi-Fi")
+                     showMessage("Not on Wi-Fi",
+                         "This device isn't connected to Wi-Fi. Connect it to the same Wi-Fi network as the DM's computer, then try again.",
+                         action = "Search again") { search() }
+                     return@onFailure
+                 }
                  val vpnHint = if (Session.vpnActive) {
                      "\n\nThis phone has a VPN or firewall app turned on (for example NetGuard). If it blocks " +
                          "Crimson Steel, allow the app in it, then try again."

@@ -223,6 +223,14 @@ class MapTargetView(
         val ring = t.color ?: Color.LTGRAY
         paint.color = if (pickable) ring else Color.argb(alpha, Color.red(ring), Color.green(ring), Color.blue(ring))
         c.drawOval(r, paint)
+        // Inner circle: the token's Tier colour.
+        t.tier?.let { tier ->
+            val inner = RectF(r).apply { inset(cell * 0.1f, cell * 0.1f) }
+            paint.strokeWidth = cell * 0.07f
+            val tc = Ui.tierColor(tier)
+            paint.color = if (pickable) tc else Color.argb(alpha, Color.red(tc), Color.green(tc), Color.blue(tc))
+            c.drawOval(inner, paint)
+        }
         if (id != null && id == selected) {
             val out = RectF(r).apply { inset(-cell * 0.1f, -cell * 0.1f) }
             paint.strokeWidth = cell * 0.08f

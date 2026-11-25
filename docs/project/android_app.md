@@ -114,7 +114,7 @@ When there is an Active Map (`/api/initiative` → `map`: the player's view,
 with fogged and hidden Tokens left out), the target is picked by tapping its
 token. Each token is ringed in its player's dice colour
 ([dice_colors.md](dice_colors.md)); monsters and Characters with no phone use
-the DM's. The chosen target gets a gold ring outside that, with its name;
+the DM's. An inner circle shows the token's Tier colour. The chosen target gets a gold ring outside that, with its name;
 tokens that cannot be targeted are faded. Pinch to zoom, drag to move. The DM's
 Encounter map rings Combatant tokens the same way. Every
 target also has a name button under the map. A target whose token is not on

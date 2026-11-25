@@ -235,7 +235,7 @@ helpers do
       origin: (m[:grid] || {})[:origin] || [0, 0],
       tokens: snap[:tokens].map do |t|
         { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id],
-          color: t[:ring] }
+          color: t[:ring], tier: t[:tier] }
       end,
       terrain: snap[:terrain].map { |t| { shape: t[:shape_kind], points: t[:points], texture: t[:texture] } },
       fog: snap[:fog].map { |f| { shape: f[:shape_kind], points: f[:points] } } }

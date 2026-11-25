@@ -16,4 +16,15 @@ object LocalNetwork {
         @Suppress("DEPRECATION")
         cm.allNetworks.any { n -> cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true }
     }.getOrDefault(false)
+
+    /** Whether the device is on Wi-Fi (or a wired network): the server is only found on the local network. */
+    fun onLocalNetwork(ctx: Context): Boolean = runCatching {
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+        @Suppress("DEPRECATION")
+        cm.allNetworks.any { n ->
+            val caps = cm.getNetworkCapabilities(n)
+            caps != null && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+        }
+    }.getOrDefault(true)
 }

@@ -3917,13 +3917,18 @@ body {
 }
 
 /* Tier Color fills (ui_conventions.md). */
-.atlas-token.atlas-tier-0 { background: #e74c3c; }
-.atlas-token.atlas-tier-1 { background: #e67e22; }
-.atlas-token.atlas-tier-2 { background: #f1c40f; }
-.atlas-token.atlas-tier-3 { background: #2ecc71; }
-.atlas-token.atlas-tier-4 { background: #3498db; }
-.atlas-token.atlas-tier-5 { background: #9b59b6; }
+.atlas-token.atlas-tier-0 { background: #e74c3c; --tier: #e74c3c; }
+.atlas-token.atlas-tier-1 { background: #e67e22; --tier: #e67e22; }
+.atlas-token.atlas-tier-2 { background: #f1c40f; --tier: #f1c40f; }
+.atlas-token.atlas-tier-3 { background: #2ecc71; --tier: #2ecc71; }
+.atlas-token.atlas-tier-4 { background: #3498db; --tier: #3498db; }
+.atlas-token.atlas-tier-5 { background: #9b59b6; --tier: #9b59b6; }
 .atlas-token.atlas-tier-unknown { background: #7f8c8d; }
+/* Inner circle in the token's Tier colour, inside the player's ring. */
+.atlas-token::after {
+  content: ''; position: absolute; inset: 2px; border-radius: 50%;
+  border: 3px solid var(--tier, transparent); pointer-events: none;
+}
 
 /* --- Hover tooltip (atlas_token_tooltip.md) --- */
 .atlas-tooltip {
