@@ -4,6 +4,11 @@ A native Android client for Crimson Steel DM Tools. It has its own GUI (not a We
 
 The Gradle project lives in `android/` and is built by `build_branches.sh` (see the claude-basics repository). Built APKs are committed to `android/versions/`.
 
+Runs on Android 5.1 (API 22) and newer, so the Fire 7 (2017, Fire OS 5) can
+use it. On older Android a few extras are missing: screenshots are sent only
+from Android 14, Save debug log writes straight to Downloads only from
+Android 10, and tapped cards flash a ripple only from Android 6.
+
 ## Connecting
 
 The app never asks for an IP address, and never probes other devices on the network one by one. It tries, in order:
@@ -144,7 +149,7 @@ Reached from the gear at the top of every screen. **Done** (or back) returns to 
 |---|---|
 | App | The version (`BuildConfig.VERSION_NAME`, e.g. `v0.006 a (1a2b)`). |
 | Connection | The server address, the device id (the first 8 characters, as in the DM's device table), the assigned Character, whether a VPN is on, and this phone's network addresses. **Search for the server again** forgets the remembered server and searches from scratch. |
-| Debug log | **Save debug log** saves a copy as `crimson-steel-debug-<date>-<time>.log` in the phone's **Downloads** folder (Android 10+: straight into Downloads, no permission; Android 8–9: the system "save as" picker). There is no share sheet. **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
+| Debug log | **Save debug log** saves a copy as `crimson-steel-debug-<date>-<time>.log` in the phone's **Downloads** folder (Android 10+: straight into Downloads, no permission; Android 5.1–9: the system "save as" picker). There is no share sheet. **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
 
 ## Debug log
 

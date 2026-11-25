@@ -12,7 +12,7 @@ import android.net.NetworkCapabilities
  */
 object LocalNetwork {
     fun vpnActive(ctx: Context): Boolean = runCatching {
-        val cm = ctx.getSystemService(ConnectivityManager::class.java) ?: return false
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
         @Suppress("DEPRECATION")
         cm.allNetworks.any { n -> cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true }
     }.getOrDefault(false)
