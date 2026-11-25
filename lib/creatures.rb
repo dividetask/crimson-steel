@@ -1,3 +1,4 @@
+require_relative 'test_dice'
 require 'json'
 
 require_relative 'creatures/config'
@@ -134,7 +135,7 @@ module Creatures
 
   # ---- random encounter / spawn / delete ------------------------------
 
-  def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: Random.new)
+  def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: TestDice.rng)
     RandomEncounter.spawn_from_template(template_id, name_override: name_override, loot_table: loot_table, rng: rng)
   end
 

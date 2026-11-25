@@ -1,3 +1,4 @@
+require_relative '../data_dir'
 require 'fileutils'
 require 'json'
 
@@ -12,7 +13,7 @@ module Conditions
   # resolves to a fresh empty State (full HP, no afflictions) and is
   # only written out once something mutates it.
   class Store
-    DATA_PATH    = File.expand_path('../../data/conditions_data.json', __dir__)
+    DATA_PATH    = DataDir.path('conditions_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/conditions/conditions_data.example.json', __dir__)
 
     attr_reader :data_path, :catalog

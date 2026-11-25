@@ -1,3 +1,4 @@
+require_relative 'test_dice'
 require 'set'
 require 'securerandom'
 require 'cgi'
@@ -426,7 +427,7 @@ class ActionFlow
 
   # DM rolls a Roll on the owner's behalf (server-side dice), for the DM's
   # eyes only until approved. May be repeated as often as the DM likes.
-  def roll_for(task_id, rng: Random.new)
+  def roll_for(task_id, rng: TestDice.rng('action roll'))
     t = task(task_id) or raise ArgumentError, 'unknown task'
     raise ArgumentError, 'not a roll' unless t['kind'] == 'roll'
     r = t['roll']
@@ -473,7 +474,7 @@ class ActionFlow
   # rerolls up to +count+ non-Successes, lowest first; a negative reroll up to
   # +count+ Successes, highest first. Each die is rerolled at most once.
   # Returns [final, rerolled] where rerolled[i] is the new value or nil.
-  def self.apply_rerolls(dice, tn, positive, negative, rng = Random.new)
+  def self.apply_rerolls(dice, tn, positive, negative, rng = TestDice.rng)
     final = dice.dup
     rerolled = Array.new(dice.length)
     pick = lambda do |count, eligible, order|

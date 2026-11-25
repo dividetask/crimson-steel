@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 module Equipment
   # Loot Table Dice Expression evaluator. Handles integer constants and
   # `NdM` with an optional `± K`:
@@ -12,7 +13,7 @@ module Equipment
 
     module_function
 
-    def eval(expr, rng = Random.new)
+    def eval(expr, rng = TestDice.rng)
       return expr if expr.is_a?(Integer)
       m = expr.to_s.match(DICE_RE)
       raise ArgumentError, "invalid dice expression #{expr.inspect}" unless m

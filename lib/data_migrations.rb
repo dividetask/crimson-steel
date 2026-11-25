@@ -1,3 +1,4 @@
+require_relative 'data_dir'
 require 'json'
 require 'fileutils'
 
@@ -6,7 +7,7 @@ require 'fileutils'
 # server starts, and is recorded in data/migrations.json so it never runs
 # again. Each is careful: it only adds what is missing.
 module DataMigrations
-  DONE_PATH = File.expand_path('../data/migrations.json', __dir__).freeze
+  DONE_PATH = DataDir.path('migrations.json').freeze
 
   MIGRATIONS = {
     # Lira Duskmoor gets a Scroll of Fireball to test the new spell.

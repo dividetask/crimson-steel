@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 require 'dice_resolution'
 
 module Encounter
@@ -43,7 +44,7 @@ module Encounter
     end
 
     def default_roll(count)
-      Array.new(count) { rand(1..die_size) }
+      Array.new(count) { TestDice.rng("initiative").rand(1..die_size) }
     end
 
     # Apply Initiative Luck, then Initiative Insight, then encode the

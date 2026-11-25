@@ -1,3 +1,4 @@
+require_relative '../data_dir'
 require 'fileutils'
 require 'json'
 
@@ -16,7 +17,7 @@ module Atlas
   # UI concerns. Tokens cross-reference Creatures by `creature_id`; display
   # data is resolved by the consumer through `creature_lookup`.
   class State
-    DATA_PATH    = File.expand_path('../../data/atlas_data.json', __dir__)
+    DATA_PATH    = DataDir.path('atlas_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/atlas/atlas_data.example.json', __dir__)
 
     attr_reader :data_path

@@ -1,3 +1,4 @@
+require_relative 'data_dir'
 require 'json'
 require 'fileutils'
 
@@ -12,7 +13,7 @@ require 'fileutils'
 #
 # Stored in data/dice_colors.json as { "dm" => "silver", "<character id>" => "sky", ... }.
 class DiceColors
-  DATA_PATH = File.expand_path('../data/dice_colors.json', __dir__).freeze
+  DATA_PATH = DataDir.path('dice_colors.json').freeze
   DM = 'dm'.freeze
 
   # Light, soft colours; none red or green, so the green / red / blue numbers

@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 module Creatures
   # Tiny dice-expression evaluator for the `count` field on
   # Random Encounter Row Spawn Refs. Supports integer literals and
@@ -13,7 +14,7 @@ module Creatures
 
     module_function
 
-    def eval(expr, rng = Random.new)
+    def eval(expr, rng = TestDice.rng)
       s = expr.to_s
       m = s.match(DICE_RE)
       raise ArgumentError, "invalid dice expression #{expr.inspect}" unless m

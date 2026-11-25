@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 require 'yaml'
 require_relative 'dataset'
 require_relative 'dice_expression'
@@ -38,7 +39,7 @@ module Creatures
 
     # ---- Spawn / Delete -------------------------------------------------
 
-    def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: Random.new)
+    def spawn_from_template(template_id, name_override: nil, loot_table: nil, rng: TestDice.rng)
       template = Dataset.get(Integer(template_id))
       raise ArgumentError, "no template Creature with id #{template_id}" unless template
 
@@ -203,7 +204,7 @@ module Creatures
       missing = missing_template_ids(table)
       raise MissingTemplates.new(table_id, missing) unless missing.empty?
 
-      rng = seed.nil? ? Random.new : Random.new(seed)
+      rng = seed.nil? ? TestDice.rng : Random.new(seed)
       vars = {}
       new_ids = []
 

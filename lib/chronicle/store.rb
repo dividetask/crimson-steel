@@ -1,8 +1,9 @@
+require_relative '../data_dir'
 require 'fileutils'
 
 module Chronicle
   class Store
-    DATA_PATH    = File.expand_path('../../data/chronicle_data.json', __dir__)
+    DATA_PATH    = DataDir.path('chronicle_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/chronicle/chronicle_data.example.json', __dir__)
 
     attr_reader :data_path

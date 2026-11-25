@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 require 'abilities'
 
 module Encounter
@@ -22,7 +23,7 @@ module Encounter
     # rolls 1..die. `successes` is the channeler's Channel Successes,
     # echoed back so the Stub can scale the entry. Returns nil for an
     # unknown/empty table or an out-of-range face.
-    def roll(table, face: nil, successes: 0, rng: Random.new)
+    def roll(table, face: nil, successes: 0, rng: TestDice.rng)
       return nil unless table.is_a?(Hash)
       die = table['die'].to_i
       return nil unless die.positive?
@@ -35,7 +36,7 @@ module Encounter
     end
 
     # Roll on a Roll Table named through the Abilities catalog.
-    def roll_named(name, face: nil, successes: 0, rng: Random.new)
+    def roll_named(name, face: nil, successes: 0, rng: TestDice.rng)
       roll(Abilities.roll_table(name), face: face, successes: successes, rng: rng)
     end
   end

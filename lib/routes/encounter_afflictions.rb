@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 # Encounter affliction helpers: the out-of-combat Affliction relief stub
 # (per-creature cards + Heal-channeler aiders) and the server-side save roller.
 # Extracted from routes/encounter.rb; a separate `helpers do` block on the
@@ -96,7 +97,7 @@ helpers do
     calc = DiceResolution.compute_target_number(list)
     tn   = calc[:tn]
     die  = save[:die_size].to_i
-    dice = Array.new(save[:save_dice].to_i) { rand(1..die) }
+    dice = Array.new(save[:save_dice].to_i) { TestDice.rng("affliction save").rand(1..die) }
     calc[:starting_value] + dice.sum do |v|
       if    v == die then ROLL_CRITICAL_MODIFIER
       elsif v == 1   then ROLL_FAILURE_MODIFIER

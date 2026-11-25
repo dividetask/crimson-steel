@@ -1,3 +1,4 @@
+require_relative '../data_dir'
 require 'yaml'
 require 'fileutils'
 
@@ -16,7 +17,7 @@ module Equipment
   # CreatureAdapter (Character Inventories via the Creature accessor
   # contract).
   class Dataset
-    DATA_PATH    = File.expand_path('../../data/equipment_data.yaml', __dir__)
+    DATA_PATH    = DataDir.path('equipment_data.yaml')
     EXAMPLE_PATH = File.expand_path('../../docs/common/equipment/equipment_data.example.yaml', __dir__)
 
     attr_reader :owners, :data_path

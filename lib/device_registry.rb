@@ -1,3 +1,4 @@
+require_relative 'data_dir'
 require 'json'
 require 'time'
 require 'fileutils'
@@ -23,7 +24,7 @@ require 'monitor'
 # DM's own machine first, then each player device on its first request).
 class DeviceRegistry
   COOKIE    = 'crimson_device_id'.freeze
-  DATA_PATH = File.expand_path('../data/devices.json', __dir__).freeze
+  DATA_PATH = DataDir.path('devices.json').freeze
 
   class << self
     # Process-wide registry pointed at the default data file. Routes and

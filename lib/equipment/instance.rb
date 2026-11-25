@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 module Equipment
   # Pairs the Catalog + Store with the injected sibling-domain
   # collaborators (Conditions, Combat, Abilities, and the Creature
@@ -21,7 +22,7 @@ module Equipment
 
     def initialize(catalog: Catalog.load, store: Store.new, creature_accessor: nil,
                    conditions: nil, combat: nil, abilities: nil, creatures: nil,
-                   loot: nil, shops: {}, generic_shops: nil, game_day: 0, rng: Random.new)
+                   loot: nil, shops: {}, generic_shops: nil, game_day: 0, rng: TestDice.rng)
       @catalog = catalog
       @store = store
       @creature_accessor = creature_accessor

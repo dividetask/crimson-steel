@@ -1,3 +1,4 @@
+require_relative '../data_dir'
 require 'yaml'
 require 'fileutils'
 require_relative 'record'
@@ -15,7 +16,7 @@ module Creatures
   # restart instead of living only in memory.
   module Dataset
     EXAMPLE_DIR  = File.expand_path('../../docs/common/creatures', __dir__)
-    DEFAULT_DATA_DIR = File.expand_path('../../data', __dir__)
+    DEFAULT_DATA_DIR = DataDir.root
     PATTERN      = 'creatures_data_*.{yaml,yml,json}'.freeze
 
     module_function

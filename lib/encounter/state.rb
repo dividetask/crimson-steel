@@ -1,3 +1,5 @@
+require_relative '../test_dice'
+require_relative '../data_dir'
 require 'fileutils'
 require 'json'
 
@@ -11,7 +13,7 @@ module Encounter
   # initiative ordering, turn pointer) come alive once *Start Combat*
   # runs. PC exclusions persist across lifecycles.
   class State
-    DATA_PATH    = File.expand_path('../../data/encounter_data.json', __dir__)
+    DATA_PATH    = DataDir.path('encounter_data.json')
     EXAMPLE_PATH = File.expand_path('../../docs/common/encounter/encounter_data.example.json', __dir__)
 
     # The Encounter Phases the DM picks between from the menu dropdown.
@@ -1491,7 +1493,7 @@ module Encounter
     # name), dice (Combat Pool spent on the channel check), successes
     # (Channel Successes rolled), face (optional — a die the DM rolled
     # client-side; omitted rolls server-side via `rng`).
-    def use_roll_table_payload(payload, rng: Random.new)
+    def use_roll_table_payload(payload, rng: TestDice.rng)
       p = deep_symbolize(payload)
       # A preview (commit:false) rolls the table to show the entry and lets the
       # DM reroll, spending nothing; the Confirm (commit:true, default) commits

@@ -1,7 +1,7 @@
 require 'bundler/setup'
 require 'sinatra'
 
-set :port, 4567
+set :port, (ENV['CRIMSON_PORT'] || 4567).to_i
 set :bind, '0.0.0.0'
 # Enough web-server threads for a full table: each phone and the DM's page
 # holds one live-updates connection (lib/change_feed.rb).
@@ -74,10 +74,12 @@ require_relative 'lib/action_sounds'
 require_relative 'lib/data_migrations'
 require_relative 'lib/app_release'
 require_relative 'lib/device_logs'
+require_relative 'lib/test_dice'
 
 %w[home character_sheets character_creation store notes compendium status view_as devices chronicle encounter encounter_looting encounter_afflictions encounter_reactions encounter_special encounter_attack_ui encounter_cast_ui encounter_cast_resolution inventory atlas sheet_modals dm monster_creation api action_flows live_events].each do |name|
   require_relative "lib/routes/#{name}"
 end
+require_relative 'lib/routes/test_dice' if TestDice.enabled?
 
 # LAN discovery for the Android app: answer its UDP probe so it can find this
 # server without typing an IP address (lib/lan_discovery.rb). Only when this
@@ -87,5 +89,6 @@ if Sinatra::Application.run?
   DataMigrations.run!
   # Still waiting for the build automation's APK? Say so in the console.
   (w = AppRelease.pending_warning) && warn("\n#{w}\n\n")
-  LanDiscovery.start(http_port: settings.port, name: -> { Chronicle.store.campaign_name })
+  # A test server must not answer the real tablets' discovery probes.
+  LanDiscovery.start(http_port: settings.port, name: -> { Chronicle.store.campaign_name }) unless TestDice.enabled?
 end

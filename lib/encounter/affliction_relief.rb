@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 require 'dice_resolution'
 
 module Encounter
@@ -12,7 +13,7 @@ module Encounter
     FAIL_MODIFIER = -1
 
     def run(instance:, affliction_name:, creature_tier:, save:, aiders: [],
-            creature_name: 'Creature', death_threshold: nil, rng: Random.new,
+            creature_name: 'Creature', death_threshold: nil, rng: TestDice.rng,
             max_rounds: DEFAULT_MAX_ROUNDS)
       name   = affliction_name.to_s
       before = hp_damage_snapshot(instance)

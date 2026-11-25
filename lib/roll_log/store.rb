@@ -1,3 +1,4 @@
+require_relative '../data_dir'
 require 'json'
 require 'fileutils'
 
@@ -6,7 +7,7 @@ module RollLog
   # Players POST each Roll here from the compact roll stub so the DM sees every
   # roll — and its full history — on the DM Page. Newest entries surface first.
   class Store
-    DATA_PATH   = File.expand_path('../../data/roll_log.json', __dir__)
+    DATA_PATH   = DataDir.path('roll_log.json')
     MAX_ENTRIES = 1000
 
     attr_reader :data_path

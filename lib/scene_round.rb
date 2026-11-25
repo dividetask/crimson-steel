@@ -1,3 +1,4 @@
+require_relative 'data_dir'
 require 'json'
 require 'fileutils'
 
@@ -13,7 +14,7 @@ module SceneRound
   ROUNDS_PER_STEP = 1
 
   class Store
-    DATA_PATH = File.expand_path('../data/scene_round.json', __dir__)
+    DATA_PATH = DataDir.path('scene_round.json')
 
     attr_reader :data_path
 

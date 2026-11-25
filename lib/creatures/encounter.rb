@@ -1,3 +1,4 @@
+require_relative '../test_dice'
 require 'yaml'
 require_relative 'dataset'
 require_relative 'dice_expression'
@@ -76,7 +77,7 @@ module Creatures
       table = tables[table_id.to_s]
       raise ArgumentError, "no Encounter Table #{table_id.inspect}" unless table
 
-      rng = seed.nil? ? Random.new : Random.new(seed)
+      rng = seed.nil? ? TestDice.rng : Random.new(seed)
       vars = {}
       new_ids = []
 
