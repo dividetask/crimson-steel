@@ -47,4 +47,15 @@ no magic toxicity, phase Downtime. Everything else is the example campaign.
 15. Check: both requests are on the DM's Player actions panel.
 16. Check: every die was scripted.
 
+## Snapshot at step 12
+
+`test/scenarios/data/simple_combat_step12/` is the server's data right after
+step 11, for trying the next steps by hand: the four orcs with their loot,
+phase Combat, initiative rolled, Thora's turn. The orcs are already named
+Common Orc 1–4 in the data, so it also looks as step 12 expects. No devices
+are included; assign the tablets on the Status page.
+
+Regenerate it with `KEEP_DATA=1 bundle exec ruby test/scenarios/run.rb --until 11 simple_combat`,
+then rename the spawned orcs (ids 2003–2006) and drop `devices.json` and `server.log`.
+
 *Next: the DM's approval and the rest of the fight.*

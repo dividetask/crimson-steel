@@ -204,7 +204,7 @@ module Scenarios
     def stop
       Process.kill('-INT', @pid) rescue nil
       Process.wait(@pid) rescue nil
-      FileUtils.remove_entry(@data_dir) if ENV['KEEP_DATA'].to_s.empty?
+      ENV["KEEP_DATA"].to_s.empty? ? FileUtils.remove_entry(@data_dir) : puts("data kept in #{@data_dir}")
     end
 
     def dm_transport = HttpTransport.new('127.0.0.1', @port)

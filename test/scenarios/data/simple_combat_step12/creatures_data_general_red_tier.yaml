@@ -1,0 +1,262 @@
+---
+characters:
+- id: 300
+  name: Medium Spider
+  race: spider
+  attributes:
+    str: 9
+    dex: 14
+    con: 11
+    int: 1
+    wis: 10
+    cha: 2
+  advancement:
+    classes:
+      feral:
+        level: 4
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/Collection/Beasts/Aranae and other Arthropods/giant
+      spider.png"
+- id: 301
+  name: Wolf
+  race: canine
+  attributes:
+    str: 12
+    dex: 15
+    con: 13
+    int: 3
+    wis: 12
+    cha: 6
+  advancement:
+    classes:
+      feral:
+        level: 4
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
+- id: 302
+  name: Goblin
+  race: goblin
+  attributes:
+    str: 8
+    dex: 14
+    con: 10
+    int: 9
+    wis: 8
+    cha: 8
+  advancement:
+    classes:
+      rogue:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+- id: 303
+  name: Goblin Archer
+  race: goblin
+  attributes:
+    str: 8
+    dex: 16
+    con: 10
+    int: 9
+    wis: 10
+    cha: 8
+  advancement:
+    classes:
+      rogue:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin archer.png"
+- id: 304
+  name: Cultist
+  race: human
+  attributes:
+    str: 10
+    dex: 11
+    con: 12
+    int: 11
+    wis: 13
+    cha: 12
+  advancement:
+    classes:
+      cleric:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/cultist
+      leader.png"
+- id: 305
+  name: Cult Fanatic
+  race: human
+  attributes:
+    str: 10
+    dex: 12
+    con: 13
+    int: 12
+    wis: 14
+    cha: 14
+  advancement:
+    classes:
+      cleric:
+        level: 2
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  metadata:
+    creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/arch-cultist.png"
+- id: 306
+  name: Common Goblin
+  race: goblin
+  attributes:
+    str: 10
+    dex: 10
+    con: 10
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  equipment_table: common_goblin_loadout
+  metadata:
+    creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+- id: 307
+  name: Common Orc
+  race: orc
+  attributes:
+    str: 10
+    dex: 10
+    con: 10
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - enemy_template
+  - category:general_red_tier
+  tier: 0
+  equipment_table: common_orc_loadout
+  metadata:
+    creature_token: "/images/icons/orc token.png"
+- id: 2003
+  name: Common Orc 1
+  race: orc
+  attributes:
+    str: 10
+    dex: 10
+    con: 10
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - category:general_red_tier
+  tier: 0
+  equipment_table: common_orc_loadout
+  metadata:
+    creature_token: "/images/icons/orc token.png"
+  spawned_from: 307
+- id: 2004
+  name: Common Orc 2
+  race: orc
+  attributes:
+    str: 10
+    dex: 10
+    con: 10
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - category:general_red_tier
+  tier: 0
+  equipment_table: common_orc_loadout
+  metadata:
+    creature_token: "/images/icons/orc token.png"
+  spawned_from: 307
+- id: 2005
+  name: Common Orc 3
+  race: orc
+  attributes:
+    str: 10
+    dex: 10
+    con: 10
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - category:general_red_tier
+  tier: 0
+  equipment_table: common_orc_loadout
+  metadata:
+    creature_token: "/images/icons/orc token.png"
+  spawned_from: 307
+- id: 2006
+  name: Common Orc 4
+  race: orc
+  attributes:
+    str: 10
+    dex: 10
+    con: 10
+    int: 10
+    wis: 10
+    cha: 10
+  advancement:
+    classes:
+      warrior:
+        level: 1
+  group: enemy
+  tags:
+  - category:general_red_tier
+  tier: 0
+  equipment_table: common_orc_loadout
+  metadata:
+    creature_token: "/images/icons/orc token.png"
+  spawned_from: 307

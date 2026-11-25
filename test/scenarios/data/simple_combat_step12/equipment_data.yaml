@@ -1,0 +1,401 @@
+---
+characters:
+  1:
+    inventory:
+    - item: Rapier
+      tier: 1
+      properties:
+      - Emotional
+      equipped: true
+    - item: Hand crossbow
+      equipped: true
+    - item: Bolt
+      quantity: 20
+    - item: Studded leather
+      equipped: true
+    - item: Cloak of Resistance
+      tier: 1
+      equipped: true
+      guidance_bonus: 1
+    - item: Headband of Charisma
+      tier: 1
+      equipped: true
+      guidance_bonus: 2
+    - item: Lute
+      tier: 1
+      name: Lute of the Wandering Bard
+      description: Once per scene, grant Bardic Inspiration without spending the action.
+    - item: Potion of Heal
+      quantity: 2
+    - item: Kesser's Ring
+      equipped: true
+    - item: Lute
+    - item: Ritual book
+      inscribed_spells:
+      - detect_magic
+      - light
+      - resistance
+      - message
+      - mage_hand
+      - disguise_self
+      - silence
+      - charm_person
+      - command
+      - friends
+    - item: Rations
+      quantity: 5
+    - item: Bedroll
+    - item: Gold
+      quantity: 32
+  2:
+    inventory:
+    - item: Warhammer
+      equipped: true
+    - item: Javelin
+      quantity: 3
+    - item: Tower shield
+      equipped: true
+    - item: Chain mail
+      equipped: true
+    - item: Potion of Heal
+    - item: Whetstone
+    - item: Rations
+      quantity: 5
+    - item: Gold
+      quantity: 28
+  3:
+    inventory:
+    - item: Quarterstaff
+      equipped: true
+    - item: Headband of Intelligence
+      tier: 1
+      equipped: true
+      guidance_bonus: 2
+    - item: Crossbow
+    - item: Bolt
+      quantity: 20
+    - item: Ritual book
+      inscribed_spells:
+      - heal
+      - ward
+      - speak_with_plants
+      - entangle
+    - item: Potion of Heal
+    - item: Scroll of Fireball
+      tier: 3
+    - item: Gold
+      quantity: 52
+    - item: Silver
+      quantity: 8
+  4:
+    inventory:
+    - item: Short sword
+      equipped: true
+    - item: Dagger
+      equipped: true
+    - item: Leather armor
+      equipped: true
+    - item: Potion of Heal
+      quantity: 3
+    - item: Thieves' tools
+    - item: Gold
+      quantity: 24
+  5:
+    inventory:
+    - item: Longbow
+      equipped: true
+    - item: Dagger
+      equipped: true
+    - item: Studded leather
+      equipped: true
+    - item: Arrow
+      quantity: 20
+    - item: Rations
+      quantity: 5
+    - item: Gold
+      quantity: 18
+  6:
+    inventory:
+    - item: Quarterstaff
+      equipped: true
+    - item: Sling
+    - item: Stone
+      quantity: 20
+    - item: Hide armor
+      equipped: true
+    - item: Potion of Heal
+      quantity: 2
+    - item: Gold
+      quantity: 14
+  7:
+    inventory:
+    - item: Mace
+      tier: 2
+      properties:
+      - name: Elemental
+        subtype: Fire
+      equipped: true
+    - item: Headband of Wisdom
+      tier: 1
+      equipped: true
+      guidance_bonus: 2
+    - item: Crossbow
+    - item: Bolt
+      quantity: 20
+    - item: Chain mail
+      equipped: true
+    - item: Potion of Heal
+      quantity: 3
+    - item: Rations
+      quantity: 5
+    - item: Gold
+      quantity: 22
+  8:
+    inventory:
+    - item: Great sword
+      tier: 2
+      properties:
+      - Vicious
+      equipped: true
+    - item: Belt of Strength
+      tier: 1
+      equipped: true
+      guidance_bonus: 2
+    - item: Javelin
+      quantity: 4
+    - item: Hide armor
+      equipped: true
+    - item: Potion of Heal
+      quantity: 2
+    - item: Rations
+      quantity: 5
+    - item: Bedroll
+    - item: Gold
+      quantity: 16
+  9:
+    inventory:
+    - item: Rapier
+      equipped: true
+    - item: Dagger
+      equipped: true
+    - item: Studded leather
+      equipped: true
+    - item: Potion of Heal
+      quantity: 2
+    - item: Thieves' tools
+    - item: Ritual book
+    - item: Gold
+      quantity: 20
+  10:
+    inventory:
+    - item: Rapier
+      equipped: true
+    - item: Sling
+    - item: Stone
+      quantity: 20
+    - item: Lute
+      equipped: true
+    - item: Leather armor
+      equipped: true
+    - item: Potion of Heal
+      quantity: 2
+    - item: Gold
+      quantity: 19
+  100:
+    inventory:
+    - item: Short sword
+      equipped: true
+    - item: Leather armor
+      equipped: true
+    - item: Dagger
+  101:
+    inventory:
+    - item: Great sword
+      equipped: true
+    - item: Hide armor
+      equipped: true
+  102:
+    inventory:
+    - item: Long sword
+      equipped: true
+    - item: Chain shirt
+      equipped: true
+    - item: Hand crossbow
+      equipped: true
+    - item: Bolt
+      quantity: 12
+  103:
+    inventory:
+    - item: Long sword
+      equipped: true
+    - item: Studded leather
+      equipped: true
+  104:
+    inventory:
+    - item: Quarterstaff
+  106:
+    inventory:
+    - item: Spear
+      equipped: true
+    - item: Chain mail
+      equipped: true
+    - item: Tower shield
+      equipped: true
+  107:
+    inventory:
+    - item: Mace
+      equipped: true
+    - item: Robes
+      equipped: true
+  302:
+    inventory:
+    - item: Short sword
+      equipped: true
+    - item: Light wooden shield
+      equipped: true
+    - item: Leather armor
+      equipped: true
+  303:
+    inventory:
+    - item: Hand crossbow
+      equipped: true
+    - item: Bolt
+      quantity: 20
+    - item: Dagger
+      equipped: true
+    - item: Leather armor
+      equipped: true
+  304:
+    inventory:
+    - item: Dagger
+      equipped: true
+    - item: Robes
+      equipped: true
+  305:
+    inventory:
+    - item: Mace
+      equipped: true
+    - item: Leather armor
+      equipped: true
+  350:
+    inventory:
+    - item: Dagger
+      equipped: true
+    - item: Studded leather
+      equipped: true
+  351:
+    inventory:
+    - item: Long sword
+      equipped: true
+    - item: Chain shirt
+      equipped: true
+  352:
+    inventory:
+    - item: Spear
+      equipped: true
+    - item: Hide armor
+      equipped: true
+  353:
+    inventory:
+    - item: Short sword
+      equipped: true
+    - item: Leather armor
+      equipped: true
+  354:
+    inventory:
+    - item: Mace
+      equipped: true
+    - item: Light wooden shield
+      equipped: true
+    - item: Chain shirt
+      equipped: true
+  2001:
+    inventory:
+    - item: Dagger
+      equipped: true
+  2003:
+    inventory:
+    - item: Falchion
+      equipped: true
+    - item: Longbow
+    - item: Arrow
+      quantity: 12
+    - item: Hide armor
+      equipped: true
+    - item: Light metal shield
+      equipped: true
+    - item: Copper
+      quantity: 40
+    - item: Silver
+      quantity: 25
+    - item: Gem
+      value_in_gold: 5
+    - item: Necklace of animal fangs
+  2004:
+    inventory:
+    - item: Great axe
+      equipped: true
+    - item: Sling
+    - item: Stone
+      quantity: 20
+    - item: Leather armor
+      equipped: true
+    - item: Copper
+      quantity: 30
+    - item: Gold
+      quantity: 20
+    - item: Gem
+      value_in_gold: 15
+  2005:
+    inventory:
+    - item: Long sword
+      equipped: true
+    - item: Longbow
+    - item: Arrow
+      quantity: 10
+    - item: Breastplate
+      equipped: true
+    - item: Light metal shield
+      equipped: true
+    - item: Copper
+      quantity: 50
+    - item: Gem
+      value_in_gold: 25
+  2006:
+    inventory:
+    - item: Spear
+      equipped: true
+    - item: Sling
+    - item: Stone
+      quantity: 25
+    - item: Copper
+      quantity: 20
+party:
+  inventory:
+  - item: Gold
+    quantity: 50275
+  - item: Bolt
+    quantity: 60
+    restock_target: 120
+  - item: Gem
+    name: Uncut Sapphire
+    value_in_gold: 200
+ground_piles:
+- inventory:
+  - item: Arrow
+    quantity: 11
+  - item: Dagger
+    quantity: 2
+  - item: Gold
+    quantity: 8
+  - item: Silver
+    quantity: 23
+  location: Goblin cave — entrance
+- inventory:
+  - item: Mace
+    tier: 1
+    properties:
+    - Radiant
+  - item: Leather armor
+    durability_damage: 5
+  location: Abandoned shrine — altar

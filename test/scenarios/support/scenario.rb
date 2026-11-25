@@ -89,7 +89,8 @@ module Scenarios
     context.extend(definition.helper_module)
     results = []
     failed = false
-    definition.steps.each do |s|
+    limit = ENV['SCENARIO_UNTIL'].to_s.empty? ? nil : Integer(ENV['SCENARIO_UNTIL'])
+    (limit ? definition.steps.first(limit) : definition.steps).each do |s|
       if failed
         results << Result.new(s[:title], :not_run, nil)
       elsif s[:browser] && !context.browser_available? && !s[:fast]

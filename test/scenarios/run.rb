@@ -1,18 +1,23 @@
 # Run the scenarios (docs/project/scenarios/README.md).
 #
-#   bundle exec ruby test/scenarios/run.rb [--fast] [name filter]
+#   bundle exec ruby test/scenarios/run.rb [--fast] [--until N] [name filter]
 #
 # Full run: a real server, the DM in headless Chromium. --fast: in this
 # process through rack-test, DM clicks replaced by their routes. Either way
 # each scenario gets its own data folder (seeded from test/scenarios/data/
 # when it names one), so data/ is never touched.
 #
-# KEEP_DATA=1 keeps each run's data folder; CRIMSON_SCENARIO_PORT picks the
+# --until N runs only the first N steps (with KEEP_DATA=1, to snapshot the
+# state at that point). KEEP_DATA=1 keeps each run's data folder; CRIMSON_SCENARIO_PORT picks the
 # port (default 4590, so a server already running on 4567 is left alone).
 require 'bundler/setup'
 require_relative 'support/scenario'
 
 fast = !ARGV.delete('--fast').nil?
+if (i = ARGV.index('--until'))
+  ENV['SCENARIO_UNTIL'] = ARGV[i + 1]
+  ARGV.slice!(i, 2)
+end
 filter = ARGV.first.to_s
 
 Dir[File.join(__dir__, '*.rb')].sort.each { |f| require f unless File.basename(f) == 'run.rb' }
@@ -23,7 +28,7 @@ if fast
   # One process holds one app, and the app reads its data folder at load: run
   # one scenario per process.
   if definitions.size > 1
-    definitions.each { |d| all_ok &= system(RbConfig.ruby, __FILE__, '--fast', d.name) }
+    definitions.each { |d| all_ok &= system(RbConfig.ruby, __FILE__, '--fast', *(ENV['SCENARIO_UNTIL'] ? ['--until', ENV['SCENARIO_UNTIL']] : []), d.name) }
     exit(all_ok ? 0 : 1)
   end
   definition = definitions.first or exit(0)
@@ -39,7 +44,11 @@ if fast
   begin
     all_ok = Scenarios.report(definition, Scenarios.run(definition, ctx))
   ensure
-    FileUtils.remove_entry(data_dir) if ENV['KEEP_DATA'].to_s.empty?
+    if ENV['KEEP_DATA'].to_s.empty?
+      FileUtils.remove_entry(data_dir)
+    else
+      puts "data kept in #{data_dir}"
+    end
   end
   exit(all_ok ? 0 : 1)
 end
