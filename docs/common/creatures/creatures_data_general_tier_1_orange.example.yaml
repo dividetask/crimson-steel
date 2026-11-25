@@ -1,0 +1,293 @@
+# General Tier 1 (Orange) — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_tier_1_orange`; the Roster Sidebar groups templates and
+# Random Encounter Tables under that category (see template_categories.yaml).
+
+name: General Tier 1 (Orange)
+
+characters:
+
+  - id: 400
+    name: Dire Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/mordwolf.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: dire_wolf
+    tier: 1
+    attributes: { str: 12, dex: 13, con: 12, int: 3, wis: 12, cha: 8 }
+    advancement:
+      classes:
+        feral: 6
+
+  - id: 401
+    name: Ogre
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/onnake ogre.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: ogre
+    tier: 1
+    attributes: { str: 10, dex: 8, con: 10, int: 6, wis: 8, cha: 7 }
+    advancement:
+      classes:
+        warrior:
+          level: 2
+          skills: [athletics, intimidate]
+
+  - id: 402
+    name: Ogre Brute
+    metadata:
+      creature_token: "/images/icons/Collection/Giants/enraged two-headed giant.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: ogre
+    tier: 1
+    attributes: { str: 12, dex: 8, con: 12, int: 6, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        barbarian:
+          level: 3
+          skills: [athletics, intimidate, survival]
+
+  - id: 403
+    name: Hobgoblin Soldier
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/hobgoblin warrior.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: hobgoblin
+    tier: 1
+    attributes: { str: 12, dex: 12, con: 12, int: 10, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        fighter:
+          level: 2
+          skills: [athletics, intimidate, perception]
+    equipment_table: soldier_loadout
+
+  - id: 404
+    name: Hobgoblin Captain
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/hobgoblin red-eyed.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: hobgoblin
+    tier: 1
+    attributes: { str: 14, dex: 12, con: 13, int: 12, wis: 11, cha: 12 }
+    advancement:
+      classes:
+        fighter:
+          level: 4
+          skills: [athletics, intimidate, perception, sense_motive]
+    equipment_table: soldier_loadout
+
+  - id: 405
+    name: Bandit Captain
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/duelist with 2 swords.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: human
+    tier: 1
+    attributes: { str: 12, dex: 15, con: 12, int: 12, wis: 11, cha: 13 }
+    advancement:
+      classes:
+        rogue:
+          level: 4
+          skills: [acrobatics, deception, intimidate, perception, stealth]
+
+  - id: 406
+    name: Orc Berserker
+    metadata:
+      creature_token: "/images/icons/Collection/Orcs and Half-Orcs/orc berserker.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: orc
+    tier: 1
+    attributes: { str: 12, dex: 12, con: 12, int: 8, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        barbarian:
+          level: 3
+          skills: [athletics, intimidate, survival]
+
+  - id: 407
+    name: Ghoul
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/ghoul.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: undead
+    tier: 1
+    attributes: { str: 12, dex: 14, con: 10, int: 7, wis: 10, cha: 6 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 408
+    name: Black Bear
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Bears/bear 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: large_beast
+    tier: 1
+    attributes: { str: 12, dex: 10, con: 12, int: 2, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 409
+    name: Giant Spider
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Aranae and other Arthropods/feral giant spider.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: spider
+    tier: 1
+    attributes: { str: 13, dex: 15, con: 12, int: 2, wis: 11, cha: 4 }
+    advancement:
+      classes:
+        feral: 6
+
+  - id: 410
+    name: Carnivorous Ape
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Miscellaneous Beasts/forest beast.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: carnivorous_ape
+    tier: 1
+    attributes: { str: 12, dex: 12, con: 12, int: 4, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        feral: 5
+
+  - id: 411
+    name: Kobold Trapmaster
+    metadata:
+      creature_token: "/images/icons/Collection/Kobolds/kobold assassin.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: kobold
+    tier: 1
+    attributes: { str: 8, dex: 15, con: 10, int: 14, wis: 11, cha: 8 }
+    advancement:
+      classes:
+        rogue:
+          level: 4
+          skills: [acrobatics, craft_traps, perception, sleight_of_hand, stealth]
+
+  - id: 412
+    name: Swamp Druid
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Druids/death druid.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: human
+    tier: 1
+    attributes: { str: 10, dex: 12, con: 12, int: 11, wis: 15, cha: 10 }
+    advancement:
+      classes:
+        druid:
+          level: 3
+          skills: [animal_handling, healing, nature, perception, survival]
+
+  - id: 701
+    name: Gnoll Hunter
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/gnoll hunter.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: gnoll
+    tier: 1
+    attributes: { str: 12, dex: 13, con: 11, int: 8, wis: 12, cha: 8 }
+    advancement:
+      classes:
+        rogue:
+          level: 2
+          skills: [athletics, perception, stealth, survival]
+    equipment_table: gnoll_hunter_loadout
+
+  - id: 702
+    name: Gnoll Pack Lord
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/gnoll charger.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: gnoll
+    tier: 1
+    attributes: { str: 14, dex: 12, con: 13, int: 9, wis: 11, cha: 10 }
+    advancement:
+      classes:
+        fighter:
+          level: 3
+          skills: [athletics, intimidate, perception, survival]
+    equipment_table: gnoll_pack_lord_loadout
+
+  - id: 710
+    name: Mountain Raider
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/axe-wielding barbarian.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: half_orc
+    tier: 1
+    attributes: { str: 15, dex: 12, con: 14, int: 9, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        barbarian:
+          level: 2
+          skills: [athletics, intimidate, survival]
+    equipment_table: mountain_raider_loadout
+
+  - id: 711
+    name: Raider Scout
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/cloaked rogue.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: human
+    tier: 1
+    attributes: { str: 11, dex: 15, con: 12, int: 11, wis: 12, cha: 10 }
+    advancement:
+      classes:
+        rogue:
+          level: 2
+          skills: [acrobatics, perception, sleight_of_hand, stealth, survival]
+    equipment_table: raider_scout_loadout
+
+  - id: 712
+    name: Raider Tracker
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/tundra hunter.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: half_elf
+    tier: 1
+    attributes: { str: 12, dex: 15, con: 12, int: 10, wis: 13, cha: 10 }
+    advancement:
+      classes:
+        ranger:
+          level: 3
+          skills: [athletics, perception, stealth, survival]
+    equipment_table: raider_tracker_loadout
+
+  - id: 714
+    name: Raider Shaman
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/cleric in the forest.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_1_orange]
+    race: human
+    tier: 1
+    attributes: { str: 10, dex: 11, con: 12, int: 12, wis: 15, cha: 13 }
+    advancement:
+      classes:
+        cleric:
+          level: 3
+          skills: [healing, nature, perception, survival]
+    equipment_table: raider_shaman_loadout

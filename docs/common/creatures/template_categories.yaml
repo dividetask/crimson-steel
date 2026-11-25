@@ -1,0 +1,16 @@
+# Template Categories — Catalog
+#
+# Display name and order for the `category:<key>` tags carried by enemy
+# templates and the `category` field of Random Encounter Tables. The
+# Roster Sidebar lists categories in the order written here; a key not
+# listed sorts after these, by key, with a Title Case name.
+#
+# General Tier keys carry the tier number so they also sort correctly by
+# key. Tier colours follow the UI Tier Colors.
+
+general_tier_0_red:       "General Tier 0 (Red)"
+general_tier_1_orange:    "General Tier 1 (Orange)"
+general_tier_2_yellow:    "General Tier 2 (Yellow)"
+general_tier_3_green:     "General Tier 3 (Green)"
+slave_lords_general_mobs: "Slave Lord General Mobs"
+custom:                   "Custom"

@@ -95,12 +95,6 @@
         }
       }
     },
-    "103": {
-      "hp_damage": {
-        "minor": 6,
-        "moderate": 2
-      }
-    },
     "2004": {
       "hp_damage": {
         "moderate": 3,

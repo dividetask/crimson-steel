@@ -18,7 +18,7 @@ RSpec.describe 'Creatures.promote_to_npc' do
   before(:each) { Creatures::Dataset.load! }
 
   it 'renames a spawned monster and sets its group to npc' do
-    id = Creatures.spawn_from_template(306) # Common Goblin (enemy template)
+    id = Creatures.spawn_from_template(302) # Goblin (enemy template)
     expect(Creatures.lookup(id).group).to eq('enemy')
 
     Creatures.promote_to_npc(id, 'Grix the Turncoat')
@@ -28,7 +28,7 @@ RSpec.describe 'Creatures.promote_to_npc' do
   end
 
   it 'keeps the current name when none is supplied (blank or nil)' do
-    id = Creatures.spawn_from_template(306)
+    id = Creatures.spawn_from_template(302)
     before = Creatures.lookup(id).name
     Creatures.promote_to_npc(id, '   ')
     acc = Creatures.lookup(id)
@@ -44,8 +44,8 @@ RSpec.describe 'Creatures.promote_to_npc' do
   it 'drops the enemy_template tag so the sheet renders as a character, not a template' do
     # Promote a template directly (not a spawned instance): it must shed the
     # enemy_template tag, otherwise its sheet shows the template (spawn) view.
-    Creatures.promote_to_npc(306, 'Grix the Turncoat')
-    acc = Creatures.lookup(306)
+    Creatures.promote_to_npc(302, 'Grix the Turncoat')
+    acc = Creatures.lookup(302)
     expect(acc.group).to eq('npc')
     expect(Array(acc.tags)).not_to include('enemy_template')
   end

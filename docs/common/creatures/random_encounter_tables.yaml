@@ -9,7 +9,7 @@
 #
 # The `category` field associates each table with one of the
 # template categories declared in the creatures_data_*.example.yaml
-# files (e.g. `category:general_red_tier`). The Character Sheets
+# files (e.g. `category:general_tier_0_red`). The Character Sheets
 # page's Roster Sidebar groups templates and Random Encounter Tables
 # by this category — both surface under the same heading.
 #
@@ -20,12 +20,12 @@
 
 slave_lords_caravan:
   name: "Caravan ambush"
-  category: rise_of_the_slavelords
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - { template_id: "350", count: 1 }
     - spawn:
-        - { template_id: "103", count: "1d4 + 2" }
+        - { template_id: "352", count: "1d4 + 2" }
     - chance: 0.5
       spawn:
         - { template_id: "108", count: "1d2" }
@@ -37,7 +37,7 @@ slave_lords_caravan:
 
 stockade_patrol:
   name: "Stockade patrol"
-  category: rise_of_the_slavelords
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "106"
@@ -45,7 +45,7 @@ stockade_patrol:
 
 general_pirate_raid:
   name: "Generic pirate raid"
-  category: general_red_tier
+  category: general_tier_0_red
   rolls:
     - spawn:
         - template_id: "100"
@@ -53,7 +53,7 @@ general_pirate_raid:
 
 general_wolf_pack:
   name: "Wolf pack"
-  category: general_red_tier
+  category: general_tier_0_red
   rolls:
     - spawn:
         - template_id: "301"
@@ -61,7 +61,7 @@ general_wolf_pack:
 
 general_goblin_ambush:
   name: "Goblin ambush"
-  category: general_red_tier
+  category: general_tier_0_red
   rolls:
     - spawn:
         - template_id: "302"
@@ -73,7 +73,7 @@ general_goblin_ambush:
 
 hill_fort_patrol:
   name: "Hill fort patrol"
-  category: rise_of_the_slavelords_fort
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "366"
@@ -87,7 +87,7 @@ hill_fort_patrol:
 
 hill_fort_gnoll_band:
   name: "Gnoll band"
-  category: rise_of_the_slavelords_fort
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "367"
@@ -95,7 +95,7 @@ hill_fort_gnoll_band:
 
 hill_fort_mixed_rabble:
   name: "Orcs and goblins"
-  category: rise_of_the_slavelords_fort
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "368"
@@ -109,7 +109,7 @@ hill_fort_mixed_rabble:
 
 hill_fort_war_dogs:
   name: "War dogs loosed"
-  category: rise_of_the_slavelords_fort
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "370"
@@ -117,7 +117,7 @@ hill_fort_war_dogs:
 
 hill_fort_carnivorous_apes:
   name: "Carnivorous apes"
-  category: rise_of_the_slavelords_fort
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "369"
@@ -125,17 +125,17 @@ hill_fort_carnivorous_apes:
 
 hill_fort_winter_wolf:
   name: "Winter wolf"
-  category: rise_of_the_slavelords_fort
+  category: slave_lords_general_mobs
   rolls:
     - spawn:
         - template_id: "380"
           count: 1
 
-# --- General Orange Tier -----------------------------------------------
+# --- General Tier 1 (Orange) ------------------------------------------
 
 general_dire_wolf_pack:
   name: "Dire wolf pack"
-  category: general_orange_tier
+  category: general_tier_1_orange
   rolls:
     - spawn:
         - template_id: "400"
@@ -147,7 +147,7 @@ general_dire_wolf_pack:
 
 general_ogre_gang:
   name: "Ogre gang"
-  category: general_orange_tier
+  category: general_tier_1_orange
   rolls:
     - spawn:
         - template_id: "402"
@@ -155,11 +155,11 @@ general_ogre_gang:
         - template_id: "401"
           count: "1d3 + 1"
 
-# --- Humanoid warbands -------------------------------------------------
+# --- General Tier 1 (Orange): warbands ---------------------------------
 
 gnoll_war_party:
   name: "Gnoll war party"
-  category: humanoids
+  category: general_tier_1_orange
   rolls:
     - spawn:
         - template_id: "702"
@@ -180,7 +180,7 @@ gnoll_war_party:
 
 mountain_raiders:
   name: "Mountain raiders"
-  category: humanoids
+  category: general_tier_1_orange
   rolls:
     - spawn:
         - template_id: "713"

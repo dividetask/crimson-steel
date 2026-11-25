@@ -20,7 +20,7 @@ A vertical sidebar, top to bottom:
 
    The two row kinds are intermixed; the project's display ordering puts templates first, then random encounter tables. Random Encounter Tables therefore **do not have a dedicated group** — they live with the templates from their theme.
 
-All groups start **collapsed**. The open/closed state of each group persists in `localStorage` keyed by the group's `data-group-key` (e.g. `cs-roster-group:players`, `cs-roster-group:general_red_tier`). A page refresh restores whatever the DM had open last.
+All groups start **collapsed**. The open/closed state of each group persists in `localStorage` keyed by the group's `data-group-key` (e.g. `cs-roster-group:players`, `cs-roster-group:general_tier_0_red`). A page refresh restores whatever the DM had open last.
 
 ## Per-row controls
 

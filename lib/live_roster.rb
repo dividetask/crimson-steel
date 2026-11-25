@@ -1,3 +1,4 @@
+require 'yaml'
 require 'creatures'
 require 'creatures/random_encounter'
 require 'encounter'
@@ -52,8 +53,8 @@ module LiveRoster
       by_cat[key][:random_encounter_tables] << { table_id: table_id, name: table['name'] || table_id }
     end
 
-    categories = by_cat.keys.sort.map do |key|
-      { key: key, name: humanize(key),
+    categories = sort_categories(by_cat.keys).map do |key|
+      { key: key, name: category_name(key),
         templates: by_cat[key][:templates], random_encounter_tables: by_cat[key][:random_encounter_tables] }
     end
 
@@ -119,6 +120,22 @@ module LiveRoster
       out[rec[:spawned_from].to_s] << { creature_id: c[:creature_id], combatant_id: c[:id], name: name }
     end
     out
+  end
+
+  CATEGORIES_PATH = File.expand_path('../docs/common/creatures/template_categories.yaml', __dir__)
+
+  # key => display name, in display order (template_categories.yaml).
+  def category_catalog
+    @category_catalog ||= (File.exist?(CATEGORIES_PATH) && YAML.safe_load_file(CATEGORIES_PATH)) || {}
+  end
+
+  def category_name(key)
+    category_catalog[key.to_s] || humanize(key)
+  end
+
+  def sort_categories(keys)
+    order = category_catalog.keys
+    keys.sort_by { |k| [order.index(k.to_s) || order.length, k.to_s] }
   end
 
   def humanize(key)

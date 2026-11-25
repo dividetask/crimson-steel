@@ -134,14 +134,14 @@ RSpec.describe 'Enemy templates: races, clamp, NPC class, loadout', type: :model
     end
     before(:each) { Creatures::Dataset.load! }
 
-    it 'Common Goblin: tier 0, goblin, spawns carrying its equipment_table' do
-      a = Creatures.lookup(306)
-      expect(a.name).to eq('Common Goblin')
+    it 'Goblin: tier 0, goblin, spawns carrying its equipment_table' do
+      a = Creatures.lookup(302)
+      expect(a.name).to eq('Goblin')
       expect(a.race).to eq('goblin')
       expect(a.tier).to eq(0)
       expect(a.equipment_table).to eq('common_goblin_loadout')
 
-      new_id = Creatures.spawn_from_template(306)
+      new_id = Creatures.spawn_from_template(302)
       expect(Creatures.lookup(new_id).equipment_table).to eq('common_goblin_loadout')
     end
 

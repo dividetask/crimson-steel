@@ -1,0 +1,244 @@
+# General Tier 2 (Yellow) — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_tier_2_yellow`; the Roster Sidebar groups templates and
+# Random Encounter Tables under that category (see template_categories.yaml).
+
+name: General Tier 2 (Yellow)
+
+characters:
+
+  - id: 500
+    name: Troll
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Trolls/troll warrior.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: troll
+    tier: 2
+    attributes: { str: 12, dex: 12, con: 14, int: 7, wis: 9, cha: 6 }
+    advancement:
+      classes:
+        feral: 8
+
+  - id: 501
+    name: Rock Troll
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Trolls/aggressive rock troll.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: troll
+    tier: 2
+    attributes: { str: 14, dex: 10, con: 16, int: 7, wis: 9, cha: 6 }
+    advancement:
+      classes:
+        warrior:
+          level: 7
+          skills: [athletics, intimidate, perception]
+
+  - id: 502
+    name: Ankheg
+    metadata:
+      creature_token: "/images/icons/Collection/Abberations/insectile abberation.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: ankheg
+    tier: 2
+    attributes: { str: 14, dex: 11, con: 13, int: 2, wis: 12, cha: 6 }
+    advancement:
+      tier_attribute_advancement: [str, con]
+      classes:
+        feral: 7
+
+  - id: 503
+    name: Oni
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Cyclops/enraged horned cyclops.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: oni
+    tier: 2
+    attributes: { str: 12, dex: 11, con: 12, int: 12, wis: 12, cha: 13 }
+    advancement:
+      tier_attribute_advancement: [str, cha]
+      classes:
+        fighter:
+          level: 6
+          skills: [athletics, deception, intimidate, perception]
+
+  - id: 504
+    name: Medusa
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Medusas/medusa with sword.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: medusa
+    tier: 2
+    attributes: { str: 10, dex: 15, con: 12, int: 12, wis: 13, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [dex, cha]
+      classes:
+        rogue:
+          level: 6
+          skills: [acrobatics, deception, perception, stealth, sense_motive]
+
+  - id: 505
+    name: Doppelganger
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/shadow figure.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: doppelganger
+    tier: 2
+    attributes: { str: 9, dex: 13, con: 11, int: 11, wis: 11, cha: 11 }
+    advancement:
+      tier_attribute_advancement: [dex, cha]
+      classes:
+        rogue:
+          level: 5
+          skills: [deception, disguise, perception, sense_motive, stealth]
+
+  - id: 506
+    name: Hobgoblin Warlord
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/hobgoblin vengeful.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: hobgoblin
+    tier: 2
+    attributes: { str: 15, dex: 12, con: 14, int: 12, wis: 12, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [str, con]
+      classes:
+        fighter:
+          level: 7
+          skills: [athletics, intimidate, perception, ride, sense_motive]
+    equipment_table: soldier_loadout
+
+  - id: 507
+    name: Ogre Chieftain
+    metadata:
+      creature_token: "/images/icons/Collection/Giants/giant king.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: ogre
+    tier: 2
+    attributes: { str: 12, dex: 8, con: 12, int: 7, wis: 9, cha: 9 }
+    advancement:
+      tier_attribute_advancement: [str, con]
+      classes:
+        barbarian:
+          level: 6
+          skills: [athletics, intimidate, survival]
+
+  - id: 508
+    name: Wight
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/Revenants/undead knight token.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: undead
+    tier: 2
+    attributes: { str: 14, dex: 13, con: 14, int: 10, wis: 12, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [str, cha]
+      classes:
+        fighter:
+          level: 6
+          skills: [athletics, intimidate, perception, stealth]
+
+  - id: 509
+    name: Owlbear
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Miscellaneous Beasts/owlbear.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: large_beast
+    tier: 2
+    attributes: { str: 14, dex: 11, con: 14, int: 2, wis: 12, cha: 6 }
+    advancement:
+      tier_attribute_advancement: [str, con]
+      classes:
+        feral: 8
+
+  - id: 510
+    name: War Priest
+    metadata:
+      creature_token: "/images/icons/Collection/Humans/Humans Male/priest with beard.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: human
+    tier: 2
+    attributes: { str: 13, dex: 10, con: 13, int: 11, wis: 16, cha: 13 }
+    advancement:
+      tier_attribute_advancement: [wis, con]
+      classes:
+        cleric:
+          level: 6
+          skills: [healing, invocation, religion, sense_motive]
+
+  - id: 511
+    name: Knight
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/knight of the silver order.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: human
+    tier: 2
+    attributes: { str: 15, dex: 10, con: 14, int: 10, wis: 12, cha: 13 }
+    advancement:
+      tier_attribute_advancement: [str, con]
+      classes:
+        fighter:
+          level: 7
+          skills: [athletics, intimidate, nobility, ride]
+    equipment_table: soldier_loadout
+
+  - id: 512
+    name: Orc War Chief
+    metadata:
+      creature_token: "/images/icons/Collection/Orcs and Half-Orcs/orc warlord.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: orc
+    tier: 2
+    attributes: { str: 13, dex: 11, con: 12, int: 10, wis: 11, cha: 12 }
+    advancement:
+      tier_attribute_advancement: [str, cha]
+      classes:
+        fighter:
+          level: 6
+          skills: [athletics, intimidate, perception, survival]
+
+  - id: 703
+    name: Gnoll Fang
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/one-eyed gnoll.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: gnoll
+    tier: 2
+    attributes: { str: 16, dex: 13, con: 14, int: 9, wis: 11, cha: 11 }
+    advancement:
+      classes:
+        barbarian:
+          level: 5
+          skills: [athletics, intimidate, perception, survival]
+    equipment_table: gnoll_fang_loadout
+
+  - id: 713
+    name: Raider Chieftain
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/barbarian.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_2_yellow]
+    race: half_orc
+    tier: 2
+    attributes: { str: 17, dex: 12, con: 15, int: 10, wis: 11, cha: 12 }
+    advancement:
+      classes:
+        barbarian:
+          level: 5
+          skills: [athletics, intimidate, perception, survival]
+    equipment_table: raider_chieftain_loadout

@@ -289,13 +289,6 @@ characters:
       - item: Bolt
         quantity: 12
 
-  103:
-    inventory:
-      - item: Long sword
-        equipped: true
-      - item: Studded leather
-        equipped: true
-
   104:
     inventory:
       - item: Quarterstaff
@@ -316,7 +309,7 @@ characters:
       - item: Robes
         equipped: true
 
-  # General Red Tier templates (creatures_data_general_red_tier) — give the
+  # General Tier 0 (Red) templates (creatures_data_general_tier_0_red) — give the
   # goblins a real weapon so the combat tracker has weapon dice to work with.
   302:  # Goblin — short sword + light shield (can Parry and Block)
     inventory:
@@ -349,18 +342,12 @@ characters:
       - item: Leather armor
         equipped: true
 
-  # Rise of the Slavelords templates (creatures_data_rise_of_the_slavelords).
+  # Slave Lord templates (creatures_data_slave_lords).
   350:  # Slaver Merchant — dagger
     inventory:
       - item: Dagger
         equipped: true
       - item: Studded leather
-        equipped: true
-  351:  # Slaver Lieutenant — long sword + chain shirt
-    inventory:
-      - item: Long sword
-        equipped: true
-      - item: Chain shirt
         equipped: true
   352:  # Half-Orc Soldier — spear + hide armor
     inventory:
@@ -374,15 +361,6 @@ characters:
         equipped: true
       - item: Leather armor
         equipped: true
-  354:  # Stockade Guard — mace + light shield
-    inventory:
-      - item: Mace
-        equipped: true
-      - item: Light wooden shield
-        equipped: true
-      - item: Chain shirt
-        equipped: true
-
   # NPC quest-giver (creatures_data_npcs).
   2001:  # Daven Korr — dagger (a townsman's belt knife)
     inventory:

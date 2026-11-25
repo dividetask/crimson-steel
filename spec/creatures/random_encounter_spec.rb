@@ -76,10 +76,10 @@ RSpec.describe 'Creatures encounter operations', type: :model do
 
   describe 'persistence' do
     it 'writes the spawn to the template source file under data/ and it survives a reload' do
-      # Template 101 lives in creatures_data_enemies(.example).yaml, so its
-      # spawned instance routes to data/creatures_data_enemies.yaml.
+      # Template 101 lives in creatures_data_slave_lords(.example).yaml, so its
+      # spawned instance routes to data/creatures_data_slave_lords.yaml.
       new_id = Creatures.spawn_from_template(101, name_override: 'Skullsplitter')
-      overlay = File.join(Creatures::Dataset.data_dir, 'creatures_data_enemies.yaml')
+      overlay = File.join(Creatures::Dataset.data_dir, 'creatures_data_slave_lords.yaml')
       expect(File.exist?(overlay)).to be true
 
       # A fresh load (simulating a server restart) still has the spawn.
@@ -88,7 +88,7 @@ RSpec.describe 'Creatures encounter operations', type: :model do
       expect(rec).not_to be_nil
       expect(rec[:name]).to eq('Skullsplitter')
       expect(rec[:spawned_from]).to eq(101)
-      expect(rec[:source]).to eq('creatures_data_enemies.yaml')
+      expect(rec[:source]).to eq('creatures_data_slave_lords.yaml')
     end
 
     it 'persists a delete so the record is gone after a reload' do

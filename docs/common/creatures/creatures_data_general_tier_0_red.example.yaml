@@ -1,0 +1,273 @@
+# General Tier 0 (Red) — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_tier_0_red`; the Roster Sidebar groups templates and
+# Random Encounter Tables under that category (see template_categories.yaml).
+
+name: General Tier 0 (Red)
+
+characters:
+
+  - id: 100
+    name: Pirate
+    metadata:
+      creature_token: "/images/icons/Collection/Pirates and Sailors/pirate with cutlass.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: human
+    tier: 0
+    attributes: { str: 13, dex: 14, con: 13, int: 12, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        rogue:
+          level: 1
+          skills: [acrobatics, athletics, deception, intimidate, perception, profession_sailor, sense_motive]
+
+  - id: 300
+    name: Medium Spider
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Aranae and other Arthropods/giant spider.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: spider
+    tier: 0
+    attributes: { str: 9, dex: 14, con: 11, int: 1, wis: 10, cha: 2 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 301
+    name: Wolf
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/armored wolf companion.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: canine
+    tier: 0
+    attributes: { str: 12, dex: 15, con: 13, int: 3, wis: 12, cha: 6 }
+    advancement:
+      classes:
+        feral: 4
+
+  - id: 302
+    name: Goblin
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: goblin
+    tier: 0
+    attributes: { str: 8, dex: 14, con: 10, int: 9, wis: 8, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+    equipment_table: common_goblin_loadout
+
+  - id: 303
+    name: Goblin Archer
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin archer.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: goblin
+    tier: 0
+    attributes: { str: 8, dex: 16, con: 10, int: 9, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        rogue: 1
+
+  - id: 304
+    name: Cultist
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/cultist leader.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: human
+    tier: 0
+    attributes: { str: 10, dex: 11, con: 12, int: 11, wis: 13, cha: 12 }
+    advancement:
+      classes:
+        cleric: 1
+
+  - id: 305
+    name: Cult Fanatic
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Cultists/arch-cultist.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: human
+    tier: 0
+    attributes: { str: 10, dex: 12, con: 13, int: 12, wis: 14, cha: 14 }
+    advancement:
+      classes:
+        cleric: 2
+
+  - id: 307
+    name: Common Orc
+    metadata:
+      creature_token: "/images/icons/orc token.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: orc
+    tier: 0
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
+    advancement:
+      classes:
+        warrior: 1
+    equipment_table: common_orc_loadout
+
+  - id: 310
+    name: Kobold
+    metadata:
+      creature_token: "/images/icons/Collection/Kobolds/kobold with knife.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: kobold
+    tier: 0
+    attributes: { str: 9, dex: 13, con: 10, int: 10, wis: 10, cha: 8 }
+    advancement:
+      classes:
+        warrior:
+          level: 1
+          skills: [athletics, perception]
+
+  - id: 311
+    name: Kobold Slinger
+    metadata:
+      creature_token: "/images/icons/Collection/Kobolds/kobold rogue.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: kobold
+    tier: 0
+    attributes: { str: 8, dex: 15, con: 10, int: 10, wis: 11, cha: 8 }
+    advancement:
+      classes:
+        rogue:
+          level: 1
+          skills: [acrobatics, perception, stealth]
+
+  - id: 312
+    name: Bandit
+    metadata:
+      creature_token: "/images/icons/Collection/Humans/Humans Male/frowning bearded man.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: human
+    tier: 0
+    attributes: { str: 12, dex: 13, con: 12, int: 10, wis: 10, cha: 9 }
+    advancement:
+      classes:
+        rogue:
+          level: 1
+          skills: [athletics, intimidate, perception, stealth]
+
+  - id: 313
+    name: Skeleton
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/Skeletons/skeleton knight.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: undead
+    tier: 0
+    attributes: { str: 10, dex: 14, con: 10, int: 6, wis: 10, cha: 5 }
+    advancement:
+      classes:
+        warrior: 1
+
+  - id: 314
+    name: Zombie
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/zombie 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: undead
+    tier: 0
+    attributes: { str: 13, dex: 6, con: 16, int: 3, wis: 6, cha: 5 }
+    advancement:
+      classes:
+        warrior: 2
+
+  - id: 315
+    name: Giant Rat
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Rodents/rat.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: small_beast
+    tier: 0
+    attributes: { str: 10, dex: 11, con: 12, int: 2, wis: 12, cha: 4 }
+    advancement:
+      classes:
+        feral: 2
+
+  - id: 316
+    name: Town Guard
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/guard with halberd 2.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: human
+    tier: 0
+    attributes: { str: 13, dex: 12, con: 12, int: 10, wis: 11, cha: 10 }
+    advancement:
+      classes:
+        warrior:
+          level: 1
+          skills: [athletics, intimidate, perception]
+    equipment_table: town_guard_equipment
+
+  - id: 317
+    name: Goblin Shaman
+    metadata:
+      creature_token: "/images/icons/Collection/Goblins- Goblinoids/goblin shaman.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: goblin
+    tier: 0
+    attributes: { str: 8, dex: 12, con: 10, int: 10, wis: 14, cha: 10 }
+    advancement:
+      classes:
+        cleric: 1
+
+  - id: 318
+    name: Wild Boar
+    metadata:
+      creature_token: "/images/icons/Collection/Beasts/Miscellaneous Beasts/feral boar.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: medium_beast
+    tier: 0
+    attributes: { str: 13, dex: 10, con: 13, int: 2, wis: 13, cha: 4 }
+    advancement:
+      classes:
+        feral: 3
+
+  - id: 700
+    name: Gnoll
+    metadata:
+      creature_token: "/images/icons/Collection/Gnolls/gnoll neutral.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: gnoll
+    tier: 0
+    attributes: { str: 11, dex: 11, con: 11, int: 8, wis: 11, cha: 8 }
+    advancement:
+      classes:
+        warrior:
+          level: 1
+          skills: [athletics, intimidate, perception]
+    equipment_table: gnoll_loadout
+
+  - id: 704
+    name: Hyena
+    metadata:
+      creature_token: "/images/icons/Collection/Werewolves, Wolves/howling wolf.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_0_red]
+    race: canine
+    tier: 0
+    attributes: { str: 11, dex: 13, con: 12, int: 3, wis: 12, cha: 5 }
+    advancement:
+      classes:
+        feral: 2

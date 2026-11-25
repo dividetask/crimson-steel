@@ -1,0 +1,199 @@
+# General Tier 3 (Green) — Creature Templates
+#
+# Loaded via the standard creatures_data_*.example.{yaml,json} glob.
+# Each template's `tags` include `enemy_template` plus
+# `category:general_tier_3_green`; the Roster Sidebar groups templates and
+# Random Encounter Tables under that category (see template_categories.yaml).
+
+name: General Tier 3 (Green)
+
+characters:
+
+  - id: 600
+    name: Cloaker
+    metadata:
+      creature_token: "/images/icons/Collection/Abberations/night stalker.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: cloaker
+    tier: 3
+    attributes: { str: 12, dex: 13, con: 12, int: 12, wis: 12, cha: 12 }
+    advancement:
+      classes:
+        feral: 10
+
+  - id: 601
+    name: Troll Elder
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Trolls/troll warrior.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: troll
+    tier: 3
+    attributes: { str: 14, dex: 12, con: 16, int: 8, wis: 10, cha: 7 }
+    advancement:
+      tier_attribute_advancement: [str, con, str, con]
+      classes:
+        barbarian:
+          level: 10
+          skills: [athletics, intimidate, perception, survival]
+
+  - id: 602
+    name: Oni Warlord
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Cyclops/cyclops 2.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: oni
+    tier: 3
+    attributes: { str: 13, dex: 12, con: 13, int: 13, wis: 12, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [str, cha, str, con]
+      classes:
+        fighter:
+          level: 10
+          skills: [athletics, deception, intimidate, perception, sense_motive]
+
+  - id: 603
+    name: Medusa Matriarch
+    metadata:
+      creature_token: "/images/icons/Collection/Miscellaneous Monsters/Medusas/medusa horror.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: medusa
+    tier: 3
+    attributes: { str: 10, dex: 16, con: 13, int: 13, wis: 14, cha: 16 }
+    advancement:
+      tier_attribute_advancement: [dex, cha, dex, cha]
+      classes:
+        rogue:
+          level: 10
+          skills: [acrobatics, deception, intimidate, perception, sense_motive, stealth]
+
+  - id: 604
+    name: Hill Giant
+    metadata:
+      creature_token: "/images/icons/Collection/Giants/hill giant.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: giant
+    tier: 3
+    attributes: { str: 21, dex: 8, con: 19, int: 6, wis: 9, cha: 7 }
+    advancement:
+      tier_attribute_advancement: [str, con, str, con]
+      classes:
+        warrior:
+          level: 10
+          skills: [athletics, intimidate, perception]
+
+  - id: 605
+    name: Vampire Spawn
+    metadata:
+      creature_token: "/images/icons/Collection/Vampires/vampire spawn 2.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: undead
+    tier: 3
+    attributes: { str: 14, dex: 16, con: 14, int: 11, wis: 12, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [str, dex, dex, cha]
+      classes:
+        rogue:
+          level: 9
+          skills: [acrobatics, athletics, deception, perception, stealth]
+
+  - id: 606
+    name: Grave Knight
+    metadata:
+      creature_token: "/images/icons/Collection/Undead misc/Revenants/revenant death knight.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: undead
+    tier: 3
+    attributes: { str: 17, dex: 11, con: 15, int: 11, wis: 12, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [str, con, str, cha]
+      classes:
+        fighter:
+          level: 11
+          skills: [athletics, intimidate, perception, ride]
+
+  - id: 607
+    name: Archdruid
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Druids/Ugrathiel druid.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: human
+    tier: 3
+    attributes: { str: 10, dex: 12, con: 13, int: 12, wis: 18, cha: 12 }
+    advancement:
+      tier_attribute_advancement: [wis, con, wis, dex]
+      classes:
+        druid:
+          level: 10
+          skills: [animal_handling, healing, nature, perception, religion, survival]
+
+  - id: 608
+    name: Sidhe Knight
+    metadata:
+      creature_token: "/images/icons/Collection/Elves and Half-Elves/elf pale knight.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: sidhe
+    tier: 3
+    attributes: { str: 14, dex: 15, con: 13, int: 12, wis: 12, cha: 15 }
+    advancement:
+      tier_attribute_advancement: [str, dex, dex, cha]
+      classes:
+        fighter:
+          level: 10
+          skills: [acrobatics, athletics, nobility, perception, ride]
+
+  - id: 609
+    name: Doppelganger Mastermind
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/masked mage.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: doppelganger
+    tier: 3
+    attributes: { str: 9, dex: 14, con: 11, int: 13, wis: 12, cha: 13 }
+    advancement:
+      tier_attribute_advancement: [dex, cha, int, cha]
+      classes:
+        rogue:
+          level: 10
+          skills: [deception, disguise, investigation, perception, sense_motive, stealth]
+
+  - id: 610
+    name: Assassin
+    metadata:
+      creature_token: "/images/icons/Collection/Warriors, Fighters, Rogues, Rangers e.t.c/pale assassin.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: human
+    tier: 3
+    attributes: { str: 12, dex: 18, con: 13, int: 13, wis: 12, cha: 11 }
+    advancement:
+      tier_attribute_advancement: [dex, con, dex, wis]
+      classes:
+        rogue:
+          level: 11
+          skills: [acrobatics, deception, disguise, perception, sleight_of_hand, stealth]
+
+  - id: 611
+    name: Dread Priest
+    metadata:
+      creature_token: "/images/icons/Collection/Spellcasters varied/Necromancers/necromancer 1.png"
+    group: enemy
+    tags: [enemy_template, category:general_tier_3_green]
+    race: human
+    tier: 3
+    attributes: { str: 11, dex: 11, con: 14, int: 13, wis: 18, cha: 14 }
+    advancement:
+      tier_attribute_advancement: [wis, con, wis, cha]
+      classes:
+        cleric:
+          level: 10
+          skills: [healing, invocation, religion, restricted_magic, sense_motive]
