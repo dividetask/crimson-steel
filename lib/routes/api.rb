@@ -165,6 +165,7 @@ helpers do
               name: sp[:display].to_s, kind: kind, tier: sp[:tier].to_i,
               skill: (rolled ? api_skill_view(skill, cap, sp[:competency]) : nil), speed: 0,
               category: api_category_for_cost(min), detail: parts.join(" \u00b7 "),
+              description: api_spell_description(sp[:name]),
               dice: rolled ? api_dice_choices(min..[cap, min - 1].max, pool) : [],
               pool_cost: rolled ? nil : min, mana_cost: sp[:mana_cost].to_i,
               # What the player must point it at: a creature (target picker),
@@ -239,6 +240,16 @@ helpers do
       end,
       terrain: snap[:terrain].map { |t| { shape: t[:shape_kind], points: t[:points], texture: t[:texture] } },
       fog: snap[:fog].map { |f| { shape: f[:shape_kind], points: f[:points] } } }
+  rescue StandardError
+    nil
+  end
+
+  # A Spell's catalog description (a tiered variant such as "Standard Shield"
+  # falls back to its base Spell's).
+  def api_spell_description(name)
+    v = (Abilities.lookup(name) rescue nil)
+    v = (Abilities.lookup(spell_base_axis(name).first) rescue nil) if v.nil? || v['description'].to_s.empty?
+    v && v['description'].to_s.strip
   rescue StandardError
     nil
   end

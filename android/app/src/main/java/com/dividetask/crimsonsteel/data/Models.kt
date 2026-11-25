@@ -207,6 +207,8 @@ data class TurnOption(
     val sound: String? = null,
     /** Magic toxicity it adds to the user (a potion); 0 when none. */
     val toxicity: Int = 0,
+    /** Spells: the catalog description, shown on the card. */
+    val description: String = "",
 ) {
     val isEndTurn: Boolean get() = kind == "end_turn"
 
@@ -495,6 +497,7 @@ data class Initiative(
                         ranged = o.optBoolean("ranged"),
                         sound = o.optStringOrNull("sound"),
                         toxicity = o.optInt("toxicity"),
+                        description = o.optStringOrNull("description") ?: "",
                     )
                 },
                 requests = TurnRequest.list(j.optJSONArray("requests")),

@@ -39,6 +39,8 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
     private var statusOpen: Int? = null
     private var orderOpen = false
     private var openGroup: String? = null
+    /** Spell: the Tier picked before its spells are listed. */
+    private var openTier: Int? = null
     /** What to bring to the top of the screen once rebuilt: an option's key, or "group:<name>". */
     private var scrollTarget: String? = null
     /** Outcomes already seen here, so the player's own resets their options once. */
@@ -52,11 +54,11 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             throwShared(d)
             // The DM finished this player's action: close what they had open.
             val mineDone = d.news.filter { it.yours && seenNews.add(it.flowId) }
-            if (newsPrimed && mineDone.isNotEmpty()) { clearSelection(); openGroup = null; orderOpen = false }
+            if (newsPrimed && mineDone.isNotEmpty()) { clearSelection(); openGroup = null; openTier = null; orderOpen = false }
             d.news.forEach { seenNews.add(it.flowId) }
             newsPrimed = true
             // A new turn starts with everything closed and nothing selected.
-            if (d.myTurn && !wasMyTurn) { orderOpen = false; openGroup = null; clearSelection() }
+            if (d.myTurn && !wasMyTurn) { orderOpen = false; openGroup = null; openTier = null; clearSelection() }
             wasMyTurn = d.myTurn
         }
         done(r)
@@ -281,6 +283,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             head.addView(Ui.text(ctx, if (open) "  \u25b4" else "  \u25be", 16f, Ui.TEXT_DIM))
             Ui.makeTappable(head, ctx) {
                 openGroup = if (open) null else g
+                openTier = null
                 if (open || opts.none { it.key == selectedKey }) clearSelection()
                 // A group of one opens straight onto its option.
                 if (!open && opts.size == 1) { selectedKey = opts.first().key; selectedDice = null }
@@ -290,7 +293,34 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             }
             col.addView(head, Ui.matchWidth(Ui.dp(ctx, 6)))
             if (scrollTarget == "group:$g") { scrollTarget = null; scrollToTop(head) }
-            if (open) for (opt in opts) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
+            if (open && g == "Spell") spellTiers(col, d, opts)
+            else if (open) for (opt in opts) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)))
+        }
+    }
+
+    /** Spell: one row per Tier with its Mana cost; the picked Tier lists its spells. */
+    private fun spellTiers(col: LinearLayout, d: Initiative, opts: List<TurnOption>) {
+        val byTier = opts.groupBy { it.tier ?: 0 }.toSortedMap()
+        if (byTier.size == 1) openTier = byTier.firstKey()
+        if (openTier != null && openTier !in byTier) openTier = null
+        for ((tier, spells) in byTier) {
+            val on = tier == openTier
+            val row = Ui.horizontal(ctx).apply {
+                setPadding(Ui.dp(ctx, 14), Ui.dp(ctx, 10), Ui.dp(ctx, 14), Ui.dp(ctx, 10))
+                background = Ui.rounded(if (on) Ui.SURFACE_HI else Ui.SURFACE, Ui.dpf(ctx, 8f),
+                    if (on) Ui.tierColor(tier) else null, Ui.dp(ctx, 1))
+            }
+            row.addView(Ui.text(ctx, "Tier $tier", 15f, Ui.tierColor(tier), bold = true), Ui.weighted())
+            val mana = spells.maxOf { it.manaCost }
+            if (mana > 0) row.addView(Ui.text(ctx, "$mana mana", 13f, Ui.TEXT_DIM))
+            row.addView(Ui.text(ctx, "   ${spells.size}", 13f, Ui.TEXT_FAINT))
+            Ui.makeTappable(row, ctx) {
+                openTier = if (on) null else tier
+                clearSelection()
+                render()
+            }
+            col.addView(row, Ui.matchWidth(Ui.dp(ctx, 4)).apply { marginStart = Ui.dp(ctx, 10) })
+            if (on) for (opt in spells) col.addView(optionCard(d, opt), Ui.matchWidth(Ui.dp(ctx, 4)).apply { marginStart = Ui.dp(ctx, 10) })
         }
     }
 
@@ -340,11 +370,26 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
             else -> Ui.TEXT
         }
         val title = Ui.horizontal(ctx)
-        title.addView(Ui.text(ctx, opt.name, 16f, nameColor, bold = true), Ui.weighted())
-        if (opt.manaCost > 0) title.addView(Ui.text(ctx, "${opt.manaCost} mana", 12f, Ui.TEXT_DIM))
-        card.addView(title, Ui.matchWidth())
-        skillLine(opt)?.let { card.addView(Ui.text(ctx, it, 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 2))) }
-        if (opt.detail.isNotBlank()) card.addView(Ui.text(ctx, opt.detail, 12f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 2)))
+        if (opt.kind == "cast") {
+            // "Heal  (Invocation +3)", then "4–7 dice", then what the spell does. Mana is on the Tier row.
+            title.addView(Ui.text(ctx, opt.name, 16f, nameColor, bold = true))
+            opt.skill?.let { sk ->
+                title.addView(Ui.text(ctx, "  (${sk.name} ${Ui.signed(sk.bonus)})", 14f, Ui.TEXT_DIM))
+            }
+            card.addView(title, Ui.matchWidth())
+            if (opt.dice.isNotEmpty()) {
+                val lo = opt.dice.minOf { it.dice }; val hi = opt.dice.maxOf { it.dice }
+                card.addView(Ui.text(ctx, if (lo == hi) "$lo dice" else "$lo\u2013$hi dice", 13f, Ui.TEXT, bold = true),
+                    Ui.matchWidth(Ui.dp(ctx, 2)))
+            }
+            if (opt.description.isNotBlank()) card.addView(Ui.text(ctx, opt.description, 12f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 4)))
+        } else {
+            title.addView(Ui.text(ctx, opt.name, 16f, nameColor, bold = true), Ui.weighted())
+            if (opt.manaCost > 0) title.addView(Ui.text(ctx, "${opt.manaCost} mana", 12f, Ui.TEXT_DIM))
+            card.addView(title, Ui.matchWidth())
+            skillLine(opt)?.let { card.addView(Ui.text(ctx, it, 13f, Ui.TEXT, bold = true), Ui.matchWidth(Ui.dp(ctx, 2))) }
+            if (opt.detail.isNotBlank()) card.addView(Ui.text(ctx, opt.detail, 12f, Ui.TEXT_DIM), Ui.matchWidth(Ui.dp(ctx, 2)))
+        }
         if (baseBlocker != null && !isSelected) {
             card.addView(Ui.text(ctx, baseBlocker, 12f, Ui.DIE_FAIL), Ui.matchWidth(Ui.dp(ctx, 2)))
         }
@@ -434,7 +479,7 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 busy = false
                 if (r.isSuccess) {
                     clearSelection()
-                    openGroup = null
+                    openGroup = null; openTier = null
                     // Taken: its sound (if any) is offered in the audio bar at the bottom.
                     opt.sound?.let { SoundPlayer.offer(opt.name, it) }
                 }

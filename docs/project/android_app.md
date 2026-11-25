@@ -108,6 +108,13 @@ The options come from the same server code that builds the DM's turn menu (`api_
 
 Spells that take a minute or longer to cast are not offered, as on the web.
 
+### Spells
+
+**Spell** opens onto one row per Tier, each with its Mana cost (Tier colour);
+tapping a Tier lists its spells. A spell card reads *Heal (Invocation +3)*,
+then the dice it can roll (*4–7 dice*), then the spell's description. A
+Character with spells of one Tier only sees that Tier open already.
+
 ### Picking a target
 
 When there is an Active Map (`/api/initiative` → `map`: the player's view,
