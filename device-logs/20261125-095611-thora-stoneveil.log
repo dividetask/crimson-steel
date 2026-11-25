@@ -1,0 +1,183 @@
+============================================================
+Kind                   : log
+Received               : 2026-11-25 09:56:11 -0800
+Character              : Thora Stoneveil
+Device id              : ab4b26aac0b8180e
+IP                     : 192.168.1.36
+User agent             : Dalvik/2.1.0 (Linux; U; Android 10; Lenovo TB-8505FS Build/QP1A.190711.020)
+App version            : v0.047 a (2aca)
+Server commit          : d110bda (claude/quirky-mayer-xpibcg)
+Device manufacturer    : LENOVO
+Device model           : Lenovo TB-8505FS
+Device android         : 10 (API 29)
+Device screen          : 800x1208 @ 240dpi
+Device server          : http://192.168.1.33:4567
+Device cookie id       : ab4b26aa
+Device character (app) : Thora Stoneveil
+Device vpn             : off
+============================================================
+2026-11-24 18:08:36.021 [session] app started: Crimson Steel v0.039 a (e040); Android 10 (API 29); LENOVO Lenovo TB-8505FS
+2026-11-24 18:08:36.096 [main] screen: Looking for the Crimson Steel server…
+2026-11-24 18:08:36.236 [session] searching for the server
+2026-11-24 18:08:36.238 [session] broadcasting a discovery probe on UDP 47567
+2026-11-24 18:08:36.311 [discovery] interface wlan0: 192.168.4.116/24 broadcast 192.168.4.255
+2026-11-24 18:08:36.340 [discovery] attempt 1: probe sent to 192.168.4.255:47567
+2026-11-24 18:08:36.343 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-24 18:08:36.429 [discovery] reply from 192.168.4.105: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-24 18:08:36.439 [session] found The Shattered Beacon at http://192.168.4.105:4567 by broadcast
+2026-11-24 18:08:36.728 [http] GET /api/hello -> 200 in 282ms
+2026-11-24 18:08:36.741 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device ab4b26aa, character (not assigned)
+2026-11-24 18:08:36.746 [main] screen: Connected to The Shattered Beacon
+2026-11-24 18:08:38.363 [live] live updates connected
+2026-11-24 19:22:45.316 [session] app started: Crimson Steel v0.039 a (e040); Android 10 (API 29); LENOVO Lenovo TB-8505FS
+2026-11-24 19:22:45.373 [main] screen: Looking for the Crimson Steel server…
+2026-11-24 19:22:45.461 [session] searching for the server
+2026-11-24 19:22:45.463 [session] trying last server http://192.168.4.105:4567
+2026-11-24 19:22:45.610 [http] GET /api/hello -> 200 in 139ms
+2026-11-24 19:22:45.664 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device ab4b26aa, character (not assigned)
+2026-11-24 19:22:45.668 [main] screen: Connected to The Shattered Beacon
+2026-11-24 19:22:47.671 [live] live updates connected
+2026-11-24 19:23:38.461 [main] screen: playing as Lira Duskmoor
+2026-11-24 19:23:38.622 [http] GET /api/sheet -> 200 in 94ms
+2026-11-24 19:23:39.853 [main] screen: playing as Lira Duskmoor
+2026-11-24 19:23:40.040 [live] live updates connected
+2026-11-24 19:23:40.353 [http] GET /api/prompts -> 200 in 28ms
+2026-11-24 19:24:45.365 [main] screen: playing as Lira Duskmoor
+2026-11-24 19:24:45.565 [live] live updates connected
+2026-11-24 19:24:47.552 [http] GET /api/initiative -> 200 in 239ms
+2026-11-24 19:25:03.603 [main] device moved to Thora Stoneveil (#7)
+2026-11-24 19:25:03.634 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:26:02.226 [http] GET /images/icons/human%20token.png -> 200 (814263 bytes)
+2026-11-24 19:26:02.323 [http] GET /images/icons/orc%20token.png -> 200 (940326 bytes)
+2026-11-24 19:26:02.371 [http] GET /images/icons/Collection/Elves%20and%20Half-Elves/elf%20archer.png -> 200 (102569 bytes)
+2026-11-24 19:26:02.409 [http] GET /images/icons/Collection/Dwarves/dwarf%201.png -> 200 (96346 bytes)
+2026-11-24 19:28:02.802 [live] live updates connected
+2026-11-24 19:29:34.082 [live] live updates connected
+2026-11-24 19:30:37.159 [live] live updates connected
+2026-11-24 19:30:45.967 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:30:46.169 [live] live updates connected
+2026-11-24 19:30:47.122 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:30:47.315 [live] live updates connected
+2026-11-24 19:31:12.415 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:31:12.696 [live] live updates connected
+2026-11-24 19:31:14.328 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:31:14.531 [live] live updates connected
+2026-11-24 19:31:57.918 [settings] opened
+2026-11-24 19:31:57.981 [http] GET /api/app/latest -> 200 in 22ms
+2026-11-24 19:31:58.003 [http] GET /api/dice_colors -> 200 in 19ms
+2026-11-24 19:32:07.112 [update] updating to v0.044
+2026-11-24 19:32:07.425 [http] GET /api/app/apk -> 200 (1418606 bytes)
+2026-11-24 19:32:07.426 [update] downloaded v0.044 (1418606 bytes)
+2026-11-24 19:32:35.591 [session] app started: Crimson Steel v0.042 b (0161); Android 10 (API 29); LENOVO Lenovo TB-8505FS
+2026-11-24 19:32:35.647 [main] screen: Looking for the Crimson Steel server…
+2026-11-24 19:32:35.731 [session] searching for the server
+2026-11-24 19:32:35.733 [session] trying last server http://192.168.4.105:4567
+2026-11-24 19:32:35.861 [http] GET /api/hello -> 200 in 119ms
+2026-11-24 19:32:35.948 [session] connected to http://192.168.4.105:4567; campaign "The Shattered Beacon", device ab4b26aa, character Thora Stoneveil
+2026-11-24 19:32:35.961 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:32:36.169 [http] GET /api/sheet -> 200 in 166ms
+2026-11-24 19:32:38.196 [live] live updates connected
+2026-11-24 19:32:38.376 [http] GET /api/prompts -> 200 in 12ms
+2026-11-24 19:32:39.793 [http] GET /api/initiative -> 200 in 260ms
+2026-11-24 19:34:25.367 [live] live updates connected
+2026-11-24 19:34:30.624 [settings] opened
+2026-11-24 19:34:30.683 [http] GET /api/app/latest -> 200 in 19ms
+2026-11-24 19:34:30.700 [http] GET /api/dice_colors -> 200 in 14ms
+2026-11-24 19:34:33.759 [live] live updates connected
+2026-11-24 19:34:59.252 [settings] opened
+2026-11-24 19:35:04.951 [live] live updates connected
+2026-11-24 19:35:49.990 [http] POST /api/turn/requests -> 200 in 422ms
+2026-11-24 19:37:04.757 [live] live updates connected
+2026-11-24 19:37:07.507 [http] POST /api/prompts/0b692712e3/960f6a0e -> 200 in 41ms
+2026-11-24 19:37:12.596 [main] news: Thora Stoneveil cast Standard Shield on Garroth Vask.
+2026-11-24 19:38:29.455 [http] POST /api/turn/requests -> 200 in 310ms
+2026-11-24 19:41:20.371 [live] live updates connected
+2026-11-24 19:41:55.616 [main] screen: playing as Thora Stoneveil
+2026-11-24 19:41:55.930 [live] live updates connected
+2026-11-25 12:35:44.938 [session] app started: Crimson Steel v0.042 b (0161); Android 10 (API 29); LENOVO Lenovo TB-8505FS
+2026-11-25 12:35:45.177 [main] screen: Looking for the Crimson Steel server…
+2026-11-25 12:35:45.326 [session] searching for the server
+2026-11-25 12:35:45.425 [session] trying last server http://192.168.4.105:4567
+2026-11-25 12:35:49.809 [http] ERROR GET /api/hello to http://192.168.4.105:4567 failed: SocketTimeoutException: failed to connect to /192.168.4.105 (port 4567) from /192.168.1.36 (port 34426) after 4000ms
+2026-11-25 12:35:49.889 [session] last server not reachable: SocketTimeoutException: failed to connect to /192.168.4.105 (port 4567) from /192.168.1.36 (port 34426) after 4000ms
+2026-11-25 12:35:49.891 [session] broadcasting a discovery probe on UDP 47567
+2026-11-25 12:35:50.044 [discovery] interface wlan0: 192.168.1.36/24 broadcast 192.168.1.255
+2026-11-25 12:35:50.116 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-25 12:35:50.119 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-25 12:35:50.844 [discovery] reply from 192.168.1.33: {"service":"crimson-steel","version":1,"http_port":4567,"name":"The Shattered Beacon"}
+2026-11-25 12:35:50.870 [session] found The Shattered Beacon at http://192.168.1.33:4567 by broadcast
+2026-11-25 12:35:51.083 [http] GET /api/hello -> 200 in 206ms
+2026-11-25 12:35:51.138 [session] connected to http://192.168.1.33:4567; campaign "The Shattered Beacon", device ab4b26aa, character Thora Stoneveil
+2026-11-25 12:35:51.162 [main] screen: Update required
+2026-11-25 12:35:51.452 [live] live updates connected
+2026-11-25 12:37:06.299 [live] live updates connected
+2026-11-25 12:37:10.413 [settings] opened
+2026-11-25 12:37:10.495 [http] GET /api/app/latest -> 200 in 23ms
+2026-11-25 12:37:10.522 [http] GET /api/dice_colors -> 200 in 23ms
+2026-11-25 12:37:15.947 [update] updating to v0.048
+2026-11-25 12:37:16.240 [http] GET /api/app/apk -> 200 (1423850 bytes)
+2026-11-25 12:37:16.242 [update] downloaded v0.048 (1423850 bytes)
+2026-11-25 12:37:33.038 [session] app started: Crimson Steel v0.047 a (2aca); Android 10 (API 29); LENOVO Lenovo TB-8505FS
+2026-11-25 12:37:33.094 [main] screen: Looking for the Crimson Steel server…
+2026-11-25 12:37:33.183 [session] searching for the server
+2026-11-25 12:37:33.186 [session] trying last server http://192.168.1.33:4567
+2026-11-25 12:37:33.345 [http] GET /api/hello -> 200 in 133ms
+2026-11-25 12:37:33.425 [session] connected to http://192.168.1.33:4567; campaign "The Shattered Beacon", device ab4b26aa, character Thora Stoneveil
+2026-11-25 12:37:33.438 [main] screen: playing as Thora Stoneveil
+2026-11-25 12:37:33.675 [http] GET /api/sheet -> 200 in 190ms
+2026-11-25 12:37:35.555 [live] live updates connected
+2026-11-25 12:37:35.757 [http] GET /api/prompts -> 200 in 12ms
+2026-11-25 12:48:34.747 [live] live updates connected
+2026-11-25 12:48:56.878 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:48:58.924 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:49:02.966 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:49:06.583 [http] ERROR GET /api/sheet to http://192.168.1.33:4567 failed: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.585 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.586 [main] screen: Looking for the Crimson Steel server…
+2026-11-25 12:49:06.594 [http] ERROR GET /api/hello to http://192.168.1.33:4567 failed: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.604 [http] ERROR GET /api/prompts to http://192.168.1.33:4567 failed: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.629 [session] searching for the server
+2026-11-25 12:49:06.629 [main] ERROR lost the server; searching again: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.631 [session] trying last server http://192.168.1.33:4567
+2026-11-25 12:49:06.642 [http] ERROR GET /api/hello to http://192.168.1.33:4567 failed: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.643 [session] last server not reachable: ConnectException: Failed to connect to /192.168.1.33:4567
+2026-11-25 12:49:06.644 [session] broadcasting a discovery probe on UDP 47567
+2026-11-25 12:49:06.654 [discovery] interface wlan0: 192.168.1.36/24 broadcast 192.168.1.255
+2026-11-25 12:49:06.672 [discovery] attempt 1: probe sent to 192.168.1.255:47567
+2026-11-25 12:49:06.674 [discovery] attempt 1: probe sent to 255.255.255.255:47567
+2026-11-25 12:49:07.929 [discovery] attempt 1: no reply within 1200ms
+2026-11-25 12:49:07.931 [discovery] attempt 2: probe sent to 192.168.1.255:47567
+2026-11-25 12:49:07.933 [discovery] attempt 2: probe sent to 255.255.255.255:47567
+2026-11-25 12:49:09.187 [discovery] attempt 2: no reply within 1200ms
+2026-11-25 12:49:09.189 [discovery] attempt 3: probe sent to 192.168.1.255:47567
+2026-11-25 12:49:09.190 [discovery] attempt 3: probe sent to 255.255.255.255:47567
+2026-11-25 12:49:10.448 [discovery] attempt 3: no reply within 1200ms
+2026-11-25 12:49:10.449 [session] ERROR search failed: IOException: No reply to the discovery broadcast
+2026-11-25 12:49:10.453 [main] screen: No server found
+2026-11-25 12:49:11.010 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:49:26.038 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:49:41.072 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:49:56.116 [live] live updates dropped (ConnectException: Failed to connect to /192.168.1.33:4567); retrying
+2026-11-25 12:55:17.760 [main] screen: Update required
+2026-11-25 12:55:17.959 [live] live updates connected
+2026-11-25 12:55:19.452 [settings] opened
+2026-11-25 12:55:19.532 [http] GET /api/app/latest -> 200 in 13ms
+2026-11-25 12:55:19.561 [http] GET /api/dice_colors -> 200 in 25ms
+2026-11-25 12:55:26.014 [live] live updates connected
+2026-11-25 12:55:26.844 [update] updating to v0.049
+2026-11-25 12:55:27.149 [http] GET /api/app/apk -> 200 (1423848 bytes)
+2026-11-25 12:55:27.151 [update] downloaded v0.049 (1423848 bytes)
+2026-11-25 12:55:30.525 [live] live updates connected
+2026-11-25 12:55:40.279 [update] updating to v0.049
+2026-11-25 12:55:40.615 [http] GET /api/app/apk -> 200 (1423848 bytes)
+2026-11-25 12:55:40.617 [update] downloaded v0.049 (1423848 bytes)
+2026-11-25 12:55:42.637 [live] live updates connected
+2026-11-25 12:55:52.645 [live] live updates connected
+2026-11-25 12:55:53.134 [update] updating to v0.049
+2026-11-25 12:55:53.433 [http] GET /api/app/apk -> 200 (1423848 bytes)
+2026-11-25 12:55:53.435 [update] downloaded v0.049 (1423848 bytes)
+2026-11-25 12:55:55.728 [live] live updates connected
+2026-11-25 12:56:00.478 [settings] opened
+2026-11-25 12:56:02.238 [update] updating to v0.049
+2026-11-25 12:56:02.751 [http] GET /api/app/apk -> 200 (1423848 bytes)
+2026-11-25 12:56:02.755 [update] downloaded v0.049 (1423848 bytes)
