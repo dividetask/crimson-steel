@@ -14,6 +14,23 @@ lives in this folder; its test lives in `test/scenarios/<name>.rb`.
 | Stumpy Dream Encounter | — | To define |
 | Character Creation | — | To define: a level 1 Barbarian, Cleric, Rogue and Bard. The DM assigns a tablet to *New Character*; the tablet walks the player through creation. Not on the tablets yet |
 | Level Up to 6 | — | To define: the four new characters to level 6. A DM Level Up button (placement to be decided) adds a level-up button to that Character's sheet on their tablet, where the player goes through it. Not built yet |
+| Random Encounter Preview | — | To define: roll Ogre Gang (1 Ogre Brute, 2–4 Ogres) as a preview with nothing added to combat; re-roll; Add to combat. Today each roll spawns and adds |
+| Roll Init Starts the Turn | — | To define: Roll Init begins the first Combatant's turn. Today only Start Combat does |
+| Standard Shield Blocks for an Ally | — | To define: an orc attacks Garroth, who picks No defense on his tablet; Thora interposes from hers. Paired with the same attack unshielded |
+| Spells of Interest | — | To define: Shield of Faith, Standard Shield, Spiritual Weapon / Hammer, Grease, Create Pit, every healing spell, every ward spell (e.g. Ward's temp HP by tier) |
+| Long-Term Afflictions | — | To define: hour- and day-long time jumps owe one save per missed interval and apply natural recovery. Today nothing calls the due-save code |
+| Multi-Day Travel | — | To define: pace and distance, rations eaten, a random encounter on the road, the clock advancing. Not tracked today |
+| City and Shops | — | To define: shop stock restocks over days; selling pays. Today restock is never called and the Sell Pile deletes |
+| Equipment Slots | — | To define: equipping a Breastplate takes off the Chain shirt. Today both can be worn |
+| Non-Combat Encounter | — | To define: spells, items and rolls spending resources, with time tracked |
+| Several Tablets Rolling at Once | — | To define: Fireball on three PCs, each Dexterity save on its own tablet; the DM cannot confirm until every roll is in |
+| Luck from Another Tablet | — | To define: Lira spends Bardic Inspiration on Ash's attack from her tablet |
+| Reconnecting | — | To define: a tablet drops while a prompt waits and comes back to it; the DM leaves the Encounter page mid-action and returns to it |
+| Fudged Rolls | — | To define: a fudged roll shows only on that player's tablet, and nobody can tell |
+| What Players Can See | — | To define: tablets never get enemy vitals or DM-only notes; View as Player matches a tablet |
+| Fatigue and Unconscious | — | To define: Winded, Tired, Exhausted; Unconscious sets the Combat Pool to 0; shown on the player's tablet |
+| Free Actions Out of Turn | — | To define: a Free action on someone else's turn is allowed; anything else is refused |
+| New Character and Unassigned Tablets | — | To define: a tablet waits unassigned, is assigned *New Character*, then switches to the finished Character |
 
 `connect` is a smoke test for the harness itself.
 
