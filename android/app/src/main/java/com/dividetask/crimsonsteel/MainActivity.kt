@@ -35,8 +35,8 @@ import com.dividetask.crimsonsteel.ui.Ui
 class MainActivity : Activity() {
 
     private enum class Tab(val label: String, val pollMs: Long) {
-        SHEET("Sheet", 5000),
         INITIATIVE("Initiative", 2000),
+        SHEET("Sheet", 5000),
         INVENTORY("Items", 5000),
         NOTES("Notes", 10000),
         SCENE("Scene", 5000),
@@ -44,7 +44,7 @@ class MainActivity : Activity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var root: FrameLayout
-    private var current = Tab.SHEET
+    private var current = Tab.INITIATIVE
     private var screen: LiveScreen<*>? = null
     private val tabViews = mutableMapOf<Tab, TextView>()
     private var headerName: TextView? = null

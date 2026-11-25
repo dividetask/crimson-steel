@@ -96,7 +96,6 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
                 Ui.matchWidth(Ui.dp(ctx, 6)))
             return col
         }
-        statusSection(col, d)
         initiativeSection(col, d)
         if (!d.myTurn) {
             val acting = d.order.find { it.acting }
@@ -110,10 +109,14 @@ class InitiativeScreen(ctx: Context, onError: (Throwable) -> Unit) : LiveScreen<
 
     // --- Status -------------------------------------------------------------------
 
-    private fun statusSection(col: LinearLayout, d: Initiative) {
-        val me = d.order.find { it.isYou } ?: return
-        col.addView(Ui.sectionHeader(ctx, "Status"))
-        col.addView(statusRow(d, me, statusOpen == me.combatantId), Ui.matchWidth(Ui.dp(ctx, 6)))
+    /** The player's own status, pinned at the bottom of the screen during combat. */
+    override fun buildFooter(d: Initiative): View? {
+        if (!d.combatActive) return null
+        val me = d.order.find { it.isYou } ?: return null
+        return Ui.vertical(ctx, 8).apply {
+            setBackgroundColor(Ui.SURFACE)
+            addView(statusRow(d, me, statusOpen == me.combatantId), Ui.matchWidth())
+        }
     }
 
     /** The Combat Pool a row shows: the player's own less what this turn's requests would spend. */
