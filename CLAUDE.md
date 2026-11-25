@@ -219,6 +219,13 @@ Notes:
 - Put the same line at the end of the commit message body, e.g.
   `Update: APK only` or `Update: server + APK`.
 
+### Build logs (`android/build-logs/`)
+
+- Ignore build logs when merging: keep the target branch's
+  `android/build-logs/` as it is, whatever the other branch has. Each build
+  rewrites `build.log` on its own branch, so it conflicts on most merges —
+  resolve it this way without asking, and leave it out of the report.
+
 ### Device logs (`device-logs/`)
 
 The server saves the logs and screenshots the phones send into `device-logs/`
