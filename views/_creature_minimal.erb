@@ -77,6 +77,55 @@
       end
     %(<div class="cs-attr-pop cs-def-pop" role="tooltip"><div class="cs-attr-pop-title">#{Rack::Utils.escape_html(title.to_s)}</div><div class="cs-attr-pop-breakdown">#{body} = <strong>#{total}</strong></div></div>)
   end
+
+  # Click/hover popup showing the two stages behind the Combat Pool
+  # (encounter_design.md -> "Combat Pool computation"). Stage 1 sums martial
+  # ranks and the Combat Pool Attribute, then divides by the Tier's Turns Per
+  # Round, showing each step. Stage 2 is a purchase, not a sum, so it renders
+  # as a price table — one row per block of `Combat Pool Step` dice, the first
+  # block free and each later block a point dearer — closing with what the
+  # Pool cost against the Budget and why it stopped where it did.
+  # CreatureSheet supplies every number; the stub only formats.
+  pool_pop = lambda do |brk|
+    return '' unless brk
+    akey  = Rack::Utils.escape_html(brk[:attribute_key].to_s.upcase)
+    turns = brk[:turns]
+
+    # Budget over two short lines — the sum, then the division — so neither
+    # wraps inside the popup:
+    #   3 martial x 2 + 18 WIS = 24
+    #   24 / 1 turn per round = 24 Budget
+    # The division is shown even at 1 turn per round so the formula reads the
+    # same on every sheet and the Tier's role stays visible.
+    budget_sum = %(#{brk[:martial_ranks]} martial &times; 2 + #{brk[:attribute]} #{akey} = #{brk[:before_turns]})
+    budget_div = %(#{brk[:before_turns]} &divide; #{turns} #{turns == 1 ? 'turn' : 'turns'} per round ) +
+                 %(= <strong>#{brk[:budget]}</strong> <span class="cs-def-note">Budget</span>)
+
+    rows = Array(brk[:blocks]).map do |b|
+      dice  = b[:from] == b[:to] ? b[:from].to_s : %(#{b[:from]}&ndash;#{b[:to]})
+      price = b[:cost_each].zero? ? 'free' : b[:cost_each].to_s
+      %(<tr><td>#{dice}</td><td class="cs-num">#{price}</td>) +
+        %(<td class="cs-num">#{b[:spent]}</td><td class="cs-num">#{b[:left]}</td></tr>)
+    end.join
+
+    # Why the Buy stopped. The Left column already carries what remains, so
+    # this only has to name the price the remainder could not meet.
+    stop = %(Next die costs #{brk[:next_die_cost]})
+
+    %(<div class="cs-attr-pop cs-def-pop cs-pool-pop" role="tooltip">) +
+      %(<div class="cs-attr-pop-title">Combat Pool</div>) +
+      %(<div class="cs-attr-pop-breakdown"><div class="cs-pool-line">#{budget_sum}</div>) +
+      %(<div class="cs-pool-line">#{budget_div}</div></div>) +
+      %(<table class="cs-attr-pop-table cs-pool-table">) +
+      %(<thead><tr><th>Dice</th><th class="cs-num">Each</th><th class="cs-num">Cost</th>) +
+      %(<th class="cs-num">Left</th></tr></thead>) +
+      %(<tbody>#{rows}) +
+      %(<tr class="cs-pool-total"><th>#{brk[:size]} dice</th><td></td>) +
+      %(<td class="cs-num">#{brk[:cost]}</td><td class="cs-num">#{brk[:remaining]}</td>) +
+      %(</tr></tbody></table>) +
+      %(<div class="cs-pool-stop cs-def-note">#{stop}</div>) +
+      %(</div>)
+  end
 %>
 
 <article class="cs-card cs-minimal tier-<%= h[:tier] %><%= ' cs-bare' unless chrome_on %>" data-creature-id="<%= demo[:id] %>">
@@ -181,8 +230,16 @@
     </div>
   </section>
 
+  <%
+    # Combat Pool — the Creature's maximum spendable dice on one of its turns
+    # (encounter_glossary.md). Static demos carry only the scalar total in
+    # vitals, so the breakdown popup is omitted when no breakdown is supplied.
+    pool_brk  = v[:combat_pool_breakdown]
+    pool_size = pool_brk ? pool_brk[:size] : v[:combat_pool].to_i
+  %>
   <section class="cs-ips-row">
     <div class="cs-ips-cell"><strong>Initiative</strong> <%= demo[:initiative][:dice_count] %></div>
+    <div class="cs-ips-cell<%= ' cs-attr-has-pop' if pool_brk %>"<% if pool_brk %> tabindex="0" role="button" aria-label="Combat Pool breakdown"<% end %>><strong>Combat Pool</strong> <%= pool_size %><%= pool_pop.call(pool_brk) %></div>
     <div class="cs-ips-cell"><strong>Perception</strong> <%= sprintf('%+d', demo[:perception][:bonus]) %></div>
     <div class="cs-ips-cell"><strong>Speed</strong> <%= demo[:speed] %></div>
   </section>

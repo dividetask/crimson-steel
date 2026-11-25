@@ -2545,10 +2545,10 @@ body {
   font-size: 13px;
 }
 
-/* Initiative / Perception / Speed row. */
+/* Initiative / Combat Pool / Perception / Speed row. */
 .cs-card .cs-ips-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid #b9472c;
   padding: 8px 0 4px;
   margin-top: 12px;
@@ -2558,6 +2558,74 @@ body {
   color: #882f1f;
   font-variant: small-caps;
   margin-right: 6px;
+}
+/* The Combat Pool cell carries the two-stage math popup, reusing the
+   Attribute popup's .cs-attr-pop reveal (hover / focus / click-toggle). */
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop {
+  position: relative;
+  cursor: pointer;
+}
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:hover strong,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:focus-within strong,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop.cs-pop-open strong {
+  text-decoration: underline dotted;
+}
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:hover .cs-attr-pop,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop:focus-within .cs-attr-pop,
+.cs-card.cs-minimal .cs-ips-cell.cs-attr-has-pop.cs-pop-open .cs-attr-pop {
+  display: block;
+}
+/* The Combat Pool popup: two short Budget lines over the Buy stage's price
+   table (one row per block of Combat Pool Step dice). Wide enough that
+   neither Budget line wraps at realistic values. */
+.cs-card.cs-minimal .cs-pool-pop {
+  min-width: 288px;
+}
+/* Each stage of the Budget on its own line, so the formula reads as two
+   short steps instead of one long wrapped sentence. */
+.cs-card.cs-minimal .cs-pool-line + .cs-pool-line {
+  margin-top: 2px;
+}
+.cs-card.cs-minimal .cs-pool-table {
+  margin-top: 6px;
+}
+/* Ruled rows — without them the price blocks read as loose columns of text
+   rather than as a table. */
+.cs-card.cs-minimal .cs-pool-table tbody td,
+.cs-card.cs-minimal .cs-pool-table tbody th {
+  border-bottom: 1px solid #f0ddcb;
+  padding: 3px 6px;
+}
+/* The dice-range column is the row's label: left-aligned and given the room
+   a range like "13-16" needs, so the three numeric columns line up cleanly. */
+.cs-card.cs-minimal .cs-pool-table td:first-child,
+.cs-card.cs-minimal .cs-pool-table th:first-child {
+  width: 34%;
+  text-align: left;
+}
+/* Left runs the Budget down block by block, so it reads as a column of
+   figures rather than a per-row value — muted until the total row. */
+.cs-card.cs-minimal .cs-pool-table tbody td:last-child {
+  color: #6b4a36;
+}
+/* The total is where the eye should land: a heavier rule above, no rule
+   below, and the only bold figures in the table. */
+.cs-card.cs-minimal .cs-pool-total th,
+.cs-card.cs-minimal .cs-pool-total td {
+  border-top: 1px solid #b9472c;
+  border-bottom: none;
+  padding-top: 4px;
+  font-weight: bold;
+  color: #2b1a13;
+}
+.cs-card.cs-minimal .cs-pool-total th {
+  text-align: left;
+}
+/* Why the Buy stopped where it did — the next die's price vs. what is left. */
+.cs-card.cs-minimal .cs-pool-stop {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* Tables — actions, combat, attributes, skills, effects. */

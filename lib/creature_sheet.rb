@@ -148,9 +148,61 @@ module CreatureSheet
       moderate_damage: (st ? st.hp_damage[:moderate] || 0 : 0),
       major_damage:    (st ? st.hp_damage[:major] || 0 : 0),
       combat_pool: (Encounter::CombatPool.size_for(accessor) rescue 0),
+      combat_pool_breakdown: combat_pool_breakdown(accessor, tier),
       damage_reduction: dr_break[:total], damage_resilience: res_break[:total],
       defense_breakdown: { damage_reduction: dr_break, damage_resilience: res_break }
     }
+  end
+
+  # The two-stage math behind the Combat Pool, for the sheet's click-to-open
+  # popup (encounter_design.md -> Operations -> "Combat Pool computation"):
+  # Stage 1 derives a Budget from martial ranks + the Combat Pool Attribute,
+  # divided by the Tier's Turns Per Round; Stage 2 spends that Budget on
+  # points under the tiered Buy. Nothing here is recomputed locally —
+  # Encounter::CombatPool owns every formula.
+  def combat_pool_breakdown(accessor, tier)
+    martial   = accessor.ranks_for('martial')
+    attr_key  = Encounter::Config.combat_pool_attribute
+    attribute = accessor.attribute_value(attr_key)
+    turns     = Encounter::Config.turns_for_tier(tier)
+    step      = Encounter::Config.combat_pool_step
+    budget    = Encounter::CombatPool.budget(martial_ranks: martial, attribute: attribute, tier: tier)
+    size      = Encounter::CombatPool.buy(budget, step: step)
+    cost      = Encounter::CombatPool.cost_to_buy(size, step)
+    { size: size, budget: budget, martial_ranks: martial,
+      attribute_key: attr_key, attribute: attribute, turns: turns, step: step,
+      # The sum before the Turns Per Round division, so the popup can split
+      # the Budget across two short lines instead of one that wraps.
+      before_turns: (martial * 2) + attribute,
+      cost: cost, blocks: combat_pool_blocks(size, step, budget),
+      # What stopped the Buy where it did: the price of the next die, and the
+      # Budget left over (too little to pay it).
+      remaining: budget - cost, next_die_cost: size / step }
+  rescue StandardError
+    nil
+  end
+
+  # The Buy stage laid out one price block at a time, for the popup's table:
+  # dice 1..Step are free, the next Step cost 1 each, the next 2 each, and so
+  # on. The final block is partial when the Pool stops mid-block. Spent
+  # amounts sum to Encounter::CombatPool.cost_to_buy(size, step), and `left`
+  # runs the Budget down block by block — the last block's `left` is what the
+  # Buy had in hand when it stopped.
+  # Returns [{ from:, to:, count:, cost_each:, spent:, left: }].
+  def combat_pool_blocks(size, step, budget)
+    blocks = []
+    block  = 0
+    left   = budget
+    while block * step < size
+      from   = (block * step) + 1
+      to     = [(block + 1) * step, size].min
+      count  = to - from + 1
+      spent  = count * block
+      left  -= spent
+      blocks << { from: from, to: to, count: count, cost_each: block, spent: spent, left: left }
+      block += 1
+    end
+    blocks
   end
 
   # Split a defensive total into its base (equipped Armor + any Inherent
