@@ -15,11 +15,11 @@ RSpec.describe 'Abilities.lookup' do
     expect(Abilities.lookup('Ward', axis_index: 2)['name']).to eq('Standard Ward')
   end
 
-  it 'scales the Shield spell by Tier — range widens and its block bonus grows' do
-    tier0 = Abilities.lookup('Shield', axis_index: 0)
-    tier1 = Abilities.lookup('Shield', axis_index: 1)
-    tier2 = Abilities.lookup('Shield', axis_index: 2)
-    expect([tier0['name'], tier1['name'], tier2['name']]).to eq(['Lesser Shield', 'Standard Shield', 'Greater Shield'])
+  it 'scales the Spiritual Shield spell by Tier — range widens and its block bonus grows' do
+    tier0 = Abilities.lookup('Spiritual Shield', axis_index: 0)
+    tier1 = Abilities.lookup('Spiritual Shield', axis_index: 1)
+    tier2 = Abilities.lookup('Spiritual Shield', axis_index: 2)
+    expect([tier0['name'], tier1['name'], tier2['name']]).to eq(['Trivial Spiritual Shield', 'Lesser Spiritual Shield', 'Standard Spiritual Shield'])
     expect([tier0['range'], tier1['range'], tier2['range']]).to eq(%w[Self Close Medium])
     expect([tier0['shield_bonus'], tier1['shield_bonus'], tier2['shield_bonus']]).to eq([0, 1, 2])
     # The shield is a caster-controlled block fueled by the caster's Combat Pool

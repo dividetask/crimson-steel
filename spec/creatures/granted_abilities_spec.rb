@@ -20,14 +20,15 @@ RSpec.describe 'Creatures granted_abilities', type: :model do
   it 'cleric `granted_spells` appear in the list' do
     a = Creatures::Accessor.new(korth)
     names = a.granted_abilities.map { |g| g[:name] }
-    expect(names).to include('Heal', 'Ward', 'Standard Surgery')
+    expect(names).to include('Trivial Ward', 'Standard Surgery')
+    expect(names).not_to include('Heal', 'Ward')
   end
 
   it 'cleric deity+domain resolves through deities.yaml' do
     a = Creatures::Accessor.new(korth)
     names = a.granted_abilities.map { |g| g[:name] }
-    # Karthak / War: Divine Favor, Shield of Faith, Spiritual Hammer, Silence
-    expect(names).to include('Divine Favor', 'Shield of Faith', 'Spiritual Hammer', 'Silence')
+    # Karthak / War: Divine Favor, Shield of Faith, Lesser Spiritual Hammer, Silence
+    expect(names).to include('Divine Favor', 'Shield of Faith', 'Lesser Spiritual Hammer', 'Silence')
   end
 
   it 'source filter narrows to race only' do

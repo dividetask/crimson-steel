@@ -165,8 +165,7 @@ Classes:
       "2": [channel_divinity, turn_undead, casting_feat]
       "5": [destroy_undead]
     granted_spells:
-      - Heal
-      - Ward
+      - Trivial Ward
       - Standard Surgery
     spell_selection:
       mode: domain

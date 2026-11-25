@@ -35,8 +35,8 @@ RSpec.describe 'CreatureSheet spell recognition' do
 
     it 'maps a constructed variant name back to its base catalog key + Tier axis' do
       # So the Abilities domain (which keys only by catalog name) can resolve it.
-      expect(CreatureSheet.spell_info('Standard Shield')).to include(base: 'Shield', axis: 1)
-      expect(CreatureSheet.spell_info('Lesser Shield')).to include(base: 'Shield', axis: 0)
+      expect(CreatureSheet.spell_info('Lesser Spiritual Shield')).to include(base: 'Spiritual Shield', axis: 1)
+      expect(CreatureSheet.spell_info('Trivial Spiritual Shield')).to include(base: 'Spiritual Shield', axis: 0)
       expect(CreatureSheet.spell_info('Shield of Faith')).to include(base: 'Shield of Faith', axis: 0)
     end
 

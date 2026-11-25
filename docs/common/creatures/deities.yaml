@@ -97,11 +97,11 @@ Domains:
     spells:
       - Divine Favor
       - Shield of Faith
-      - Spiritual Hammer
+      - Lesser Spiritual Hammer
       - Silence
-      - Lesser Shield
-      - Standard Shield
-      - Greater Shield
+      - Trivial Spiritual Shield
+      - Lesser Spiritual Shield
+      - Standard Spiritual Shield
     channel_divinity: Martial Devotion
   Water: {}
   Wisdom: {}

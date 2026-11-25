@@ -732,8 +732,6 @@ module Encounter
       over = p[:override] || {}
 
       pool_spends = []
-      # A Spiritual Weapon strike (free_attacker_pool) rolls Reservoir dice, not
-      # Combat Pool, so the attacker spends nothing.
       pool_spends << { id: attacker[:id], amount: pool_cost(attacker) } if attacker[:id] && !p[:free_attacker_pool]
       allies.each { |a| pool_spends << { id: a[:id], amount: pool_cost(a) } if a[:id] }
       opposing = 0
@@ -1783,9 +1781,10 @@ module Encounter
     def trigger_concentration_saves(combatant, damage_dealt, save_resolver)
       notes = []
       combatant[:concentration].dup.each do |e|
-        # Timed channels (Spiritual Weapon) are not true Concentration — taking
-        # damage never breaks them; they end only when their time runs out.
-        next if e[:expires_on_round]
+        # Timed channels are not true Concentration — taking damage never breaks
+        # them. Spiritual Weapon (auto mode) is the exception: it needs
+        # Concentration as well as running out after its duration.
+        next if e[:expires_on_round] && e[:mode].to_s != 'auto'
         penalty = e[:spell_tier] + damage_dealt
         passed = save_resolver.call(spell_name: e[:spell_name], cast_skill: e[:cast_skill],
                                     penalty: penalty, kind: :concentration)
@@ -2062,7 +2061,7 @@ module Encounter
                             initial_reservoir: initial, expires_on_round: exp)
         # Spiritual Weapon shows a condition on the caster that fades when the
         # weapon's time runs out.
-        if exp && spell[:name].to_s == 'Spiritual Weapon'
+        if exp && spell[:name].to_s.match?(/Spiritual (Weapon|Hammer)\z/)
           ci = conditions_for(find!(caster_id)[:creature_id])
           if ci.respond_to?(:apply_named_effect)
             ci.apply_named_effect('spiritual_weapon', source_id: "#{cast_source_id(spell)}:active",

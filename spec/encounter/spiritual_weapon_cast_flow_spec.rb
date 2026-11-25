@@ -6,13 +6,13 @@ require 'tmpdir'
 require_relative '../../app'
 
 # End-to-end coverage for the Option-2 Spiritual Weapon flow:
-#   * Casting it only conjures the weapon — it fills the persistent Reservoir
-#     and flags the caster; the cast itself rolls no attack and offers the
-#     target no Defense (Cast is only for casting spells).
+#   * Casting it only conjures the weapon — it costs 2 dice and flags the
+#     caster; the cast itself rolls no attack and offers the target no Defense.
 #   * The conjured strike is NOT in the Attack pane.
 #   * A new Active Spells action runs the full Attack flow against a chosen
 #     target — Parry included (the strike is melee) — and resolves through the
-#     same /encounter/resolve_attack as a normal attack.
+#     same /encounter/resolve_attack as a normal attack, spending the caster's
+#     own Combat Pool dice (2 up to the casting Skill's Dice Cap).
 RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
   include Rack::Test::Methods
   def app = Sinatra::Application
@@ -60,7 +60,7 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
   # Conjure the weapon (mirrors a committed cast): fill the Reservoir + flag.
   def conjure!(dice: 5)
     Encounter.state.send(:begin_concentration, @caster[:id], spell_name: 'Spiritual Weapon',
-                         source: 'x', spell_tier: 2, cast_skill: 'invocation',
+                         source: 'x', spell_tier: 1, cast_skill: 'invocation',
                          mode: 'auto', reservoir_reset: 'persistent', initial_reservoir: dice)
   end
 
@@ -69,7 +69,11 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
     blob = builder_blob(last_response.body)
     sw = blob['steps'].find { |s| s['key'] == 'spell' }['options'].find { |o| o['spell_name'] == 'Spiritual Weapon' }
     expect(sw.dig('cast', 'roll')).to be(false)          # the cast rolls nothing
-    expect(sw.dig('cast', 'reservoir')).to be(true)      # it fills a Reservoir
+    expect(sw.dig('cast', 'reservoir')).to be(false)     # no Reservoir to fill
+    dice = blob['steps'].find { |s| s['key'] == 'dice' }
+    values = Array(dice['options_map'][sw['value'].to_s]).reject { |o| o['kind'] == 'info' }.map { |o| o['value'] }
+    expect(values).not_to be_empty
+    expect(values).to all(end_with('|2'))              # the cast costs exactly 2 dice
     defense = blob['steps'].find { |s| s['key'] == 'defense' }
     expect((defense['options_map'] || {})["#{@target[:id]}|Spiritual Weapon"]).to eq([])
   end
@@ -132,23 +136,23 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
     expect(atk_bpl).not_to(include(a_collection_including('flatfooted')))
   end
 
-  it 'never asks for a dice count — the strike auto-rolls its full Reservoir' do
-    conjure!(dice: 5)
-    get "/encounter/active_spells_builder?attacker_id=#{@caster[:id]}&strike_spell=#{CGI.escape("Spiritual Weapon")}"
+  it "offers 2 dice up to the casting Skill's Dice Cap, spent from the Combat Pool" do
+    allow_any_instance_of(Sinatra::Application).to receive(:roll_inputs_for).and_wrap_original do |orig, acc, key, **kw|
+      key.to_s == 'invocation' ? { dice_cap: 6, competency_modifier: ['Competency', 3] } : orig.call(acc, key, **kw)
+    end
+    conjure!
+    Encounter.state.reset_combat_pool(@caster[:id]) rescue nil
+    get "/encounter/active_spells_builder?attacker_id=#{@caster[:id]}&strike_spell=#{CGI.escape('Spiritual Weapon')}"
     blob = builder_blob(last_response.body)
     action = blob['steps'].find { |s| s['key'] == 'action' }
-    # A single forced (auto) option the builder applies without a button, set
-    # to the whole Reservoir — no 2..N dice choices, no header quick-picks.
-    interactive = (action['options'] || []).reject { |o| o['kind'] == 'info' }
-    expect(interactive.length).to eq(1)
-    expect(interactive.first['auto']).to be(true)
-    expect(interactive.first['value']).to eq('spiritual_weapon|5')
-    expect(action['header_options'] || []).to be_empty
+    values = (action['options'] || []).reject { |o| o['kind'] == 'info' }.map { |o| o['value'] }
+    expect(values).to include('spiritual_weapon|2', 'spiritual_weapon|6')
+    expect(values).not_to include('spiritual_weapon|1', 'spiritual_weapon|7')
   end
 
   it "rolls the strike with the caster's casting-Skill Competency and a Guidance bonus equal to the Spell Tier" do
     # The strike rolls the casting Check: the caster's Invocation Competency
-    # rides the roll, and every Spell adds Guidance equal to its Tier (2 here).
+    # rides the roll, and every Spell adds Guidance equal to its Tier (1 here).
     allow_any_instance_of(Sinatra::Application).to receive(:roll_inputs_for).and_wrap_original do |orig, acc, key, **kw|
       key.to_s == 'invocation' ? { dice_cap: 6, competency_modifier: ['Competency', 3] } : orig.call(acc, key, **kw)
     end
@@ -158,7 +162,7 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
     action = blob['steps'].find { |s| s['key'] == 'action' }
     bpl = action['options'].first.dig('patch', 'set_bpl').first['bonus_penalty_list']
     expect(bpl).to include(['Competency', 3])  # from Invocation ranks
-    expect(bpl).to include(['Guidance', 2])    # equal to the Spell Tier
+    expect(bpl).to include(['Guidance', 1])    # equal to the Spell Tier
   end
 
   it 'ends an active Spell — drops the concentration and clears its caster Effect' do
@@ -257,41 +261,41 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
     expect(Encounter.state.combatant(@caster[:id])[:combat_pool_spent].to_i).to eq(0)  # nothing spent
   end
 
-  it 'retargets and ends a Standard Shield (defend-action, no Reservoir)' do
+  it 'retargets and ends a Lesser Spiritual Shield (defend-action, no Reservoir)' do
     other = Encounter.state.add_combatant('3')
-    Encounter.state.grant_action(combatant_id: @caster[:id], name: 'Standard Shield', source: 'Standard Shield',
-                                 spell_name: 'Standard Shield', defends: @target[:id],
+    Encounter.state.grant_action(combatant_id: @caster[:id], name: 'Lesser Spiritual Shield', source: 'Lesser Spiritual Shield',
+                                 spell_name: 'Lesser Spiritual Shield', defends: @target[:id],
                                  cast_skill: 'invocation', dice_cap: 5, dice_source: 'combat_pool', shield_bonus: 1)
     # Retarget the shield to another Combatant: the defend-action follows.
     post '/encounter/retarget_active_spell',
-         { combatant_id: @caster[:id], spell_name: 'Standard Shield', target_id: other[:id] },
+         { combatant_id: @caster[:id], spell_name: 'Lesser Spiritual Shield', target_id: other[:id] },
          'REMOTE_ADDR' => '127.0.0.1'
-    guard = Encounter.state.granted_actions.find { |g| g[:spell_name] == 'Standard Shield' }
+    guard = Encounter.state.granted_actions.find { |g| g[:spell_name] == 'Lesser Spiritual Shield' }
     expect(guard[:defends]).to eq(other[:id])
     # End it: the defend-action is revoked, so the block is no longer offered.
     post '/encounter/end_active_spell',
-         { combatant_id: @caster[:id], spell_name: 'Standard Shield' },
+         { combatant_id: @caster[:id], spell_name: 'Lesser Spiritual Shield' },
          'REMOTE_ADDR' => '127.0.0.1'
-    expect(Encounter.state.granted_actions.any? { |g| g[:spell_name] == 'Standard Shield' }).to be(false)
+    expect(Encounter.state.granted_actions.any? { |g| g[:spell_name] == 'Lesser Spiritual Shield' }).to be(false)
   end
 
-  it 'never asks for a dice count — the strike auto-rolls its full Reservoir' do
-    conjure!(dice: 5)
+  it "offers 2 dice up to the casting Skill's Dice Cap, spent from the Combat Pool" do
+    allow_any_instance_of(Sinatra::Application).to receive(:roll_inputs_for).and_wrap_original do |orig, acc, key, **kw|
+      key.to_s == 'invocation' ? { dice_cap: 6, competency_modifier: ['Competency', 3] } : orig.call(acc, key, **kw)
+    end
+    conjure!
+    Encounter.state.reset_combat_pool(@caster[:id]) rescue nil
     get "/encounter/active_spells_builder?attacker_id=#{@caster[:id]}&strike_index=0"
     blob = builder_blob(last_response.body)
     action = blob['steps'].find { |s| s['key'] == 'action' }
-    # A single forced (auto) option the builder applies without a button, set
-    # to the whole Reservoir — no 2..N dice choices, no header quick-picks.
-    interactive = (action['options'] || []).reject { |o| o['kind'] == 'info' }
-    expect(interactive.length).to eq(1)
-    expect(interactive.first['auto']).to be(true)
-    expect(interactive.first['value']).to eq('spiritual_weapon|5')
-    expect(action['header_options'] || []).to be_empty
+    values = (action['options'] || []).reject { |o| o['kind'] == 'info' }.map { |o| o['value'] }
+    expect(values).to include('spiritual_weapon|2', 'spiritual_weapon|6')
+    expect(values).not_to include('spiritual_weapon|1', 'spiritual_weapon|7')
   end
 
   it "rolls the strike with the caster's casting-Skill Competency and a Guidance bonus equal to the Spell Tier" do
     # The strike rolls the casting Check: the caster's Invocation Competency
-    # rides the roll, and every Spell adds Guidance equal to its Tier (2 here).
+    # rides the roll, and every Spell adds Guidance equal to its Tier (1 here).
     allow_any_instance_of(Sinatra::Application).to receive(:roll_inputs_for).and_wrap_original do |orig, acc, key, **kw|
       key.to_s == 'invocation' ? { dice_cap: 6, competency_modifier: ['Competency', 3] } : orig.call(acc, key, **kw)
     end
@@ -301,45 +305,41 @@ RSpec.describe 'Spiritual Weapon Option-2 flow', type: :request do
     action = blob['steps'].find { |s| s['key'] == 'action' }
     bpl = action['options'].first.dig('patch', 'set_bpl').first['bonus_penalty_list']
     expect(bpl).to include(['Competency', 3])  # from Invocation ranks
-    expect(bpl).to include(['Guidance', 2])    # equal to the Spell Tier
+    expect(bpl).to include(['Guidance', 1])    # equal to the Spell Tier
   end
 
-  it 'resolves an Active Spells strike as a free attack that deals force damage' do
+  it "resolves an Active Spells strike as a force attack paid from the caster's Combat Pool" do
     conjure!
     post '/encounter/resolve_attack', JSON.generate(
-      target_id: @target[:id], free_attacker_pool: true,
+      target_id: @target[:id],
       weapon: { item_type: 'spiritual_weapon', damage_types: ['force'], threshold: 0, base_damage: 0 },
       attacker: { id: @caster[:id], dice: 5, speed: 0, successes: 4 },
-      defense: { choice: 'none' }
+      defense: { choice: 'none' }, commit: true
     ), 'CONTENT_TYPE' => 'application/json', 'REMOTE_ADDR' => '127.0.0.1'
     expect(last_response.status).to eq(200)
     res = JSON.parse(last_response.body)
     expect(res['ok']).not_to be(false)
     expect(@cond['2'].state.hp_damage.values.sum).to be > 0       # the strike landed
-    expect(Encounter.state.combatant(@caster[:id])[:combat_pool_spent].to_i).to eq(0) # free
-    # The Reservoir is not consumed — it strikes again next turn.
-    held = Encounter.state.combatant(@caster[:id])[:concentration].find { |e| e[:spell_name] == 'Spiritual Weapon' }
-    expect(held[:reservoir]).to eq(5)
+    expect(Encounter.state.combatant(@caster[:id])[:combat_pool_spent].to_i).to be > 0 # the caster's own dice
   end
 
-  it 'the strike damage is floor(casting stat / 4) + Tier + casting Competency + net Successes' do
+  it 'the strike is a +1 one-handed weapon on the casting stat: floor(stat / 4) - 2 + 1 + Competency + net Successes' do
     # Route enrichment (weapon_type: spiritual_weapon) computes the base damage
-    # from the strike's concentration entry (Tier 2, Invocation), so the strike
-    # no longer deals only its Successes.
+    # from the strike's concentration entry (Tier 1, Invocation).
     allow_any_instance_of(Sinatra::Application).to receive(:roll_inputs_for).and_wrap_original do |orig, acc, key, **kw|
       key.to_s == 'invocation' ? { dice_cap: 6, competency_modifier: ['Competency', 3] } : orig.call(acc, key, **kw)
     end
     conjure!(dice: 6)
     post '/encounter/resolve_attack', JSON.generate(
       weapon_type: 'spiritual_weapon', active_spell_name: 'Spiritual Weapon',
-      target_id: @target[:id], free_attacker_pool: true,
+      target_id: @target[:id],
       attacker: { id: @caster[:id], dice: 6, speed: 0, successes: 4 },
       defense: { choice: 'none' }
     ), 'CONTENT_TYPE' => 'application/json', 'REMOTE_ADDR' => '127.0.0.1'
     expect(last_response.status).to eq(200)
     res = JSON.parse(last_response.body)
-    # floor(14/4)=3 + Tier 2 + Competency 3 + net Successes 4 = 12 (was 4).
-    expect(res['damage']).to eq(12)
-    expect(@cond['2'].state.hp_damage.values.sum).to eq(12)
+    # floor(14/4) - 2 = 1, +1 Guidance, + Competency 3, + net Successes 4 = 9.
+    expect(res['damage']).to eq(9)
+    expect(@cond['2'].state.hp_damage.values.sum).to eq(9)
   end
 end

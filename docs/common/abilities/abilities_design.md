@@ -32,7 +32,7 @@ The schema for entries in `spells.yaml` and `talents.yaml`. Looked up by display
 | `effects` | list of Effect | no | Unconditional Effects — apply regardless of save. |
 | `effect_hash` | dict | no | Named values referenced from `description` and Effect strings. |
 | `channel` | Channel Block | no | Presence makes the Ability a Channeled Ability. |
-| `reservoir` | Reservoir Block | no | Presence gives the Ability a Reservoir. Required when `channel.mode` is `reservoir` or `auto`. |
+| `reservoir` | Reservoir Block | no | Presence gives the Ability a Reservoir. Required when `channel.mode` is `reservoir`. |
 | `prerequisite` | string | no | Catalog Ability name of a lower-tier this spell is based upon. This prerequisite spell will sometimes be required to learn before this one can be learned. |
 | `inherits_from` | string | no | Catalog Ability name of a parent Ability whose fields seed this entry's defaults. The Abilities module resolves a child by starting with the parent's resolved Ability, then shallow-overriding with the child's declared fields. Used for talent families. |
 | `mana_cost` | integer | `0` | Mana spent on activation (Talents only — Spells use the per-Tier Mana Cost table in `abilities_config.yaml`). |
@@ -119,7 +119,7 @@ Resolution is caller-side: Combat / Conditions presents the option to the target
 
 ### Channel Block
 
-Presence of a Channel Block makes a Catalog Ability a Channeled Ability. The Combatant spends a Main Action on it each of their turns (the cast itself counts as the first such channel) or the spell ends. Reservoir-mode and auto-mode Channeled Abilities require a Reservoir Block (see below) — the Channel Block does not duplicate Reservoir mechanics.
+Presence of a Channel Block makes a Catalog Ability a Channeled Ability. The Combatant spends a Main Action on it each of their turns (the cast itself counts as the first such channel) or the spell ends. Reservoir-mode Channeled Abilities require a Reservoir Block (see below) — the Channel Block does not duplicate Reservoir mechanics.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
@@ -136,7 +136,7 @@ Presence of a Channel Block makes a Catalog Ability a Channeled Ability. The Com
 - **fire**: each turn's channel fuels the spell's effect directly. The channeled dice serve as the Roll (when `attack_roll` or a Save is involved) or drive the effect formula (e.g. Heal's bleed reduction scales with successes on the casting check). Channel dice are Main Action Minimum to Combat Pool Remaining; the Dice Cap does not apply, because the dice are poured straight into the effect rather than rolled as a skill Check.
 - **reservoir**: each turn's channel fills an associated Reservoir Block. With `fill.source: channel_dice` the channeled dice are poured into the Reservoir (Dice Cap does not apply, as in *fire*). With **`fill.source: check_successes`** (Bardic Inspiration) the channel instead rolls a real **skill Check** — each Success fills the Reservoir — so the dice **are** bounded by that skill's **Dice Cap** (Main Action Minimum up to `min(Dice Cap, Combat Pool Remaining)`). The Reservoir is consumed by its Discharge.
 - **maintain**: channel is upkeep only. No fueled effect, no Reservoir. Channel always costs exactly Main Action Minimum dice. The spell's text and the GM resolve what the maintained effect looks like.
-- **auto**: the cast itself fills the associated Reservoir Block (which must have `reset: persistent`). After cast, the spell self-sustains — no Main Action channel is required each turn. The Reservoir is not Discharged; instead it defines the per-turn effect's magnitude (e.g. Spiritual Weapon attacks each turn using a number of dice equal to its Reservoir). The spell ends when its declared `duration` expires.
+- **auto**: the cast conjures the effect and it self-sustains — no Main Action channel is required each turn to keep it. On any turn the caster may spend a Main Action to channel it (Spiritual Weapon: an attack spending 2 Combat Pool dice up to the casting skill's Dice Cap). The spell ends when its declared `duration` expires or Concentration breaks. A Reservoir Block is optional; when present the cast fills it (`reset: persistent`).
 
 ### Reservoir Block
 
@@ -145,7 +145,7 @@ Presence of a Reservoir Block gives a Catalog Ability a Reservoir — a tagged c
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `fill.source` | enum | required | How the Reservoir gains amount. `channel_dice` (per-channel dice add to the Reservoir, used by channeled spells; Dice Cap does not apply) or `check_successes` (each Success on a designated Check adds one — the dice are a real skill Check, so they obey that skill's Dice Cap). *(configurable)* |
-| `fill.ratio` | int | `1` | Multiplier applied to the Fill Source's input. Spiritual Weapon uses 1; ratios above 1 grant amplification (n channeled dice → ratio × n Reservoir). |
+| `fill.ratio` | int | `1` | Multiplier applied to the Fill Source's input. Shield of Faith uses 1; ratios above 1 grant amplification (n channeled dice → ratio × n Reservoir). |
 | `reset` | enum | `per_turn` | When the Reservoir resets to zero. `per_turn` (default) resets at the start of the holder's turn; `persistent` never resets and ends only with the owning Ability. Auto-mode Channeled Abilities use `persistent`. |
 | `discharge` | Discharge | optional | Defines how the Reservoir is spent. Omitted for auto-mode reservoirs (whose amount drives a per-turn effect without being consumed). |
 

@@ -2,10 +2,10 @@
 # attack-payload enrichment / defender-reaction helpers. Extracted from
 # routes/encounter.rb (a separate, accumulating helpers block).
 helpers do
-  # Auto-channel strike Spells with a live Reservoir (Spiritual Weapon) — the
-  # ones whose Active Spells button opens a strike (Attack) flow.
+  # Auto-channel strike Spells (Spiritual Weapon) — the ones whose Active
+  # Spells button opens a strike (Attack) flow.
   def active_spell_strikes(combatant)
-    Array(combatant[:concentration]).select { |e| e[:mode] == 'auto' && e[:reservoir].to_i.positive? }
+    Array(combatant[:concentration]).select { |e| e[:mode] == 'auto' }
   end
 
   # Every active concentration Spell the Combatant is channelling — an auto
@@ -105,11 +105,13 @@ helpers do
         # from their casting Skill (a Cleric's Invocation) rides the roll, plus
         # a Guidance Bonus equal to the Spell's Tier — the same bonuses a
         # normal cast of the Spell carries (see encounter_cast_ui.rb).
+        # The strike spends the caster's own Combat Pool dice, up to the
+        # casting Skill's Dice Cap.
         strike_skill = sw[:cast_skill].to_s
-        strike_comp  = strike_skill.empty? ? nil : roll_inputs_for(acc, strike_skill)[:competency_modifier]
+        strike_in    = strike_skill.empty? ? {} : roll_inputs_for(acc, strike_skill)
         weapons << { item_type: 'spiritual_weapon', display_name: sw[:spell_name].to_s, ranged: false,
                      speed: 0, damage_types: ['force'], threshold: 0, bleed: 0, base_damage: 0,
-                     dice_cap: sw[:reservoir].to_i, competency: strike_comp,
+                     dice_cap: strike_in[:dice_cap].to_i, competency: strike_in[:competency_modifier],
                      guidance: sw[:spell_tier].to_i }
       end
     end
@@ -203,18 +205,8 @@ helpers do
         { set_dice: [{ id: 'attacker', count: dice }], set_speed: [{ id: 'attacker', speed: speed }],
           set_bpl: [{ id: 'attacker', bonus_penalty_list: bpl }] }
       end
-      if active_spells
-        # An active-spell strike (Spiritual Weapon) always rolls its full
-        # Reservoir — there is no dice count to choose. Offer a single forced
-        # (`auto`) option the builder applies without a button, so the pane
-        # goes straight to Target without asking for dice.
-        action_opts << { value: "#{w[:item_type]}|#{cap}", key: w[:item_type], auto: true, group: grp,
-                         summary: "#{disp} — #{cap} Reservoir dice", patch: set_atk.call(cap) }
-        next
-      end
-      free = w[:item_type] == 'spiritual_weapon'
       g = dice_count_group(prefix: w[:item_type], key: w[:item_type], group: grp, min: 2, max: cap,
-                           aff: ->(n) { free || speed + n <= atk_pool }, patch: set_atk,
+                           aff: ->(n) { speed + n <= atk_pool }, patch: set_atk,
                            summary: ->(n) { "#{disp} — #{n} dice" }, lead_label: "#{disp} (speed #{speed})",
                            header_label: disp, info: (bpl.empty? ? 'no bonuses' : fmt_mods.call(bpl)))
       action_opts.concat(g[:body])
@@ -433,15 +425,9 @@ helpers do
       payload['attack_kind'] ||= 'ranged'
       atk['speed'] = 0
       payload['attacker'] = atk
-      # A Spiritual Weapon strike deals the default Spell damage: floor(casting
-      # stat / 4) + Spell Tier + casting-skill Competency (the net Successes are
-      # added downstream in resolve_attack_payload). Same bonuses that ride the
-      # strike's Roll (Competency + Guidance) — Competency counts twice by
-      # design: it applies to both the roll and the damage.
       payload['weapon'] = { 'damage_types' => ['force'], 'threshold' => 0, 'bleed' => 0,
                             'base_damage' => spiritual_weapon_base_damage(combatant_id: atk['id'].to_i,
                                                                           spell_name: payload['active_spell_name']) }
-      payload['free_attacker_pool'] = true
       return
     end
     combatant = encounter_state.combatant(atk['id'].to_i) or return
@@ -461,10 +447,11 @@ helpers do
                           'damage_riders' => w[:damage_riders], 'tier_advantage' => w[:tier_advantage] }
   end
 
-  # Base damage for a Spiritual Weapon strike: floor(casting stat / 4) + Spell
-  # Tier + casting-skill Competency (the Successes are added by
-  # resolve_attack_payload). Reads the strike's concentration entry for its
-  # cast skill + Tier; returns 0 when the entry is gone.
+  # Base damage for a Spiritual Weapon strike: a +N one-handed weapon (N = the
+  # Spell's Tier) using the casting stat instead of Strength — the One Handed
+  # formula on the casting stat, + N Guidance, + the casting Skill's Competency
+  # (which, like a weapon's Martial Competency, rides both roll and damage).
+  # Net Successes are added by resolve_attack_payload. 0 when the entry is gone.
   def spiritual_weapon_base_damage(combatant_id:, spell_name:)
     combatant = encounter_state.combatant(combatant_id) or return 0
     entry = Array(combatant[:concentration]).find do |e|
@@ -476,8 +463,10 @@ helpers do
     attr  = (Proficiencies.attribute_for(skill) || :cha)
     cstat = (acc&.attribute_value(attr) rescue 0).to_i
     comp  = skill.empty? ? nil : roll_inputs_for(acc, skill)[:competency_modifier]
-    Encounter::Cast.default_spell_damage(casting_stat: cstat, tier: entry[:spell_tier],
-                                         successes: 0, competency: (comp ? comp[1].to_i : 0))
+    one_handed = (Equipment.catalog.weapon_categories['One Handed'] rescue nil)
+    formula    = (one_handed && one_handed['base_damage']) || 'str / 4 - 2'
+    weapon_dmg = [(Abilities::Formula.evaluate(formula.to_s, 'str' => cstat).floor rescue 0), 0].max
+    weapon_dmg + entry[:spell_tier].to_i + (comp ? comp[1].to_i : 0)
   end
 
   POST_ROLL_REACTIONS = {
@@ -504,7 +493,27 @@ helpers do
       { key: key, name: name, mana_cost: cost, label: "#{name} (#{cost} mana)",
         target: mod['target'].to_s, type: mod['type'].to_s, amount: mod['add'].to_i }
     end
+    shield = arcane_shield_reduction(c[:creature_id])
+    if shield.positive? && (mana_left.nil? || mana_left >= ARCANE_SHIELD_MANA)
+      avail << { key: 'arcane_shield', name: 'Arcane Shield', mana_cost: ARCANE_SHIELD_MANA,
+                 label: "Arcane Shield (-#{shield} damage, #{ARCANE_SHIELD_MANA} mana)",
+                 target: 'damage_reduction', type: 'Guidance', amount: shield }
+    end
     result.merge(defender_reactions_available: avail)
+  end
+
+  # An active Arcane Shield lets its caster spend this much mana per Reaction
+  # (no more) to cut an attack's damage.
+  ARCANE_SHIELD_MANA = 1
+
+  # The damage an active Arcane Shield on the creature cuts per Reaction — its
+  # `arcane_shield` modifier (spells.yaml), or 0 with no shield up.
+  def arcane_shield_reduction(creature_id)
+    inst = Conditions.store.instance_for(creature_id)
+    round = (encounter_state.current_abs_round rescue nil)
+    inst.get_modifiers('arcane_shield', current_round: round).map { |_t, amt| amt.to_i }.select(&:positive?).max || 0
+  rescue StandardError
+    0
   end
 
   def enrich_attack_reactions!(payload)
@@ -516,6 +525,13 @@ helpers do
     keys = Array(payload['defender_reactions'])
     return if keys.empty?
     payload['defender_reactions'] = keys.filter_map do |key|
+      if key.to_s == 'arcane_shield'
+        c = encounter_state.combatant(payload['target_id'].to_i) or next
+        amt = arcane_shield_reduction(c[:creature_id])
+        next unless amt.positive?
+        next { 'key' => 'arcane_shield', 'name' => 'Arcane Shield', 'mana_cost' => ARCANE_SHIELD_MANA,
+               'target' => 'damage_reduction', 'type' => 'Guidance', 'amount' => amt }
+      end
       name = POST_ROLL_REACTIONS[key.to_s] or next
       mod  = Array((Abilities.catalog.ability(name) rescue nil)&.dig('modifiers')).first || {}
       cost = reaction_mana_cost(name)

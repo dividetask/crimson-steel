@@ -3,8 +3,8 @@ require 'encounter'
 require 'conditions'
 require 'tmpdir'
 
-# Spiritual Weapon is a TIMED channel (not true Concentration): it lasts
-# "rank turns", is immune to the damage-break Save, shows a condition on the
+# Spiritual Weapon is a timed channel that also needs Concentration: it lasts
+# "rank turns", breaks on a failed damage-break Save, shows a condition on the
 # caster, and is dropped by per-turn cleanup when its time runs out.
 RSpec.describe 'Encounter — Spiritual Weapon (timed)' do
   let(:tmpdir) { Dir.mktmpdir('enc-swt') }
@@ -58,15 +58,13 @@ RSpec.describe 'Encounter — Spiritual Weapon (timed)' do
     expect(conditions[caster[:creature_id]].active_effect_names).to include('spiritual_weapon')
   end
 
-  it 'is immune to the damage-break Save (timed, not Concentration)' do
+  it 'ends on a failed damage-break Save (it needs Concentration)' do
     s = state
     caster = s.add_combatant('1')
     cast_sw(s, caster)
     c = s.combatant(caster[:id])
-    # A resolver that always fails would end a true Concentration; the timed
-    # entry must be skipped and survive.
     s.send(:trigger_concentration_saves, c, 99, ->(**) { false })
-    expect(s.combatant(caster[:id])[:concentration]).not_to be_empty
+    expect(s.combatant(caster[:id])[:concentration]).to be_empty
   end
 
   it 'is dropped by per-turn cleanup once its time runs out' do

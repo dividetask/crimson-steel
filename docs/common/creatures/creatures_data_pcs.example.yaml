@@ -122,9 +122,9 @@ characters:
               - web
               - create_pit
               - blur
-              - lesser_shield
-              - standard_shield
-              - greater_shield
+              - trivial_arcane_shield
+              - lesser_arcane_shield
+              - standard_arcane_shield
           skills:
             - arcana
             - perception
@@ -166,7 +166,7 @@ characters:
               - divine_favor
               - shield_of_faith
               - magic_weapon
-              - spiritual_weapon
+              - lesser_spiritual_weapon
               - hold_person
               - silence
               - blind

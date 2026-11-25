@@ -389,24 +389,24 @@ Shield of Faith:
       description: "When an attack is made against the target, spend {amount} Reservoir dice to fuel a block Roll against the attack."
   description: "Conjures a floating magical shield next to the target. While channeled, the caster may discharge Reservoir dice as reactions to block attacks made against the target."
 
-Shield:
+Spiritual Shield:
   type: spell
   tier: [0, 1, 2]
-  prefix: [Lesser, Standard, Greater]
+  prefix: [Trivial, Lesser, Standard]
   school: convergence
   activation_time: bonus
   range: Self
   target: "1"
   duration: rank minutes
+  skills: [invocation]
   # A caster-controlled block over the target. Unlike Shield of Faith there is
   # NO Reservoir — nothing is charged at cast. While the shield lasts, the caster
   # may spend Combat Pool dice as a reaction to interpose it and block an attack
   # on the target as though it were made against the caster.
   defends:
     block_dice: combat_pool
-  # The shield's Guidance bonus to the block, scaling with Tier (Tier 0 grants
-  # no bonus, Tier 1 a +1 shield, Tier 2 a +2 shield). Range widens with Tier:
-  # Self (personal) at Tier 0, Close at Tier 1, Medium at Tier 2.
+  # Tier 1 spells create +1 items, Tier 2 +2. Range widens with Tier: Self at
+  # Tier 0, Close at Tier 1, Medium at Tier 2.
   shield_bonus: 0
   variant_overrides:
     - null
@@ -414,43 +414,63 @@ Shield:
     - { range: Medium, shield_bonus: 2 }
   description: "Conjures an incorporeal floating shield beside the target. The target gains the shield, but you control it — spend Combat Pool dice as a reaction to interpose it and block an attack made against the target as though it were made against you. Tier 1 is a +1 shield, Tier 2 a +2 shield. Lasts rank minutes."
 
+Arcane Shield:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
+  school: resonance
+  activation_time: bonus
+  range: Self
+  target: self
+  duration: rank minutes
+  # The reduction rides as an `arcane_shield` modifier on the caster; the
+  # Arcane Shield Reaction reads it when an attack hits.
+  modifiers:
+    - { target: arcane_shield, type: Guidance, add: 2 }
+  variant_overrides:
+    - null
+    - { modifiers: [{ target: arcane_shield, type: Guidance, add: 4 }] }
+    - { modifiers: [{ target: arcane_shield, type: Guidance, add: 8 }] }
+    - { modifiers: [{ target: arcane_shield, type: Guidance, add: 16 }] }
+    - { modifiers: [{ target: arcane_shield, type: Guidance, add: 32 }] }
+    - { modifiers: [{ target: arcane_shield, type: Guidance, add: 64 }] }
+  effect_hash:
+    reduction: [2, 4, 8, 16, 32, 64]
+  description: "Wraps the caster in a shield of arcane force. While it lasts, when an attack hits the caster they may spend 1 mana as a reaction to reduce the damage taken by {reduction}. No more than 1 mana may be spent per reaction. Lasts rank minutes."
+
 Spiritual Weapon:
   type: spell
-  tier: 2
+  tier: [1]
+  prefix: [Lesser]
   school: convergence
+  activation_time: bonus
   range: Medium
   target: "1"
-  attack_roll: true
-  damage_type: force
   duration: "rank turns"
+  skills: [invocation]
   channel:
     mode: auto
-    description: "Each turn on the caster's turn, the weapon makes one attack against its current target using a number of dice equal to its Reservoir. The Reservoir is not consumed. The caster may spend a Main Action on a later turn to redirect the weapon to a new target."
-  reservoir:
-    fill:
-      source: channel_dice
-      ratio: 1
-    reset: persistent
-  description: "Conjures a floating magical weapon that strikes the designated opponent. The weapon takes the form of the weapon you are holding or one favored by your deity. Each turn the weapon makes one attack against its target automatically, using the caster's spell check. If the weapon goes beyond the spell's range or out of the caster's sight, it returns to the caster and hovers."
+    attack_roll: true
+    retarget: true
+    description: "As a Main Action, concentrate on the weapon to attack a target within range, spending from 2 Combat Pool dice up to the casting skill's Dice Cap."
+  description: "Conjures a floating +1 one-handed weapon of force. Casting it costs 2 dice and does nothing on its own; while it lasts the caster may channel it to attack. Its attacks roll the casting skill instead of Martial and add the casting stat instead of Strength to damage. The weapon takes the form of the weapon you are holding or one favored by your deity. If it goes beyond the spell's range or out of the caster's sight, it returns to the caster and hovers."
 
 Spiritual Hammer:
   type: spell
-  tier: 2
+  tier: [1]
+  prefix: [Lesser]
   school: convergence
+  activation_time: bonus
   range: Medium
   target: "1"
-  attack_roll: true
-  damage_type: force
   duration: "rank turns"
+  skills: [invocation]
   channel:
     mode: auto
-    description: "Each turn on the caster's turn, the hammer makes one attack against its current target using a number of dice equal to its Reservoir. The Reservoir is not consumed. The caster may spend a Main Action on a later turn to redirect the hammer to a new target."
-  reservoir:
-    fill:
-      source: channel_dice
-      ratio: 1
-    reset: persistent
-  description: "War-domain variant of Spiritual Weapon. Conjures a floating warhammer of divine force that strikes the designated opponent. On a critical strike the target must make a Toughness save against the spell's TN or be staggered until the start of its next turn."
+    attack_roll: true
+    retarget: true
+    description: "As a Main Action, concentrate on the hammer to attack a target within range, spending from 2 Combat Pool dice up to the casting skill's Dice Cap."
+  description: "War-domain variant of Spiritual Weapon. Conjures a floating +1 warhammer of divine force. Casting it costs 2 dice and does nothing on its own; while it lasts the caster may channel it to attack. Its attacks roll the casting skill instead of Martial and add the casting stat instead of Strength to damage."
 
 Hold Person:
   type: spell

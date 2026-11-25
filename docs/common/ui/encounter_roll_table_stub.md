@@ -2,7 +2,7 @@
 
 Fires a **Roll Table Reaction** during an attack: a Reaction Ability that resolves by rolling on a provided table (talents.yaml `roll_table:`, e.g. **Kesser's Gambit** → the **Kesser Reversal Table**). The channeler rolls a channel check (its Combat Pool dice → **Channel Successes**), a die is rolled on the table, and the matched entry is **previewed** — the DM may **reroll** the effect freely, then **Confirm** to spend the Combat Pool dice + the Ability's Mana and lock the shown entry. Spending happens only on Confirm; a preview / reroll costs nothing. Combat does **not** apply the entry's mechanical effect; the DM adjudicates it, and the stub lists every **modifier on the channel check** (Competency, Inherent) beside the Channel Successes so the DM can set save TNs against the effect by hand.
 
-The stub rides alongside the Attack **Action Builder**, in the same place as the **Standard Shield**'s ally block (`encounter_design.md` → *Shield of Faith hangs a defended ally*). It is offered to a Combatant **other than the attacker** who holds a Roll Table Reaction. Lives in `views/_encounter_roll_table_stub.erb`; driven by `public/js/ui/turnRollTable.js`.
+The stub rides alongside the Attack **Action Builder**, in the same place as the **Lesser Spiritual Shield**'s ally block (`encounter_design.md` → *Shield of Faith hangs a defended ally*). It is offered to a Combatant **other than the attacker** who holds a Roll Table Reaction. Lives in `views/_encounter_roll_table_stub.erb`; driven by `public/js/ui/turnRollTable.js`.
 
 See `ui_conventions.md` for shared rules, `action_builder_stub.md` for the channel-check Builder it embeds, and `turn_action_stub.md` → *Attack* for the host attack flow.
 
