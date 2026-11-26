@@ -363,35 +363,44 @@ Divine Favor:
   prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
   school: pneumancy
   activation_time: bonus
-  range: Touch
+  range: Self
   target: object
-  duration: "1 turn"
+  # The weapon becomes a +N Radiant weapon, N = the spell's Tier or the
+  # weapon's own bonus, whichever is higher. Guidance does not stack, so a
+  # +Tier Guidance modifier yields exactly that max.
+  duration: "rank turns"
   variant_overrides:
-    - duration: "1 attack"
-      description: "Adds the Radiant weapon enchantment to the touched weapon for its next attack."
-    - null
-    - duration: "rank turns"
-      description: "Adds the Radiant weapon enchantment to the touched weapon for rank turns."
-    - duration: "rank turns"
+    - description: "The caster's own weapon becomes a +0 Radiant weapon, or a +X Radiant weapon where X is its existing bonus, for rank turns."
+    - duration: "rank minutes"
       modifiers:
         - { target: attack, type: Guidance, add: 1 }
         - { target: damage, type: Guidance, add: 1 }
-      description: "Adds the Radiant weapon enchantment and a +1 Guidance bonus to attack and damage to the touched weapon for rank turns."
+      description: "The caster's own weapon becomes a +1 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for rank minutes."
     - range: Close
-      target: "20"
-      duration: "rank turns"
+      duration: "rank minutes"
       modifiers:
-        - { target: attack, type: Guidance, add: 1 }
-        - { target: damage, type: Guidance, add: 1 }
-      description: "Adds the Radiant weapon enchantment and a +1 Guidance bonus to attack and damage to every ally's weapon within range for rank turns."
+        - { target: attack, type: Guidance, add: 2 }
+        - { target: damage, type: Guidance, add: 2 }
+      description: "The weapon of a willing creature within range becomes a +2 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for rank minutes."
     - range: Close
-      target: "20"
-      duration: "rank turns"
+      duration: "1 hour"
       modifiers:
-        - { target: attack, type: Guidance, add: 1 }
-        - { target: damage, type: Guidance, add: 1 }
-      description: "Adds the Radiant weapon enchantment and a +1 Guidance bonus to attack and damage to every ally's weapon within range for rank turns. An undead or fiend hit by a blessed weapon must make a Wisdom save or be turned."
-  description: "Adds the Radiant weapon enchantment to the touched weapon until the end of the turn. Radiant is an Equipment weapon enchantment analogous to Flaming; it adds radiant damage to attacks made with the weapon."
+        - { target: attack, type: Guidance, add: 3 }
+        - { target: damage, type: Guidance, add: 3 }
+      description: "The weapon of a willing creature within range becomes a +3 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for 1 hour."
+    - range: Close
+      duration: "24 hours"
+      modifiers:
+        - { target: attack, type: Guidance, add: 4 }
+        - { target: damage, type: Guidance, add: 4 }
+      description: "The weapon of a willing creature within range becomes a +4 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for 24 hours."
+    - range: Close
+      duration: permanent
+      modifiers:
+        - { target: attack, type: Guidance, add: 5 }
+        - { target: damage, type: Guidance, add: 5 }
+      description: "Either permanently imbue one weapon within range, or imbue every weapon within range for 24 hours. Each becomes a +5 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher."
+  description: "Blesses a weapon with radiant power, making it a Radiant weapon of the spell's Tier or of its own bonus, whichever is higher."
 
 Shield of Faith:
   type: spell
