@@ -18,149 +18,136 @@ Sibling domains:
 ## What you carry
 
 @player
-Everything you own is an **Item**, and the list of your Items is your **Inventory**. Identical Items share one line with a **Quantity** — twenty arrows are one line — while an Item that differs in any way (a higher Tier, a magical Property, a different gem) gets a line of its own. An Item you carry is either **equipped** — worn or in hand, and doing its work — or packed away.
+Everything you own is an **Item**, and the list of them is your **Inventory**. Identical Items share one line with a **Quantity**; an Item that differs in any way — a higher Tier, a magical Property — gets its own line. An Item you carry is either **equipped** (worn or in hand, and doing its work) or packed away.
 
-Four kinds of owner hold an Inventory: a **Creature**; the **Party**, one shared stash of common coin and unclaimed gear; a **Ground Pile**, loot lying at a particular place (dropping an Item puts it there); and a **Shop**, with its stock and the gold it has to buy with.
+An Inventory can belong to a **Creature**, to the **Party** (one shared stash of coin and unclaimed gear), to a **Ground Pile** (loot lying at a place), or to a **Shop**.
 
 ## Money
 
 @player
-Prices are in Gold. The `Currency` table lists the coins — Gold, Silver and Copper — with the value of each in Gold, and coins change freely into one another at those values. A **Gem** carries its own value, stone by stone. Your **Total Wealth** is the Gold value of all your coins and gems.
+Prices are in Gold. The `Currency` table gives the value in Gold of each coin — Gold, Silver and Copper — and coins change freely into one another at those values. A **Gem** carries its own value. Your **Total Wealth** is the Gold value of all your coins and gems.
 
 When you pay:
 
-1. If the price is more than your Total Wealth, the purchase fails and nothing is spent.
-2. Coins go first, least valuable first, so the most valuable are the last to leave your purse.
-3. If the coins run out, gems go next, cheapest first, and a gem is always spent whole.
+1. A price above your Total Wealth cannot be paid, and nothing is spent.
+2. Coins go first, least valuable first.
+3. If the coins run out, gems go next, cheapest first, each spent whole.
 4. Whatever a gem overpays comes back as change in Gold.
 
-When a player character buys something, their own wealth is spent first and the Party's purse covers the rest; the purchase fails only if the two together fall short.
+A player character's own wealth is spent first, and the Party's purse covers the rest.
 
-You may give any line of your Inventory a **Restock Target** — the Quantity you like to keep, such as a full quiver. When you get the chance to resupply, **restocking** buys every such line back up to its target in one purchase. It is all or nothing: if you cannot pay the whole **Restock Cost**, nothing is bought.
+Any line of your Inventory can carry a **Restock Target** — the Quantity you like to keep. When you can resupply, **restocking** buys every such line back up to its target in one purchase, all or nothing: if you cannot pay the whole **Restock Cost**, nothing is bought.
 
 ## Wearing and wielding
 
 @player
-Worn Items occupy a **Slot** on the body: {{Slots}}. Each Slot holds one Item, so a second belt waits in your pack. Armor fills the body Slot; weapons and shields are held rather than worn; an Item that names no Slot — rations, a bedroll — is only ever carried. Ammunition, consumables, coins and gems are never equipped.
+Worn Items occupy a **Slot**: {{Slots}}. Each Slot holds one Item. Armor fills the body Slot, weapons and shields are held rather than worn, and an Item that names no Slot — rations, a bedroll — is only carried. Ammunition, consumables, coins and gems are never equipped.
 
-An equipped Item works for as long as it stays equipped and stops the moment it comes off: its Bonuses apply, the Abilities it grants are yours, and the spell in a Wand is yours to cast. Those Bonuses obey the stacking rule from the **Dice Resolution** chapter — two Bonuses of the same Type do not add together, only the larger counts — so check the Type before paying for a second source of the same help.
+An equipped Item works for as long as it stays equipped: its Bonuses apply, the Abilities it grants are yours, and the spell in a Wand is yours to cast. The stacking rule from **Dice Resolution** applies — of two Bonuses of the same Type, only the larger counts.
 
-A **Tattoo** is permanent body art that grants Abilities. Tattoos have places of their own — {{Tattoo Slots}} — separate from the worn Slots: a chest Tattoo never competes with your armor, only with another chest Tattoo. A Tattoo is always in effect and can never be removed.
+A **Tattoo** is permanent body art that grants Abilities. Tattoos have places of their own — {{Tattoo Slots}} — so a chest Tattoo competes only with another chest Tattoo, never with your armor. A Tattoo is always in effect and can never be removed.
 
 ## Weapons
 
 @player
-The `Weapons` table has one entry per weapon. Read an entry like this:
+Read an entry in the `Weapons` table like this:
 
-- Its **category** — Ranged, One Handed or Two Handed — sets two figures from `Weapon Categories`: the weapon's **base damage**, a formula built on your Strength, and its **Speed**, the flat number of Combat Pool dice an attack costs on top of the dice you roll.
-- Its **tags** — light, heavy, thrown and so on, described in `Weapon Tags` — are structural traits. A tag may carry its own base damage formula or Speed, which replaces the category's; if several do, the first tag listed wins.
-- Its **Damage Type** — Slashing, Bludgeoning or Piercing, all of them physical damage — gives it a **Bleed** and a **Threshold** from `Damage Type Defaults`. A weapon with two Damage Types takes the higher Bleed and the lower Threshold.
-- A figure written on the weapon's own entry overrides all of the above. A few entries carry extras: a throwing range, or a save the target must make when hit.
-- A weapon that names an ammunition type fires that kind of `Ammunition`, sold by the bundle.
+- Its **category** — Ranged, One Handed or Two Handed — sets two figures from `Weapon Categories`: **base damage**, a formula built on your Strength, and **Speed**, the flat number of Combat Pool dice an attack costs on top of the dice you roll.
+- Its **tags** (light, heavy, thrown and so on, from `Weapon Tags`) may carry a base damage formula or Speed of their own, which replaces the category's. If several do, the first tag listed wins.
+- Its **Damage Type** — Slashing, Bludgeoning or Piercing, all of them physical — gives it a **Bleed** and a **Threshold** from `Damage Type Defaults`. With two Damage Types it takes the higher Bleed and the lower Threshold.
+- A figure on the weapon's own entry overrides all of these.
+- A weapon that names an ammunition type fires that `Ammunition`, sold by the bundle.
 
-Threshold and Bleed are what make one weapon wound differently from another:
+**Threshold** decides how deep a wound goes: a hit fills the target's Minor damage up to the Threshold plus the target's Damage Resilience, then Moderate by the same amount, and the rest is Major — so a lower Threshold wounds worse. **Bleed** decides how freely it bleeds: a hit inflicts the bleeding Affliction (see **Conditions**) with a Potency of the weapon's Bleed plus the damage dealt.
 
-- **Threshold** decides how deep the damage goes. A hit fills the target's Minor damage up to the Threshold plus the target's Damage Resilience, then Moderate by the same amount, and the rest is Major. The lower the Threshold, the sooner a blow turns Moderate and Major.
-- **Bleed** decides how freely the wound bleeds. A hit inflicts the bleeding Affliction (see **Conditions**) with a Potency of the weapon's Bleed plus the damage dealt.
+**Natural weapons** — bites, claws, slams — share the table. A Creature has them because of what it is; they are never carried, bought or sold. Some inject a poison: a hit also inflicts the Affliction named on the entry, with a Potency of the listed amount plus the damage dealt. Every Creature can also attack **Unarmed**.
 
-**Natural weapons** — bites, claws, slams — sit in the same table. A Creature has them because of what it is; they are never carried, bought or sold. Some inject a poison: a hit also inflicts the Affliction named on the entry, with a Potency of the listed amount plus the damage dealt. Every Creature can also attack **Unarmed**.
-
-In a fight, an attack with a weapon is a Martial Roll (the **Skills** chapter gives your Dice Cap). You pay the weapon's Speed plus one Combat Pool die per die rolled, and a hit deals the weapon's base damage, plus your Martial Competency Modifier, plus the attack's Degree of Success, before the target's armor has its say. A melee weapon in hand also lets you **Parry** at the same price. The **Combat** chapter walks through the whole exchange.
+An attack is a Martial Roll (see **Skills** for your Dice Cap). You pay the weapon's Speed plus one Combat Pool die per die rolled, and a hit deals the weapon's base damage, plus your Martial Competency Modifier, plus the attack's Degree of Success, before armor has its say. A melee weapon in hand also lets you **Parry** at the same price. **Combat** has the whole exchange.
 
 ## Armor and shields
 
 @player
-The `Armor` table gives every piece a **category** — Clothing, Light, Medium, Heavy or Shield — whose figures are in `Armor Category Defaults`, and a **material**, whose figures are in `Materials`.
+The `Armor` table gives every piece a **category** — Clothing, Light, Medium, Heavy or Shield, with figures in `Armor Category Defaults` — and a **material**, with figures in `Materials`. Armor protects in two ways that are worth keeping apart:
 
-Armor protects in two ways, and it pays to keep them apart:
+- **Damage Reduction** is subtracted from each hit before the wound is sorted into Minor, Moderate and Major. It comes from the category and does not change with the armor's Tier.
+- **Damage Resilience** is added to the attacker's Threshold, so more of a blow stays Minor. Yours is your own Tier (Tier 0 adds nothing), plus your armor's Tier multiplied by its category's **Resilience Increment**, plus any Bonuses to it. Mundane armor, being Tier 0, adds none.
 
-- **Damage Reduction** is subtracted from each hit before the wound is sorted into Minor, Moderate and Major. It comes from the armor's category and does not change with the armor's Tier.
-- **Damage Resilience** makes each wound shallower: it is added to the attacker's Threshold, so more of a blow stays Minor. Your Damage Resilience is your own Tier (Tier 0 adds nothing), plus your armor's Tier multiplied by its category's **Resilience Increment**, plus any Bonuses to it. Mundane armor is Tier 0 and adds none of its own.
+A **shield** gives neither. It lets you **Block**, a Defensive Action that answers melee, ranged and spell attacks alike (see **Combat**): no shield in hand, no Block.
 
-A **shield** gives neither. It lets you **Block** — a Defensive Action that answers melee, ranged and spell attacks alike (see **Combat**). No shield in hand, no Block.
-
-A material gives the object itself a **Hardness** and **Hit Points** (the formula uses the category's Thickness), and each Tier of a magical piece adds 2 to its Hardness. This book does not yet give rules for damaging or breaking gear.
-
-Armor marked as metal is **Metal Armor**, which matters to certain Damage Types — Electricity above all (see **Combat**).
+A material gives the object a **Hardness** and **Hit Points** (the formula uses the category's Thickness); each Tier of a magical piece adds 2 to its Hardness. This book does not yet give rules for breaking gear. Armor marked as metal is **Metal Armor**, which matters to some Damage Types — Electricity above all (see **Combat**).
 
 ## Magical gear
 
 @player
-Every Item has a **Tier**, the same measure of magical density the **Magical Tier** chapter applies to Creatures. Ordinary gear is Tier 0. On a magical weapon or piece of armor the Tier does four things:
+Every Item has a **Tier**, the same measure of magical density the **Magical Tier** chapter applies to Creatures. Ordinary gear is Tier 0. On magical gear the Tier does four things:
 
-- **On a weapon** it is an enhancement: a Guidance Bonus equal to the Tier on attack Rolls made with it, and the same amount added to the damage it deals.
-- **On armor** it raises your Damage Resilience and hardens the piece, as above.
-- It unlocks **Properties**: each has a minimum Tier, and an Item must be at least that Tier to carry it.
-- It raises the price — see *What things cost*.
+- **On a weapon:** a Guidance Bonus equal to the Tier on attack Rolls made with it, and the same amount added to its damage.
+- **On armor:** more Damage Resilience and Hardness, as above.
+- It unlocks **Properties** — each has a minimum Tier the Item must meet.
+- It raises the price (see *What things cost*).
 
 ### Weapon Properties
 
 @player
-`Weapon Properties` lists each Property with its cost, its minimum Tier, and what it can go on — melee weapons, ranged weapons, ammunition. Most add a **Damage Rider**: extra dice, as many as the Property lists, rolled only after the attack has hit, at the attack's own Target Number. Each Success does what the Property says and a Critical Success counts double as usual, but a 1 never subtracts. Rider damage is a wound of its own, sorted by Severity separately from the weapon's damage and by the rules of its own Damage Type.
+`Weapon Properties` gives each Property's cost, minimum Tier, and what it can go on — melee weapons, ranged weapons, ammunition. Most add a **Damage Rider**: extra dice, as many as the Property lists, rolled only after the attack has hit, at the attack's Target Number. Each Success does what the Property says, a Critical Success counts double as usual, and a 1 never subtracts. Rider damage is a wound of its own, sorted by Severity under its own Damage Type, apart from the weapon's damage.
 
 | Property | The Item is called | What it does |
 |---|---|---|
-| Elemental | Flaming, Corrosive, Shocking or Freezing | Rider dice deal Fire, Acid, Electricity or Cold damage. Each such Item is bound to one element. |
+| Elemental | Flaming, Corrosive, Shocking or Freezing | Rider dice deal Fire, Acid, Electricity or Cold damage — one element per Item. |
 | Emotional | Wrathful | Rider dice deal Emotional damage. |
 | Radiant | Radiant | Rider dice deal Radiant damage. |
-| Subdual | Merciful | Rider dice inflict Shock rather than damage, and the weapon's Threshold is raised, so its wounds stay shallower. |
-| Glory | Glorious | No rider. When you attack a Creature of a higher Tier than yours, you count as being of a higher Tier for that attack (see **Combat**). |
-| Vicious | Vicious | Rider dice deal the weapon's own kind of damage, all of it Major. The weapon bites back: every hit deals Minor damage to its wielder, and more for each rider die that shows a 1. |
+| Subdual | Merciful | Rider dice inflict Shock instead of damage, and the weapon's Threshold is raised. |
+| Glory | Glorious | No rider. Attacking a Creature of a higher Tier, you count as a higher Tier yourself (see **Combat**). |
+| Vicious | Vicious | Rider dice deal the weapon's own damage, all of it Major. Every hit also deals Minor damage to the wielder, more for each rider die showing a 1. |
 
 ### Armor Properties
 
 @player
-`Armor Properties` lists them the same way.
+`Armor Properties` reads the same way.
 
 | Property | The Item is called | What it does |
 |---|---|---|
-| Fortification | Fortified | Adds a Guidance Bonus to your Damage Resilience. Body armor only, never a shield. |
-| Elemental Resistance | Fireproof, Acidproof, Grounded or Coldproof | Takes a fixed amount off every hit of its one element, before the wound is sorted by Severity. |
+| Fortification | Fortified | A Guidance Bonus to your Damage Resilience. Body armor only, never a shield. |
+| Elemental Resistance | Fireproof, Acidproof, Grounded or Coldproof | Takes a fixed amount off every hit of its one element before the wound is sorted by Severity. |
 
 ### Attribute and save items
 
 @player
-The `Items` table lists worn Items that grant a flat **Guidance Bonus** while equipped: belts for Strength, Dexterity and Constitution, headbands for Intelligence, Wisdom and Charisma, and the Cloak of Resistance for saving throws. A Bonus to an Attribute raises the Attribute itself, and with it everything worked out from it. Each entry pairs every Bonus the Item can grant with the Tier of the Item that grants it; more than one Bonus can share a Tier.
+The `Items` table lists worn Items that grant a flat **Guidance Bonus** while equipped: belts for Strength, Dexterity and Constitution, headbands for Intelligence, Wisdom and Charisma, and the Cloak of Resistance for saving throws. A Bonus to an Attribute raises the Attribute itself and everything worked out from it. Each entry pairs every Bonus on offer with the Tier of the Item that grants it.
 
 ### Reading an item's name
 
 @player
-A magical Item's name is assembled from its parts: the Tier prefix, written `{{Tier Prefix Format}}`; the word for each Property (a {{Default Property Position}} unless its entry says otherwise); then the Item itself. A Tier 1 long sword with the Elemental Property bound to fire is its Tier prefix followed by *Flaming Long sword*. Three things break the pattern: Items of these categories show no Tier prefix — {{Tier Hidden For}}; an attribute or save Item shows the size of its Bonus where the Tier would be; and a one-of-a-kind Item goes by its own name.
+A magical Item's name is its Tier prefix, written `{{Tier Prefix Format}}`, then the word for each Property, then the Item — a Tier 1 long sword with the fire Elemental Property is its Tier prefix followed by *Flaming Long sword*. Items of these categories show no prefix: {{Tier Hidden For}}. An attribute or save Item shows its Bonus in place of its Tier.
 
 ## Spell items and consumables
 
 @player
-A spell can be put into an object. There are four **Item Forms**, and any Creature can use them — the Item supplies the spell, so you need not be a caster.
+A spell can be put into an object. There are four **Item Forms**, and anyone can use them — the Item supplies the spell.
 
 | Form | How you use it | Which spells | Mana | Magic toxicity | Used up? |
 |---|---|---|---|---|---|
-| **Scroll** | Read it to cast the spell once, exactly as if you had cast it yourself. | Any | None | None | Yes |
-| **Wand** | While it is equipped, its spell is one you can cast. | Any | The spell's usual cost, from your own Mana | None | No |
-| **Potion** | Drink it. The spell takes effect on you. | Only those that allow a Potion | None | On the drinker | Yes |
-| **Oil** | Throw it at a target at range, or apply it to a target beside you. | Only those that allow an Oil | None | On the target | Yes |
+| **Scroll** | Read it to cast the spell once, as if you had cast it yourself. | Any | None | None | Yes |
+| **Wand** | While it is equipped, its spell is one you can cast. | Any | Your own, at the spell's usual cost | None | No |
+| **Potion** | Drink it; the spell takes effect on you. | Those that allow a Potion | None | On the drinker | Yes |
+| **Oil** | Throw it at a target at range, or apply it to one beside you. | Those that allow an Oil | None | On the target | Yes |
 
-The casting Check for a spell cast from an Item uses one of the Skills the spell names, or Evocation. Each spell's entry in the Spell list says which Forms it comes in, and the **Magic and Abilities** chapter covers casting. Reading a Scroll or drinking a Potion in a fight is a Main Action (see **Combat**).
+The casting Check uses one of the Skills the spell names, or Evocation. The Spell list says which Forms each spell comes in; **Magic and Abilities** covers casting. In a fight, reading a Scroll or drinking a Potion is a Main Action (see **Combat**).
 
-Potions and Oils load the body with magic. Each dose imposes **magic toxicity**, read from `Consumable Saturation` by the Item's Tier:
+Each Potion or Oil imposes **magic toxicity**, read from `Consumable Saturation` by the Item's Tier:
 
 1. Take the **Base** and the **Minimum** for that Tier.
 2. If the Creature affected is of a lower Tier than the Item, multiply both by the **Lower Tier Multiplier**.
 3. The toxicity is the Base, less any reduction one of your Abilities gives, but never less than the Minimum.
 
-The **Conditions** chapter says what magic toxicity does. One consequence belongs here: a helpful dose is blocked once your magic toxicity is above your Toxicity Threshold. The dose is used up and neither healing nor Mana comes of it — though a Ward's Temporary Hit Points still take hold. A harmful dose is never blocked.
+**Conditions** says what magic toxicity does. One consequence belongs here: once your magic toxicity is above your Toxicity Threshold, a helpful dose is blocked. It is used up, and neither healing nor Mana comes of it — though a Ward's Temporary Hit Points still take hold. A harmful dose is never blocked.
 
-Three other things share the shelf:
-
-- **Alchemical items** — Alchemist's fire and Acid jars, in the `Consumables` table — need no magical knowledge to use.
-- A **Poison Vial** holds doses of one poison, a poison Affliction from **Conditions**; its Quantity is the doses left.
-- A **Ritual book** holds the rituals inscribed in it (see **Magic and Abilities**).
+Also on the shelf: **alchemical items** (Alchemist's fire and Acid jars, in the `Consumables` table), which need no magical knowledge to use; **Poison Vials**, each holding doses of one poison Affliction from **Conditions**, its Quantity being the doses left; and **Ritual books**, which hold the rituals inscribed in them (see **Magic and Abilities**).
 
 ## Tattoos and unique items
 
 @player
-The `Tattoos` table lists each Tattoo by the place it occupies and the Abilities it grants. A Tattoo can fix the level at which a granted Ability works, so that it never grows with its bearer.
-
-`Unique Items` are one of a kind. They have no price and are never for sale — the DM places them in the world — and each grants an Ability, a spell or an effect of its own while it is worn.
+The `Tattoos` table lists each Tattoo by its place and the Abilities it grants; a Tattoo can fix the level at which a granted Ability works, so that it never grows with its bearer. `Unique Items` are one of a kind: they have no price and are never for sale — the DM places them — and each grants an Ability, a spell or an effect of its own while worn.
 
 ## What things cost
 
@@ -175,80 +162,68 @@ An Item's **Unit Price** — the price of one — depends on what it is:
 | Any other consumable | Base Price + (Tier Surcharge + Property costs) ÷ {{Consumable Surcharge Divisor}} |
 | Coin or gem | Its value in Gold |
 
-- The **Tier Surcharge** is the entry for the Item's Tier in `Default Tier Surcharge`; Tier 0 has none.
-- The **Bonus Surcharge** is the entry for the size of the Guidance Bonus in `Default Bonus Surcharge`.
-- An Item anyone can use without magical knowledge — a potion, oil, scroll or alchemical item — has its price multiplied by {{Innately Usable Price Multiplier}}.
+- **Tier Surcharge:** the entry for the Item's Tier in `Default Tier Surcharge`. Tier 0 has none.
+- **Bonus Surcharge:** the entry for the size of the Guidance Bonus in `Default Bonus Surcharge`.
+- An Item anyone can use without magical knowledge — potion, oil, scroll, alchemical item — costs {{Innately Usable Price Multiplier}} times the result.
 - A Scroll costs half what a Potion or Oil of the same spell and Tier costs.
-- A Tier 0 spell Item would carry no surcharge at all, so it costs half the Tier 1 price instead — Tier 0 counting as 0.5, as everywhere else.
+- A Tier 0 spell Item, which would carry no surcharge at all, costs half the Tier 1 price — Tier 0 counting as 0.5, as everywhere else.
 
 ### Worked example — pricing a potion
 
 @player
-A Tier 2 Potion of Heal is a consumable with no Base Price and no Properties.
-
-- Start from the Tier 2 entry of `Default Tier Surcharge`.
-- Divide it by {{Consumable Surcharge Divisor}}, because the potion is a consumable.
-- Multiply by {{Innately Usable Price Multiplier}}, because anyone can drink it.
-
-The Scroll of the same spell and Tier costs half as much.
+A Tier 2 Potion of Heal has no Base Price and no Properties. Take the Tier 2 entry of `Default Tier Surcharge`, divide it by {{Consumable Surcharge Divisor}} because it is a consumable, and multiply by {{Innately Usable Price Multiplier}} because anyone can drink it. The Scroll of the same spell and Tier costs half as much.
 
 ## For the DM — shops
 
 @player
-A **Specific Shop** is a named place whose stock and gold persist. Trade changes them, and they stay changed until you **refresh** the shop:
+A **Specific Shop** is a named place whose stock and gold persist; trade changes them until you **refresh** the shop:
 
 1. For every line of stock, coins included, flip a coin. One face and the line is gone; the other and it stays, its Quantity re-rolled to a random number from 1 up to what it had.
-2. Roll the shop's Loot Table and add the result to what is left.
+2. Roll the shop's Loot Table and add the result.
 
-A **Generic Shop** — an alchemist, a smith — has no stock until the party walks in. Its stock list is then read against the size of the settlement:
+A **Generic Shop** — an alchemist, a smith — has no stock until the party walks in, and then stocks by the size of the settlement. Each entry in its list has a minimum population, below which it is not carried, and a Quantity of a base amount plus a further amount per thousand inhabitants. Its gold, for buying from the party, is a base amount plus one that grows with the square root of the population. The stock stands for the rest of the game day.
 
-- Each entry has a minimum population; a smaller place does not carry it.
-- The Quantity carried is a base amount plus a further amount per thousand inhabitants.
-- The shop's gold, for buying from the party, is a base amount plus an amount that grows with the square root of the population.
-
-That stock stands for the rest of the game day. Either kind of shop buys only what its gold can cover.
+Either kind of shop buys only what its gold can cover.
 
 ## For the DM — loot tables
 
 @player
-A **Loot Table** is a list of rows, read top to bottom, that says what a creature carries, a chest holds or a shop stocks. Each row is one of four kinds:
+A **Loot Table** is a list of rows, read top to bottom, saying what a creature carries, a chest holds or a shop stocks. A row is one of four kinds:
 
 | Row | What you do |
 |---|---|
-| **Guaranteed** | The Item, or Items, are always there. |
-| **Independent Chance** | Roll against the row's chance. On a success the Items are there. |
+| **Guaranteed** | The Items are always there. |
+| **Independent Chance** | Roll against the row's chance; on a success the Items are there. |
 | **Weighted Choice** | Roll once and take one option from the row's list. |
-| **Gated Weighted Choice** | Roll against the row's chance, and only on a success make a Weighted Choice. |
+| **Gated Weighted Choice** | Roll against the row's chance; on a success make a Weighted Choice. |
 
-To roll a chance with real dice, read it as a percentage and roll percentile dice — two d{{Die Size}}s, one for tens and one for ones, a double zero counting as 100. A roll at or under the chance succeeds. For a Weighted Choice, roll once and walk down the options adding up their chances: the first option whose running total reaches your roll is the one you get, and a roll above the total means nothing drops.
+With real dice, read a chance as a percentage and roll percentile dice — two d{{Die Size}}s, one for tens and one for ones, a double zero counting as 100. A roll at or under the chance succeeds. For a Weighted Choice, roll once and walk down the options adding up their chances: the first whose running total reaches your roll is yours, and a roll above the total means nothing drops.
 
-A row can remember its result under a name, and a later row can demand a particular result before it is rolled at all — that is how a table gives arrows only to the goblin that rolled a bow. A Quantity may be a dice expression in the usual notation (how many dice, of what size, plus or minus a fixed number). A row marked as equipped is gear the creature is using, not merely carrying. An option may point to another list of options, which you then roll on in turn, and a row may call for a random magical Item instead of naming one.
+A row can remember its result under a name, and a later row can demand a particular result before it is rolled at all — that is how arrows go only to the goblin that rolled a bow. A Quantity may be a dice expression, a row marked as equipped is gear in use rather than merely carried, an option may point to another list to roll on, and a row may call for a random magical Item.
 
 ## For the DM — random magical items
 
 @player
-A row that calls for a magical Item gives a recipe: the kind of gear (melee weapon, ranged weapon, ammunition, any armor, or body armor only), the Tiers allowed, and a weighted list of Properties. Build the Item in order:
+A row calling for a magical Item gives a recipe: the kind of gear (melee weapon, ranged weapon, ammunition, any armor, or body armor only), the Tiers allowed, and a weighted list of Properties. In order:
 
-1. **Tier.** Choose among the allowed Tiers — by their weights if the recipe gives any, evenly if not.
-2. **Item.** Choose a piece of gear of the right kind the same way.
-3. **Property.** Strike every Property whose minimum Tier is above the Tier you rolled, or that cannot go on this kind of gear, and choose from the rest by weight. The entry "none" is always allowed and gives an Item with a Tier but no Property; if nothing else survives, the result is "none".
+1. **Tier.** Choose among the allowed Tiers, by weight if the recipe gives weights, evenly if not.
+2. **Item.** Choose a piece of gear of that kind the same way.
+3. **Property.** Strike every Property whose minimum Tier is above the Tier rolled, or that cannot go on this kind of gear, and choose from the rest by weight. "None" is always allowed — a Tier with no Property — and is the result when nothing else survives.
 4. **Kind.** If the Property comes in several kinds, as Elemental does, choose one evenly.
 
-A generated Item never has more than one Property. To choose by weight, add the weights up, roll a random number from 1 to the total, and count down the list.
+The Item never has more than one Property. To choose by weight, total the weights, roll a random number from 1 to the total, and count down the list.
 
 ## For the DM — loot after a fight
 
 @player
-When a fight ends, everything carried by the creatures that were not on the party's side — coins included — goes into one **Ground Pile** where the fight took place, together with whatever each creature's Loot Table adds. The party's allies keep what is theirs.
+When a fight ends, everything carried by the creatures that were not on the party's side — coins included — goes into one **Ground Pile** where the fight took place, along with whatever each creature's Loot Table adds. Allies keep what is theirs. Then divide the pile: each line goes to a character, to the Party's stash, or stays put. An emptied pile is gone; one left behind lies there until you clear it.
 
-Then divide the pile: each line goes to a character, to the Party's stash, or stays where it is. An emptied pile is gone; one the party walks away from lies there until you clear it.
-
-For a record of the haul, open a **Loot Archive** entry for the pile: a list of everything found, each Item with a space for who claimed it. Claiming an Item moves it from the pile to the claimant, and an Item can be claimed only once. Closing the entry clears whatever is still on the pile; the record stays.
+For a record of the haul, open a **Loot Archive** entry for the pile: a list of everything found, with room beside each Item for who claimed it. A claim moves the Item from the pile to the claimant, and each Item can be claimed once. Closing the entry clears whatever is left on the pile; the record stays.
 
 ## What lives in the next chapter
 
 @player
-Gear is only numbers until someone swings it. **Combat** is next: Initiative and turns, the Combat Pool that pays for every attack and defense, how an attack Roll meets a Parry, Block or Dodge, and how the Threshold, Bleed, Damage Reduction and Damage Resilience from this chapter turn a hit into wounds.
+Gear is only numbers until someone swings it. **Combat** is next: Initiative and turns, the Combat Pool that pays for every attack and defense, and how the Threshold, Bleed, Damage Reduction and Damage Resilience from this chapter turn a hit into wounds.
 
 ## Common types
 

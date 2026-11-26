@@ -43,8 +43,6 @@ A new Player Character begins with one level in one Class. Take these steps in o
 7. **Equip yourself** from the Equipment chapter.
 8. **Work out the rest** — Tier, Effective Attributes, Hit Points, Mana, Speed, ranks and Granted Abilities — as the remainder of this chapter describes.
 
-The DM, not the sheet, enforces the budgets in steps 1 and 4.
-
 ## Attributes, from base to Effective
 
 @player
@@ -128,7 +126,7 @@ A new Tier changes a great deal at once:
 - **Chosen bonuses.** On reaching a Tier that grants them, pick that many Attributes; each rises by a further {{Per-Tier Inherent Chosen Bonus Amount}} for good. You may not pick the same Attribute twice at one Tier, but may pick it again at a later one. A pick not yet made simply does not apply.
 - **Hit Points and Mana** follow formulas that change with Tier (below).
 - **Turns.** At the higher Tiers a Creature acts more than once in a Round (the Combat chapter).
-- **Everything else that reads Tier** — your Toxicity Threshold, how quickly you heal, how you fare against an opponent of another Tier — moves with it.
+- **Everything else that reads Tier** — Toxicity Threshold, natural healing, the gap against an opponent of another Tier — moves with it.
 
 ## Ranks: Skills, Saves and Martial
 
@@ -144,7 +142,7 @@ For each of your Classes, find the category it gives, read off the ranks for you
 ## Hit Points, Mana and Speed
 
 @player
-**Maximum Hit Points** depend on Constitution and Tier alone. Each Tier has its own **HP Formula**, written in terms of your Effective Constitution; work it out for your Tier and round down. A Creature becomes harder to kill by gaining a Tier or raising its Constitution, not by gaining levels.
+**Maximum Hit Points** depend on Constitution and Tier alone. Each Tier has its own **HP Formula**, written in terms of your Effective Constitution; work it out for your Tier and round down.
 
 **Maximum Mana** is two parts added together: the **Mana Base Formula** for your Tier, written in terms of your Effective Intelligence and rounded down; and, for each of your Classes, its Mana per level multiplied by your level in it.
 
@@ -180,7 +178,7 @@ The deities, their domains, and what each domain grants are set out in the Deiti
 ## For the DM — NPCs and monsters
 
 @player
-Everything above applies unchanged to the Creatures you run: an innkeeper, a bandit captain and a troll are each a Race, six Attributes, and usually some Class Levels. What differs is the setting up.
+Everything above applies unchanged to the Creatures you run. What differs is the setting up.
 
 - **Tags set the pace.** Tag a Creature for what it is — hero, boss, noble, commoner, animal — and its levels become Tier on that list, so the same levels can mean a different Tier for a commoner than for a hero.
 - **Or set the Tier outright** with a Tier Override, for a Creature whose power does not come from training.
@@ -202,7 +200,7 @@ A template may leave some facts open, to be rolled once for each copy:
 - **Chosen bonuses** — picks drawn at random from a list of Attributes; here the same Attribute may come up twice.
 - **Gear** — one table for the copy's weapons, armour and pocket change, another for what it drops when it falls (the Equipment chapter).
 
-To roll on a list of chances, roll a percentage with two d{{Die Size}}s — one for the tens, one for the ones, reading a {{Die Size}} as zero and a double zero as one hundred — then read down the list, adding the chances as you go. The first entry whose running total reaches your roll is the result; if the chances total less than one hundred per cent, the last entry takes what is left.
+To roll on a list of chances, roll a percentage with two d{{Die Size}}s — tens and ones, reading a {{Die Size}} as zero and a double zero as one hundred — and read down the list, adding the chances as you go. The first entry whose running total reaches your roll is the result; the last entry takes whatever is left of the hundred.
 
 ## For the DM — Random encounter tables
 
@@ -220,7 +218,7 @@ The number of copies is a plain number or a dice expression — so many dice of 
 ## What lives in the next chapter
 
 @player
-This chapter ends with a Creature and its ranks. The next chapter, **Skills**, turns ranks and Attributes into dice: the Skill list, Prowess, the Dice Cap, and what it costs to attempt something you never trained.
+This chapter ends with a Creature and its ranks. The next chapter, **Skills**, turns ranks and Attributes into dice: what a Skill is, Prowess, the Dice Cap, and what it costs to attempt something you never trained.
 
 ## Common types
 

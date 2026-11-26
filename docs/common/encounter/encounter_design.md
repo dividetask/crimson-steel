@@ -3,7 +3,7 @@
 # Encounter — Design
 
 @player
-A fight is the one part of the game where every second counts, so this chapter slows time down to the **Round** and gives every Creature a budget of dice to spend inside it. Everything here is built from earlier chapters: an attack is a Check (**Check Resolution**), each side's dice are a Roll (**Dice Resolution**), and what a hit leaves behind is tracked by **Conditions**. What Combat adds is the order people act in, what an action costs, and how a hit becomes damage.
+A fight is where every second counts, so this chapter slows time to the **Round** and gives every Creature a budget of dice to spend in it. An attack is a Check (**Check Resolution**), each side's dice are a Roll (**Dice Resolution**), and what a hit leaves behind is tracked by **Conditions**. Combat adds the order people act in, what an action costs, and how a hit becomes damage.
 
 @implementation
 Encounter governs what is happening in the present moment of play — combat, downtime, travel, and any other mode that wants a single owner for "what is going on right now." Today the only mode designed is **Combat**, a state machine over the lifetime of one fight; Downtime and Travel are planned but not yet specified. The Encounter domain owns the persisted state of the active Combat (Combatants, Initiative, per-Combatant Time Tick Schedule, Concentration entries, Luck Points), reads canonical time from Chronicle, and computes per-Combatant derived values on demand by looking up the Creature through a `creature_lookup` callback.
@@ -18,41 +18,41 @@ Sibling domains:
 ## Rounds, Time Ticks, and turns
 
 @player
-Combat is played in **Rounds**. A Round is {{Round Length}} seconds of game time; when the last turn of a Round ends, the game clock moves forward by one Round (see **Time and the Calendar**).
+Combat is played in **Rounds** of {{Round Length}} seconds. When the last turn of a Round ends, the game clock moves on one Round (see **Time and the Calendar**).
 
-Most Creatures take one **turn** per Round, but higher-Tier Creatures are faster. **Turns Per Round**, by Tier from Tier 0 upward, is: {{Turns Per Round}}.
+Most Creatures take one **turn** per Round; higher Tiers take more. **Turns Per Round**, by Tier from Tier 0 upward, is: {{Turns Per Round}}.
 
-To fit fast and slow Creatures into one Round, the Round is cut into **Time Ticks**. A fight has as many Time Ticks per Round as the Turns Per Round of the fastest Creature in it. Each Creature spreads its turns evenly across those ticks: cut the Round into as many equal slices as you have turns, and act on the tick at the middle of each slice, rounding down. As a formula, with `R` Time Ticks in the Round and `T` turns per Round, your turn number `i` falls on tick `floor((R × (2i − 1) + T) / (2T))`.
+To fit fast and slow Creatures into one Round, the Round is cut into **Time Ticks** — as many as the Turns Per Round of the fastest Creature in the fight. Each Creature spreads its turns evenly over them, each turn falling at the middle of an equal slice of the Round: with `R` Time Ticks and `T` turns, your turn `i` falls on tick `floor((R × (2i − 1) + T) / (2T))`.
 
-*Example.* In a Round of four Time Ticks, a Creature with one turn acts on tick 2, a Creature with two turns acts on ticks 1 and 3, and a Creature with four turns acts on every tick.
+*Example.* With four Time Ticks, a Creature with one turn acts on tick 2, one with two turns on ticks 1 and 3, and one with four turns on every tick.
 
-The Round is played one tick at a time. Everyone who acts on a tick takes a whole turn, in **Initiative** order, before the next tick begins. If a faster Creature joins the fight, or the fastest one leaves, the number of Time Ticks changes and everyone's ticks are worked out again.
+Play goes tick by tick. Everyone acting on a tick takes a whole turn, in **Initiative** order, before the next tick begins.
 
 ## Initiative
 
 @player
-**Initiative** settles who goes first among the Creatures acting on the same Time Tick. It is rolled once, when the fight starts, and kept until the fight ends.
+**Initiative** settles who goes first among Creatures acting on the same Time Tick. Roll it once, when the fight starts, and keep it until the fight ends.
 
-Roll a number of d{{Die Size}}s equal to your **Initiative Attribute** score ({{Initiative Attribute}}) divided by {{Initiative Divisor}}, rounded down. There is no Target Number — this is the ordering-only Roll from **Check Resolution**. Line the dice up from highest to lowest; that row is your Initiative.
+Roll d{{Die Size}}s equal to your **Initiative Attribute** score ({{Initiative Attribute}}) divided by {{Initiative Divisor}}, rounded down. There is no Target Number: this is the ordering-only Roll from **Check Resolution**. Line the dice up from highest to lowest.
 
-To compare two Creatures, compare their highest dice. If those match, compare the next highest, and so on along the row: the first higher die wins. If one row runs out while the two are still level, the longer row wins. Creatures with identical rows act in the order the DM listed them when the fight began.
+To compare two Creatures, compare their highest dice, then their next highest, and so on: the first higher die wins. If one row runs out while they are level, the longer row wins. Identical rows act in the order the DM listed them when the fight began.
 
-*Example.* Ana rolls 8, 6, 5, 3 and Brak rolls 8, 6, 4, 4. Their first two dice match. Ana's third die (5) beats Brak's (4), so Ana acts first.
+*Example.* Ana rolls 8, 6, 5, 3 and Brak rolls 8, 6, 4, 4. The first two dice match; Ana's 5 beats Brak's 4, so Ana acts first.
 
-Two modifiers can change an Initiative Roll, and when a Roll has both, Luck comes first:
+Two modifiers can change the Roll, Luck before Insight:
 
-- **Initiative Luck** rerolls dice. Each point of good Luck rerolls your lowest die, skipping any die already showing {{Die Size}}; each point of bad Luck rerolls your highest die, skipping any die already showing 1. No die is rerolled twice.
-- **Initiative Insight** shifts one die. Good Insight raises a die by its amount, never above {{Die Size}}: choose the lowest die that the shift would lift all the way to {{Die Size}}, or, when none would get there, your highest die not already showing {{Die Size}}. Bad Insight lowers your highest die, never below 1.
+- **Initiative Luck** rerolls dice. Each point of good Luck rerolls your lowest die that is not already a {{Die Size}}; each point of bad Luck rerolls your highest die that is not already a 1. No die is rerolled twice.
+- **Initiative Insight** shifts one die by its amount, within 1 to {{Die Size}}. Good Insight raises the lowest die it can lift all the way to {{Die Size}} or, failing that, your highest die below {{Die Size}}. Bad Insight lowers your highest die.
 
 ### Unaware in the first Round
 
 @player
-Until a Creature has taken its first turn it is **Unaware**: it has not yet acted in the fight. That can only be true during the first Round, while its first turn is still to come. Attacks against an Unaware Creature are easier (see *Attacker advantages* below), and it has no dice to defend with, because its Combat Pool stays empty until that first turn begins.
+Until a Creature has taken its first turn it is **Unaware** — which can only be true in the first Round. Attacks against it are easier (see *Attacker advantages*), and it has no dice to defend with: its Combat Pool is empty until that first turn begins.
 
 ## The Combat Pool
 
 @player
-Your **Combat Pool** is the handful of dice you have for one turn — and for reacting to others until your next turn. Every die you roll in a fight, and every action you take, is paid for out of it.
+Your **Combat Pool** is the dice you have for one turn, and for reacting to others until your next. Every die you roll in a fight and every action you take is paid for from it.
 
 ### Working out your pool
 
@@ -61,284 +61,253 @@ First find your **Budget**:
 
 > Budget = floor((Martial ranks × 2 + Combat Pool Attribute score) / your Turns Per Round)
 
-The Combat Pool Attribute is {{Combat Pool Attribute}}, and Martial ranks come from your Classes (see **Characters**). A Creature with several turns per Round has a smaller pool on each turn, but refills it every turn.
-
-Then spend the Budget on dice, {{Combat Pool Step}} at a time:
+The Combat Pool Attribute is {{Combat Pool Attribute}}; Martial ranks come from your Classes (see **Characters**). A Creature with several turns per Round has a smaller pool, refilled on every turn. Then spend the Budget on dice, {{Combat Pool Step}} at a time:
 
 | Dice | Budget each die costs |
 |---|---|
 | The first {{Combat Pool Step}} | Free |
 | The next {{Combat Pool Step}} | 1 |
 | The next {{Combat Pool Step}} | 2 |
-| The next {{Combat Pool Step}} | 3 |
 | Each step after that | 1 more than the step before |
 
-Keep buying until you cannot afford the next die. The number of dice you end with is your Combat Pool, so no pool is ever smaller than {{Combat Pool Step}}.
+Stop when you cannot afford the next die. The dice you hold are your Combat Pool, so no pool is smaller than {{Combat Pool Step}}.
 
-*Example.* A Budget of {{Combat Pool Step + 2}} takes the free step, pays {{Combat Pool Step}} for the whole second step, and has 2 left — the price of exactly one die from the third step. The pool is two full steps and one die.
+*Example.* A Budget of {{Combat Pool Step + 2}} takes the free step, pays {{Combat Pool Step}} for the whole second step, and has 2 left — exactly one die of the third. The pool is two full steps and one die.
 
-Some abilities add dice to your pool while their conditions hold. Fatigue shrinks it, and an Unconscious Creature has no pool at all (see *Down and out* below).
+Some abilities add dice to the pool while their conditions hold; fatigue shrinks it (see *Down and out*).
 
 ### Spending and refilling
 
 @player
 - Everyone starts a fight with an **empty** pool.
-- Your pool refills to full at the **start** of each of your turns — never at the end. Whatever you leave unspent on your own turn is what you have for Reactions until your next turn begins.
-- When the pool refills, any **Shock** you carry is taken out of it first: one die per point of Shock. Shock beyond the size of your pool waits for your next refill (see **Conditions**).
-- You can never spend more dice than the pool has left.
+- The pool refills at the **start** of each of your turns, never at the end. What you leave unspent is what you have for Reactions until your next turn.
+- At each refill, any **Shock** you carry comes out first, one die per point; Shock beyond the size of the pool waits for the next refill (see **Conditions**).
 
 ## Actions
 
 @player
 Everything you do in a fight is an **action** of one of four kinds:
 
-| Kind | When you may take it | How many | Fewest dice |
+| Kind | When | How many | Fewest dice |
 |---|---|---|---|
-| **Main Action** | On your own turn | Two per turn | {{Main Action Minimum}} |
-| **Bonus Action** | On your own turn | As many as you can pay for | {{Bonus Action Minimum}} |
-| **Free Action** | At any time | Any number | {{Free Action Minimum}} |
-| **Reaction** | During another Creature's Main Action | One for each such action | {{Reaction Action Minimum}} |
+| **Main Action** | Your own turn | Two per turn | {{Main Action Minimum}} |
+| **Bonus Action** | Your own turn | As many as you can pay for | {{Bonus Action Minimum}} |
+| **Free Action** | Any time | Any number | {{Free Action Minimum}} |
+| **Reaction** | During another Creature's Main Action | One per such action | {{Reaction Action Minimum}} |
 
-Attacking, moving, casting a Spell and using an item are Main Actions. An ability's description says which kind of action it takes.
-
-A **Reaction** answers another Creature's Main Action, or someone else's Reaction to that action. You get one Reaction per Main Action, however many things you would like to answer it with: defending yourself, spending Luck on another Creature's Roll, and reacting with an ability all draw on the same one.
+Attacking, moving, casting a Spell and using an item are Main Actions; an ability's description says which kind it takes. A **Reaction** answers another Creature's Main Action, or someone else's Reaction to it. You get one per Main Action: defending yourself, spending Luck on another Creature's Roll, and reacting with an ability all draw on the same one.
 
 ### What an action costs
 
 @player
-An action that rolls dice costs its **Speed** plus one Combat Pool die for every die rolled:
-
 > Cost = Speed + dice rolled
 
-Speed is a flat surcharge for how unwieldy the action is. Each weapon has its own (see **Equipment**), and you pay it once per action, not once per die. The "fewest dice" in the table above is the least you may commit to an action of that kind; an action that rolls nothing costs exactly that minimum.
-
-How many dice you may put into one Roll is limited by your **Dice Cap** in the Skill you are using (see **Skills**) and by what is left in your pool. Inside those limits the choice is yours: fewer dice now leaves more for a second attack, or for defending yourself before your next turn.
+**Speed** is a flat surcharge, paid once per action — each weapon has its own (see **Equipment**). "Fewest dice" above is the least you may commit to an action of that kind; an action that rolls nothing costs exactly that. The most you may put into one Roll is your **Dice Cap** in the Skill you are using (see **Skills**), or what is left in your pool if that is less.
 
 ### Moving
 
 @player
-A **Move** is a Main Action that costs {{Move Cost}} Combat Pool dice and takes you to another square of the Map (see **Map**). Your Speed, in feet, is what limits how far you travel (see **Characters**).
-
-A **Small Step** is a Free Action that moves you a single square. You may take one per turn, and only on a turn in which you do not Move.
+A **Move** is a Main Action that costs {{Move Cost}} Combat Pool dice and takes you to another square of the Map (see **The Map**); your Speed, in feet, limits how far (see **Characters**). A **Small Step** is a Free Action that moves you one square, once per turn, and only on a turn in which you do not Move.
 
 ### The full round attack
 
 @player
-The limit of two Main Actions has one exception. As long as every Main Action you have taken this turn is a weapon attack, you may go on making weapon attacks past the second, for as long as your Combat Pool can pay for them. This is a **full round attack**. The moment you take any other Main Action — a Move, a Spell, an item, an ability — the exception is gone for the rest of that turn. Bonus Actions, Free Actions and Reactions do not end it.
+The limit of two Main Actions has one exception. As long as every Main Action you have taken this turn is a weapon attack, you may keep making weapon attacks past the second for as long as your Combat Pool can pay for them. Any other Main Action — a Move, a Spell, an item, an ability — ends this **full round attack** for the turn. Bonus Actions, Free Actions and Reactions do not.
 
 ### Your turn, start to finish
 
 @player
-1. **Refill.** Your Combat Pool refills, less any Shock, and you have two Main Actions again.
-2. **Expire.** Effects on you that run out this Round end. A Zone you created whose time is up vanishes, and any Reservoir that lasts only a turn empties (see **Magic and Abilities**).
-3. **Suffer.** Resolve each Affliction that has come due — its save, then its effect — and your Acid Counter, if you have one (both in **Conditions**).
+1. **Refill.** Your Combat Pool refills, less any Shock, and you have two Main Actions.
+2. **Expire.** Effects on you that run out this Round end, a Zone of yours whose time is up vanishes, and any Reservoir that lasts only a turn empties.
+3. **Suffer.** Resolve each Affliction that has come due, and your Acid Counter if you have one (see **Conditions**).
 4. **Act.** Take your actions, in any order.
-5. **End.** When you end your turn, Luck Points you still hold are lost. A Spell you are sustaining ends unless you gave it a Main Action this turn (a few Spells sustain themselves), and a Spell that takes several turns to cast is lost unless you gave it both. If you are standing in a Zone, the DM may call for its end-of-turn save.
+5. **End.** Luck Points you still hold are lost. A Spell you are sustaining ends unless you gave it a Main Action this turn — casting it counts, and a few Spells sustain themselves — and a Spell that takes several turns to cast is lost unless you gave it both. If you stand in a Zone, the DM may call for its end-of-turn save.
 
-A Creature that cannot act is passed over, but stays in the fight where everyone can see it.
+A Creature that cannot act is passed over, but stays in the fight.
 
 ## Making an attack
 
 @player
-An attack is an opposed Check (see **Check Resolution**). Your attack is the Initiating Roll; the target's defence, if it makes one, is the Defending Roll.
+An attack is an opposed Check (see **Check Resolution**): your attack is the Initiating Roll and the target's defense, if it makes one, is the Defending Roll.
 
-1. **Choose a target and a weapon.** The weapon makes the attack **melee** or **ranged**, and sets its Speed and its damage (see **Equipment**). A Spell that makes an attack roll is a third kind, a **spell** attack (see **Magic and Abilities**).
-2. **Choose your dice**, up to your Dice Cap with the **Martial** Skill, and pay Speed + dice from your Combat Pool.
-3. **The target chooses a defence** and pays for it, or declares none (see *Defending yourself*).
-4. **Others join in.** An ability may let an ally add a Supporting Roll to your attack, or let a guardian add an Opposing Roll on the target's side.
-5. **Luck is declared**, before any dice are thrown (see *Luck Points*).
-6. **Everyone rolls.** Work out each Roll's Target Number from its Bonuses and Penalties, letting them cross sides as **Check Resolution** describes; then roll and score each Roll's DoIS.
-7. **Find the Degree of Success**: the attacking side's DoIS minus the defending side's. The attack **hits** if the Degree of Success is {{Default Success Threshold}} or more. There is no "the defender wins" — a defence can only make the attack fail.
+1. **Choose a target and a weapon.** The weapon makes the attack **melee** or **ranged** and sets its Speed and damage (see **Equipment**). A Spell that makes an attack roll is a third kind, a **spell** attack.
+2. **Choose your dice**, up to your Dice Cap with the **Martial** Skill, and pay Speed + dice.
+3. **The target chooses a defense** and pays for it, or declares none.
+4. **Others join in.** An ability may let an ally add a Supporting Roll, or a guardian add an Opposing Roll.
+5. **Luck is declared**, before any dice are thrown.
+6. **Everyone rolls.** Work out each Roll's Target Number from its Bonuses and Penalties, letting them cross sides as **Check Resolution** describes, then score each Roll's DoIS.
+7. **Find the Degree of Success**: the attacking side's DoIS minus the defending side's. At {{Default Success Threshold}} or more the attack **hits**. A defense can only make the attack fail — there is no result in which the defender wins something.
 
 ### What goes on the attack Roll
 
 @player
-| Modifier | Bonus/Penalty Type | Where it comes from |
+| Modifier | Type | From |
 |---|---|---|
-| Your Martial **Competency Modifier** | Competency | Your Prowess (see **Skills**) |
-| Your **Inherent Bonus** | Inherent | Your Tier (see *Fighting above or below your Tier*) |
-| An **attacker advantage** | Circumstance | A target that is Flatfooted, Unaware or Helpless (see *Attacker advantages*) |
-| Magic | Guidance | A magical weapon (see **Equipment**), or a Spell's Tier on a spell attack |
-| Your conditions | By condition | Fear, for one, is a Morale Penalty (see **Conditions**) |
+| Martial **Competency Modifier** | Competency | Your Prowess (see **Skills**) |
+| **Inherent Bonus** | Inherent | Your Tier |
+| **Attacker advantage** | Circumstance | A Flatfooted, Unaware or Helpless target |
+| Magic | Guidance | A magical weapon, or a Spell's Tier on a spell attack |
+| Your conditions | Varies | Fear, for one, is a Morale Penalty |
 
-A defender's Roll carries its own Competency Modifier and Inherent Bonus in the same way. As always, only the largest Bonus and the largest Penalty of each Type count.
+A defender's Roll carries its own Competency Modifier and Inherent Bonus. Only the largest Bonus and the largest Penalty of each Type count.
 
 ## Defending yourself
 
 @player
-A **Defensive Action** is a Reaction you declare when you are attacked, before the dice are thrown. Your Roll joins the Check as the Defending Roll, so each Success you score cancels one of the attacker's.
+A **Defensive Action** is a Reaction you declare when you are attacked, before the dice are thrown. Your Roll becomes the Defending Roll, so each Success you score cancels one of the attacker's.
 
-| Defence | You need | Works against | Uses | Cost |
+| Defense | You need | Works against | Uses | Cost |
 |---|---|---|---|---|
 | **Parry** | A melee weapon in hand | Melee attacks only | Martial | That weapon's Speed + dice |
 | **Block** | A shield | Melee, ranged and spell attacks | Martial | Dice only |
-| **Dodge** | Nothing | Melee, ranged and spell attacks | The Dice Cap and Competency Modifier of your Dexterity save | Dice only |
+| **Dodge** | Nothing | Melee, ranged and spell attacks | Your Dexterity save's Dice Cap and Competency Modifier | Dice only |
 
-Choose how many dice to roll: at least {{Reaction Action Minimum}}, at most your Dice Cap, and no more than your Combat Pool can pay for. You cannot declare a defence that does not work against the attack, and you lose neither dice nor your Reaction for having wanted to.
+Roll at least {{Reaction Action Minimum}} dice and at most your Dice Cap, within what your Combat Pool can pay. A defense that does not work against the attack cannot be declared, and costs you nothing for having wanted it.
 
-Dodge borrows the numbers of your Dexterity save, but it is not a Saving Throw: you choose and pay for its dice like any other defence. A Dodge's Competency Modifier helps only your own Roll. Unlike the Competency Modifier of a Parry or a Block, it does not cross to the attacker as a Penalty.
+Dodge borrows your Dexterity save's numbers but is not a Saving Throw: you choose and pay for its dice. Its Competency Modifier helps only your own Roll — unlike a Parry's or a Block's, it does not cross to the attacker as a Penalty.
 
-Declaring **no defence** costs nothing, and leaves you Flatfooted against the attack.
+Declaring **no defense** costs nothing and leaves you Flatfooted.
 
 ### Attacker advantages
 
 @player
-A target that is not ready for an attack hands the attacker a Circumstance Bonus:
+A target that is not ready hands the attacker a Circumstance Bonus:
 
 - **Flatfooted** — the target does not answer this attack with a Defensive Action. Declaring one, however badly it rolls, means you are not Flatfooted against that attack.
 - **Unaware** — the target has not yet acted in this fight, or cannot perceive its attacker (the attacker is **Hidden** from it).
-- **Helpless** — the target cannot act at all (see *Down and out*). A Helpless target gets no Defensive Action.
+- **Helpless** — the target cannot act at all (see *Down and out*), and so gets no Defensive Action.
 
-Because all three are Circumstance Bonuses they never add together: only the largest one that applies counts. Helpless is the most severe and stands in place of the other two. Their sizes are under **Flatfooted Bonus**, **Unaware Bonus** and **Helpless Bonus** in the configuration table at the end of this chapter. The abilities named under **Flatfooted Suppressors** in the same table keep a Creature from being caught Flatfooted or Unaware at all.
+All three are Circumstance Bonuses, so they never add together: only the largest that applies counts, and Helpless stands in place of the other two. Their sizes are under **Flatfooted Bonus**, **Unaware Bonus** and **Helpless Bonus** in the configuration table at the end of this chapter; abilities named under **Flatfooted Suppressors** there keep a Creature from being caught Flatfooted or Unaware at all.
 
 ## Damage
 
 @player
-When an attack hits, work out the damage, split it by Severity, and hand the result to the rules in **Conditions** — where Temporary Hit Points soak it first.
-
-### From a hit to a number
-
-@player
 > Damage = weapon's base damage + Martial Competency Modifier + Degree of Success − Damage Reduction − Inherent damage reduction
 
-The result is never less than 0.
+Damage is never less than 0.
 
 - **Base damage** comes from the weapon and your Attributes (see **Equipment**).
-- Your **Competency Modifier** counts twice on purpose: once on the attack Roll and again here.
-- **Damage Reduction** is what the target's armor, abilities and conditions stop outright. A Reaction can add to it for a single attack.
-- **Inherent damage reduction** only applies against a target of a higher Tier (see *Fighting above or below your Tier*).
+- Your **Competency Modifier** counts twice on purpose: on the attack Roll, and again here.
+- **Damage Reduction** is what the target's armor, abilities and conditions stop outright; a Reaction can add to it for one attack.
+- **Inherent damage reduction** applies only against a higher-Tier target (see *Fighting above or below your Tier*).
 
-Some abilities add bonus damage to a hit; their descriptions say when.
+Some abilities add bonus damage to a hit; their descriptions say when. Once you have the number, split it by Severity and apply it as **Conditions** describes — Temporary Hit Points soak it first.
 
 ### Severity of physical damage
 
 @player
-Physical damage — bludgeoning, slashing and piercing — is split across the three Severities by how much of it there is. Add the weapon's **Threshold** to the target's **Damage Resilience** to get the size of one bucket, then pour the damage in:
+Physical damage — bludgeoning, slashing, piercing — is split by how much of it there is. The weapon's **Threshold** plus the target's **Damage Resilience** is the size of one bucket:
 
 1. **Minor** takes damage up to one bucket.
 2. **Moderate** takes what is left, up to one more bucket.
 3. **Major** takes everything beyond that.
 
-**Damage Resilience** is the target's Tier (a Tier 0 Creature adds nothing here), plus the Resilience of its armor, plus any bonus from abilities and conditions. It does not remove damage; it keeps wounds shallow. Damage Reduction is the reverse: it removes damage, and does nothing for the Severity of what gets through.
+**Damage Resilience** is the target's Tier (Tier 0 adds nothing here), plus its armor's Resilience, plus any bonus from abilities and conditions. It removes no damage; it keeps wounds shallow. Damage Reduction is the reverse.
 
 ### Other Damage Types
 
 @player
-Every other Damage Type lands whole at one fixed Severity, and most bring a side effect. Each Type's Severity and effect are listed under **damage_types** in the configuration table at the end of this chapter. In outline:
+Every other Damage Type lands whole at one fixed Severity, and most bring a side effect — both listed under **damage_types** in the configuration table at the end of this chapter. In outline:
 
 - **Fire** does a little extra damage on every hit.
-- **Cold** numbs: the target also gains Shock equal to the damage dealt.
-- **Acid** lingers: the damage dealt is also added to the target's Acid Counter.
+- **Cold** also gives the target Shock equal to the damage dealt.
+- **Acid** also adds the damage dealt to the target's Acid Counter.
 - **Electricity** is worse for a target in metal armor.
 - **Radiant** lands at a higher Severity against undead.
 - **Emotional** attacks score more for each Critical Success.
 - **Force** has no side effect.
 
-Damage from Spells and abilities is reduced and split by exactly the same rules as damage from weapons.
-
-A magical weapon may add **rider dice** to a hit. Roll them at the attack's Target Number once the hit has landed; each Success adds damage of the rider's own Type, which is given its Severity separately from the weapon's damage. A 1 on a rider die never subtracts (see **Equipment**).
+Damage from Spells and abilities is reduced and split by the same rules. A magical weapon may also add **rider dice**: roll them at the attack's Target Number once the hit lands; each Success adds damage of the rider's own Type, given its Severity separately, and a 1 never subtracts (see **Equipment**).
 
 ### Bleeding and venom
 
 @player
-A weapon hit also opens a wound. The target gains the **Bleeding** Affliction (see **Conditions**) with a Potency equal to the weapon's **Bleed** plus the damage the hit dealt; a target that is already Bleeding adds that to its Potency instead. A weapon that carries a poison or another Affliction delivers it the same way, at a Potency of the weapon's own figure plus the damage dealt.
-
-Either way, the Affliction first resolves at the start of the victim's next turn — later this Round if it has yet to act, next Round if it already has.
+A weapon hit also opens a wound: the target gains the **Bleeding** Affliction (see **Conditions**) at a Potency equal to the weapon's **Bleed** plus the damage dealt, added to any Bleeding it already has. A weapon that carries a poison or another Affliction delivers it the same way, at the weapon's own figure plus the damage dealt. Either first resolves at the start of the victim's next turn — this Round if it has yet to act, next Round if it has.
 
 ### Worked example — a hit, start to finish
 
 @player
-Suppose your attack hits with a Degree of Success of 3. Your weapon's base damage is 4 and your Martial Competency Modifier is +1. The target's armor gives it Damage Reduction 2, and the two of you are the same Tier.
+Suppose you hit with a Degree of Success of 3. Your weapon's base damage is 4, your Martial Competency Modifier is +1, the target's armor gives Damage Reduction 2, and you are the same Tier. Damage = 4 + 1 + 3 − 2 = **6**.
 
-Damage = 4 + 1 + 3 − 2 = **6**.
-
-Suppose the weapon's Threshold is 3 and the target's Damage Resilience is 1. A bucket holds 4, so the target takes **4 Minor** and **2 Moderate** damage.
-
-If the weapon's Bleed is 5, the target also starts Bleeding at Potency 5 + 6 = **11**.
+Suppose the weapon's Threshold is 3 and the target's Damage Resilience is 1. A bucket holds 4, so the target takes **4 Minor** and **2 Moderate**. If the weapon's Bleed is 5, it also starts Bleeding at Potency 5 + 6 = **11**.
 
 ## Fighting above or below your Tier
 
 @player
-Tier is raw power, and when Creatures of different Tiers fight, the rules lean on it three times.
+When Creatures of different Tiers fight, the rules lean on Tier three times.
 
-- **Inherent Bonus.** Every attack, spell attack and Defensive Action carries its maker's Inherent Bonus. By Tier, from Tier 0 upward, it is: {{Tier Minimum Inherent Bonus}}. It crosses to the other side like any other Bonus. When the target makes no defence there is no Roll for it to cross from, so the attacker simply takes the target's Inherent Bonus as a Penalty.
-- **Ascendancy.** When a Roll's own Inherent Bonus and the Inherent Penalty it received are different, the gap is doubled into an Ascendancy Bonus or Penalty (see **Check Resolution**). The stronger side is helped twice over, the weaker hurt twice over.
-- **Inherent damage reduction.** A Creature ignores {{Inherent Damage Reduction Per Tier}} damage for each Tier it stands above the source of the damage. Count Tier 0 as 0.5 and round the total down. This applies to weapons, Spells and abilities alike.
+- **Inherent Bonus.** Every attack, spell attack and Defensive Action carries its maker's Inherent Bonus — by Tier, from Tier 0 upward: {{Tier Minimum Inherent Bonus}} — and it crosses sides like any Bonus. If the target makes no defense, the attacker still takes the target's Inherent Bonus as a Penalty.
+- **Ascendancy.** When a Roll's own Inherent Bonus and the Inherent Penalty it received differ, the gap is doubled into an Ascendancy Bonus or Penalty (see **Check Resolution**).
+- **Inherent damage reduction.** A Creature ignores {{Inherent Damage Reduction Per Tier}} damage for each Tier it stands above the source of the damage — weapon, Spell or ability. Count Tier 0 as 0.5 and round down.
 
-A few things narrow the gap. A weapon with the **Glory** property lets its wielder count as a higher Tier when attacking up — on the attack Roll and against Inherent damage reduction — but only for weapon attacks, never for Spells. Some abilities do the same for a single attack.
+A weapon with the **Glory** property lets its wielder count as a higher Tier when attacking up, on the attack Roll and against Inherent damage reduction, for weapon attacks only. Some abilities do the same for a single attack.
 
 ## Saves and concentration
 
 @player
-A **Saving Throw** resists an effect aimed at one of your six Attributes — a Spell, a poison, a hazard. The effect names the Attribute: a Wisdom save, a Dexterity save, and so on.
+A **Saving Throw** resists an effect aimed at one of your Attributes — a Spell, a poison, a hazard — and is named for it: a Wisdom save, a Dexterity save.
 
-- You roll your **full Dice Cap** for that save. You do not choose a smaller number.
-- A Saving Throw costs **no Combat Pool dice**. It is the one Roll in a fight that is free.
-- Add the save's Competency Modifier and anything else that applies to it. An untrained save takes no penalty (see **Skills**).
+- You always roll your **full Dice Cap** for that save.
+- It costs **no Combat Pool dice** — the one free Roll in a fight.
+- Add the save's Competency Modifier and anything else that applies. An untrained save takes no penalty (see **Skills**).
 
-Against a Spell, your save is the Defending Roll against the caster's casting Check. When a Spell catches several Creatures, each of them saves separately against the same casting Roll (see **Magic and Abilities**).
+Against a Spell, your save is the Defending Roll against the caster's casting Check; when a Spell catches several Creatures, each saves separately against the same casting Roll (see **Magic and Abilities**).
 
-The **Concentration save** is something else, despite its name. If you take damage while you are sustaining a Spell, or part-way through casting a long one, make a Check with that Spell's casting Skill — one Check for each such Spell — with a Circumstance Penalty equal to the Spell's Tier plus the damage you just took. Fail, and the Spell is gone: a sustained Spell ends along with anything left in its Reservoir, and an unfinished casting is wasted.
+The **Concentration save** is something else, despite its name. If you take damage while sustaining a Spell, or part-way through casting a long one, make a Check with that Spell's casting Skill — one for each such Spell — at a Circumstance Penalty equal to the Spell's Tier plus the damage just taken. Fail, and a sustained Spell ends with whatever is left in its Reservoir, or the unfinished casting is wasted.
 
-Sustaining a Spell takes a Main Action on each of your turns; on the turn you cast it, the casting itself counts. A Spell that takes more than one turn to cast takes both Main Actions of every turn until it is finished. Pointing a sustained Spell at a new target is a Main Action that costs {{Retarget Cost}} Combat Pool dice. The **Magic and Abilities** chapter has the rest.
+Pointing a sustained Spell at a new target is a Main Action costing {{Retarget Cost}} Combat Pool dice (see **Magic and Abilities**).
 
 ## Down and out
 
 @player
-- **Dying.** When the Hit Point damage you have taken, all Severities together, reaches your maximum Hit Points, you are **Dying**. You cannot act.
-- **Dead.** The **Conditions** chapter gives the three ways a Creature dies.
-- **Unable to act.** Some conditions, Paralyzed and Unconscious among them, also stop a Creature from acting. Others leave it on its feet but empty its Combat Pool for a turn.
+- **Dying.** When the Hit Point damage you have taken, all Severities together, reaches your maximum Hit Points, you are **Dying** and cannot act.
+- **Dead.** **Conditions** gives the three ways a Creature dies.
+- **Unable to act.** Some conditions, Paralyzed and Unconscious among them, also stop a Creature acting. Others leave it standing but empty its Combat Pool for a turn.
 
-A Creature that cannot act, for any of these reasons, is **Helpless**: it takes no turns and no Defensive Actions, and attacks against it gain the Helpless advantage.
+A Creature that cannot act is **Helpless**: it takes no turns and no Defensive Actions, and attacks against it gain the Helpless advantage.
 
-### Fatigue
-
-@player
-Fatigue is a track of three stages — **Winded**, then **Tired**, then **Exhausted** — each cutting your Strength, your Combat Pool and your Speed more deeply than the one before. Gaining fatigue moves you up one stage, or straight to the stage named if that is higher. Gaining it when you are already Exhausted knocks you **Unconscious**. A stage lasts as long as whatever caused it says.
+**Fatigue** is a track of three stages — **Winded**, **Tired**, **Exhausted** — each cutting your Strength, Combat Pool and Speed more deeply than the last. Gaining fatigue moves you up one stage, or straight to the stage named if that is higher; gaining it while Exhausted knocks you **Unconscious**. A stage lasts as long as its cause says.
 
 ## Luck Points
 
 @player
-**Luck Points** are rerolls. Certain abilities hand them out, and each point rerolls one die.
+**Luck Points** are rerolls, handed out by certain abilities. Each point rerolls one die.
 
-- Luck is declared **before the dice are thrown**: say how many points go on which Roll. A Roll cannot take more points than it has dice.
-- Good luck rerolls the Roll's lowest dice that are not Successes. Bad luck, spent on an enemy's Roll, rerolls its highest Successes. Both follow the Reroll rules in **Dice Resolution**.
-- Luck from several sources on one Roll does not add up: only the largest amount of good luck and the largest amount of bad luck count, and no die is ever rerolled twice.
+- Declare Luck **before the dice are thrown**: how many points on which Roll, and never more points than the Roll has dice.
+- Good luck rerolls the Roll's lowest dice that are not Successes; bad luck, spent on an enemy's Roll, rerolls its highest Successes (the Reroll rules in **Dice Resolution**).
+- Luck from several sources on one Roll does not add up: only the largest good amount and the largest bad amount count, and no die is rerolled twice.
 - Spending Luck on another Creature's Roll is your Reaction to that action.
-- Luck Points you are still holding at the end of your turn are lost.
+- Luck Points you still hold at the end of your turn are lost.
 
-The DM has a pool as well. **DM Luck Points** are spent the same way, on any Roll; they carry over from turn to turn and Round to Round, and are wiped only when the fight ends.
+The DM has a pool too. **DM Luck Points** are spent the same way on any Roll, carry over from turn to turn, and are wiped only when the fight ends.
 
 ## Falling
 
 @player
-A fall deals {{Falling Damage Per 10 Feet}} damage for every full 10 feet fallen. A hazard may raise or lower that figure — a spiked pit raises it. If the DM allows an Acrobatics Check to land well, each Success takes 1 off the damage.
-
-Falling damage is physical. Split it by Severity using a Threshold of {{Falling Damage Threshold}} plus your Damage Resilience. A fall also leaves you Bleeding, at a Potency of {{Falling Damage Bleed Constant}} plus the damage taken.
+A fall deals {{Falling Damage Per 10 Feet}} damage for every full 10 feet fallen; a hazard such as a spiked pit can change that figure. If the DM allows an Acrobatics Check to land well, each Success takes 1 off. The damage is physical: split it using a Threshold of {{Falling Damage Threshold}} plus your Damage Resilience. A fall also leaves you Bleeding, at a Potency equal to the damage taken plus the Falling Damage Bleed Constant ({{Falling Damage Bleed Constant}}).
 
 ## Zones on the battlefield
 
 @player
-Some Spells leave a **Zone** on the Map — a bank of fog, a web, a pit (see **Map** and **Magic and Abilities**). A Zone can call for a save at three moments: when it appears, from everyone already inside it; when a Creature enters it; and when a Creature ends its turn inside it. The DM decides whether a given movement really counts as entering, and applies the result of the save. Leaving a Zone calls for no save, but ends whatever only held inside it. A Zone with a duration vanishes at the start of its caster's turn once its time is up.
+Some Spells leave a **Zone** on the Map — fog, a web, a pit (see **The Map**). A Zone can call for a save when it appears, from everyone already inside; when a Creature enters it; and when a Creature ends its turn inside it. The DM decides whether a movement really counts as entering. Leaving a Zone calls for no save, but ends whatever held only inside it. A Zone with a duration vanishes at the start of its caster's turn once its time is up.
 
 ## For the DM — running a fight
 
 @player
-- **Starting.** List everyone in the fight. Player Characters are always in it unless their player is sitting out, and a Character who sits out one fight stays out of the next until you bring them back. Set the Time Ticks per Round from the fastest Creature present, start every Combat Pool empty, and have everyone roll Initiative.
-- **Late arrivals.** Add the newcomer and roll Initiative for it alone; nobody else rerolls. If it is faster than everyone already fighting, the number of Time Ticks changes and everyone's ticks are worked out again.
-- **Leaving.** When a Creature leaves the fight, any Spell it was sustaining or casting ends. If it was the fastest Creature there, work out the ticks again.
-- **Ending.** When the fight ends, Initiative and DM Luck Points are discarded. Spells being sustained are *not* ended just because the fight is over. The fallen stay where they lie until they have been looted (see **Equipment**).
+- **Starting.** List everyone in the fight. Player Characters are always in unless their player is sitting out, and a Character who sits out stays out of later fights until you bring them back. Count the Time Ticks from the fastest Creature present, start every Combat Pool empty, and have everyone roll Initiative.
+- **Arriving and leaving.** A newcomer rolls Initiative alone; nobody else rerolls. When a Creature leaves, any Spell it was sustaining or casting ends. If the fastest Creature in the fight changes either way, count the Time Ticks again and work out everyone's ticks afresh.
+- **Ending.** Initiative and DM Luck Points are discarded. Sustained Spells are *not* ended just because the fight is over, and the fallen stay where they lie until looted (see **Equipment**).
 - **Judging triggers.** A Zone, or an ability that fires "when an attack hits", tells you when it *may* apply. Whether it does is your call.
 
 ## For the DM — the phases of play
 
 @player
-Play is always in one of five **Phases**: Combat, Looting, Traveling, Social, or Downtime. The Phase only names what the table is doing. Changing it does not start or end a fight, and starting or ending a fight does not change it. This chapter is the rules of Combat; looting the fallen is covered in **Equipment**, and the passing of time between fights in **Time and the Calendar** and **Conditions**.
+Play is always in one of five **Phases**: Combat, Looting, Traveling, Social, or Downtime. The Phase only names what the table is doing — changing it does not start or end a fight, and a fight starting or ending does not change it. This chapter is the rules of Combat; looting is covered in **Equipment**, and time passing between fights in **Time and the Calendar** and **Conditions**.
 
 ## What lives in the next chapter
 
 @player
-**Magic and Abilities** picks up everything this chapter pointed at and left alone: casting a Spell as an action, sustaining and channeling it from turn to turn, Reservoirs and areas, and the Talents that bend the rules above.
+**Magic and Abilities** picks up what this chapter pointed at and left alone: casting a Spell as an action, sustaining and channeling it from turn to turn, Reservoirs and areas, and the Talents that bend the rules above.
 
 ## Common types
 

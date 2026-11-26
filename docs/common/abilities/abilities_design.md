@@ -19,7 +19,7 @@ Sibling domains:
 @player
 An Ability is either a **Spell** — shaped magic with a Tier and a School, paid for in Mana and cast with a casting Skill — or a **Talent**, which is everything else: a Class feature, a racial gift, a monster's natural weapon.
 
-Abilities work in four ways. An **active** Ability takes an action, and usually Mana or dice. A **passive** one is always on: a standing Bonus to Speed, to a Skill, to damage reduction. A **triggered** one fires by itself during another action when its Trigger is met. A **Reaction** answers what someone else is doing, on their turn.
+Abilities work in four ways. An **active** Ability takes an action, and usually Mana or dice. A **passive** one is always on — a standing Bonus to Speed, a Skill or damage reduction. A **triggered** one fires by itself during another action when its Trigger is met. A **Reaction** answers someone else's action, on their turn.
 
 A Creature's Abilities come from its **Race** (some wake only at a higher Tier), its **Class levels**, the **Spells it has chosen** through a Class's spellcasting, a Cleric's **deity and domains**, and its **items**: a Wand lends its Spell while held, and some rings and tattoos grant an Ability outright.
 
@@ -127,16 +127,16 @@ A **Channeled** Spell lasts only while you feed it. On each of your turns you mu
 | The Spell channels by… | Each turn's channel… |
 |---|---|
 | **Firing** | …produces the effect again: the dice are rolled as the Spell's attack or casting Roll, often at a new target. Your Combat Pool, not your Dice Cap, limits them. |
-| **Filling** | …adds its dice to a **Reservoir** for later. Again the Dice Cap does not apply. |
+| **Filling** | …adds its dice to a **Reservoir** for later. The Dice Cap does not apply, unless the Reservoir is filled by the Successes of a Check. |
 | **Maintaining** | …is pure upkeep, at exactly {{Main Action Minimum}} dice. |
 | **Sustaining itself** | …is not needed. The cast fills a Reservoir once and the Spell then runs for its whole Duration. |
 
 ### Reservoirs
 
 @player
-A **Reservoir** is a pile of dice set aside for one Ability. The cast that conjures it may pour in no more than your Dice Cap. Most Reservoirs empty at the start of your turn, so unused dice are lost; a self-sustaining Spell's Reservoir stays as long as the Spell does.
+A **Reservoir** is a pile of dice set aside for one Ability. The cast that conjures it may pour in no more than your Dice Cap. Most Reservoirs empty at the start of your turn; a self-sustaining Spell's Reservoir lasts as long as the Spell.
 
-To use a Reservoir you **discharge** it: spend dice from it, with the action the entry names (usually a Reaction), for the effect it describes. Shield of Faith is the model — when the warded ally is attacked, the caster spends Reservoir dice and rolls them as a block against that attack. Dice rolled out of a Reservoir obey your Dice Cap. A self-sustaining Spell never discharges; its Reservoir sets the size of what it does each turn.
+You **discharge** a Reservoir by spending dice from it, with the action the entry names (usually a Reaction), for the effect it describes. Shield of Faith is the model: when the warded ally is attacked, the caster rolls Reservoir dice as a block against that attack. Dice rolled out of a Reservoir obey your Dice Cap. A self-sustaining Spell never discharges; its Reservoir sets the size of what it does each turn.
 
 ### Losing concentration
 
@@ -188,14 +188,14 @@ A **Reaction** is used during another creature's Main Action, and a creature get
 ### Channel Divinity
 
 @player
-**Channel Divinity** is a Cleric's family of Talents, granted by deity and domains (see **Characters**). Each use costs Mana — the deity's own channel more than the rest — and any Roll it calls for uses Invocation. A channel that fires on a table works the same way: roll the dice you spend for **Channel Successes**, then roll on the table. The Channel Successes scale the entry, and the DM applies it.
+**Channel Divinity** is a Cleric's family of Talents, granted by deity and domains (see **Characters**). Each use costs Mana — the deity's own channel more than the rest — and any Roll it calls for uses Invocation. For a channel that fires on a table, roll the dice you spend for **Channel Successes**, then roll on the table: the Channel Successes scale the entry, and the DM applies it.
 
 ### Luck
 
 @player
-**Luck** rerolls dice, and a bard's Bardic Inspiration is its main source: a Main Action, some Mana and a Performance check, each Success putting one point of Luck into a Reservoir that empties at the start of the bard's next turn. Luck is spent as a Reaction and must be committed **before** the dice of the Roll it is spent on are thrown. Each point rerolls one die by the Reroll rules of **Dice Resolution**: Luck that helps rerolls a Roll's worst dice; Luck that hinders, which needs its own Talent, rerolls its best. No die is rerolled twice, a Roll cannot take more Luck than it has dice, and Luck from several sources does not stack — only the largest helping and the largest hindering amount count.
+**Luck** rerolls dice. Its main source is a bard's Bardic Inspiration: a Main Action, some Mana and a Performance check, each Success putting one point of Luck into a Reservoir that empties at the start of the bard's next turn. Luck is spent as a Reaction and must be committed **before** the Roll is thrown. Each point rerolls one die by the Reroll rules of **Dice Resolution**: helping Luck rerolls a Roll's worst dice, and hindering Luck — which needs its own Talent — its best. No die is rerolled twice, a Roll cannot take more Luck than it has dice, and Luck from several sources does not stack: only the largest helping and the largest hindering amount count.
 
-If the Performance check comes out below zero, the bard gains nothing and the DM gains that many points of Luck instead, to spend the same way until the fight ends.
+If the Performance check comes out below zero, the DM gains that many points of Luck instead, to spend the same way until the fight ends.
 
 ## Bonus Types
 
@@ -213,7 +213,7 @@ Every Bonus and Penalty an Ability grants has a **Bonus Type**, and the stacking
 | **Racial** | Your Race. |
 | **Luck** | A twist of fortune. |
 
-The same list is the **Bonus Types List** in the configuration table. Most Spell buffs and magical gear grant Guidance, so they do not add together: the larger wins. Nor is a Bonus always to a Target Number — Abilities also grant typed Bonuses to Speed, damage reduction, damage resilience, saves and Attributes, and those stack by the same rule.
+The same list is the **Bonus Types List** in the configuration table. Most Spell buffs and magical gear grant Guidance, so the larger wins rather than both adding. Bonuses are not only to Target Numbers: Abilities also grant typed Bonuses to Speed, damage reduction, damage resilience, saves and Attributes, which stack by the same rule.
 
 ## For the DM — Adjudicating Magic
 
@@ -223,7 +223,6 @@ Most magic resolves by the numbers above; some is left to you.
 - **Effects in words.** Charms, compulsions, illusions, magical darkness and mist describe what they do rather than count it. You decide what a failed save means in the scene.
 - **Triggers and Areas.** You rule on whether a Trigger's conditions are met, and on whether a move counts as entering a lingering Area.
 - **Tables.** When an Ability rolls on a table, the die picks the entry and you apply it.
-- **Order.** Settle a cast in this order: the Spell, its dice, its targets, the target's defense, any Luck — and only then roll.
 
 ## What lives in the next chapter
 
