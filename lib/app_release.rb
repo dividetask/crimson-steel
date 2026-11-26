@@ -45,12 +45,28 @@ module AppRelease
     lines.join("\n")
   end
 
-  # { version: "v0.036", path:, size: } for the newest APK, or nil.
+  # The commit an APK was built from, from the build automation's commit that
+  # added it ("Build v0.040.apk (from 7bcaba1)"). The app compares it with
+  # its own (the "(7bca)" in its version name): a server-only commit still
+  # makes a new APK whose version name repeats the previous number.
+  def source_commit(path)
+    key = [path, File.mtime(path).to_i]
+    (@commits ||= {})[key] ||= begin
+      root = File.expand_path('..', __dir__)
+      msg = `git -C #{root.shellescape} log -1 --format=%s -- #{path.shellescape} 2>/dev/null`
+      msg[/\(from ([0-9a-f]{4,})\)/, 1] || ''
+    end
+    @commits[key].empty? ? nil : @commits[key]
+  rescue StandardError
+    nil
+  end
+
+  # { version: "v0.036", path:, size:, commit: } for the newest APK, or nil.
   def latest
     files = Dir.exist?(DIR) ? Dir.children(DIR).grep(NAME) : []
     best = files.max_by { |f| parse(f) }
     return nil unless best
     path = File.join(DIR, best)
-    { version: best.delete_suffix('.apk'), path: path, size: File.size(path) }
+    { version: best.delete_suffix('.apk'), path: path, size: File.size(path), commit: source_commit(path) }
   end
 end

@@ -66,7 +66,7 @@ RSpec.describe 'Encounter::State combat mode' do
       obj
     end
 
-    it 'adds class level to the max pool only while raging' do
+    it 'adds class level to the max pool only while raging during a full round attack' do
       raging = { on: false }
       cond = Object.new
       cond.define_singleton_method(:active_effect_names) { |current_round: nil| raging[:on] ? ['rage'] : [] }
@@ -79,7 +79,42 @@ RSpec.describe 'Encounter::State combat mode' do
       base = Encounter::CombatPool.size_for(crit) # martial 4, wis 12, tier 2 → 14
       expect(s.get_combat_pool(c[:id])).to eq(base)
       raging[:on] = true
+      expect(s.get_combat_pool(c[:id])).to eq(base) # not on a full round attack yet
+      s.send(:combatant_for, c[:id])[:weapon_attacks_only] = true # the turn began
       expect(s.get_combat_pool(c[:id])).to eq(base + 4)
+      s.end_weapon_attacks_only(c[:id]) # a Move / Cast / Item
+      expect(s.get_combat_pool(c[:id])).to eq(base)
+    end
+
+    it 'leaves only weapon attacks once those extra dice are spent' do
+      cond = Object.new
+      cond.define_singleton_method(:active_effect_names) { |current_round: nil| ['rage'] }
+      crit = reckless_creature
+      s = Encounter::State.new({}, data_path: data_path,
+                               creature_lookup: ->(_id) { crit },
+                               conditions_for: ->(_id) { cond },
+                               current_timestamp_fn: -> { { day_index: 0, round_of_day: 0 } })
+      c = s.add_combatant('9')
+      s.send(:combatant_for, c[:id])[:weapon_attacks_only] = true
+      base = Encounter::CombatPool.size_for(crit)
+      s.spend_combat_pool(c[:id], base)
+      expect(s.full_round_dice_spent?(c[:id])).to be(false)
+      s.spend_combat_pool(c[:id], 1)
+      expect(s.full_round_dice_spent?(c[:id])).to be(true)
+    end
+  end
+
+  describe 'Full round attack (weapon_attacks_only)' do
+    it 'is set when a turn begins and ended by a Move' do
+      s = state
+      c = s.add_combatant('101')
+      expect(s.weapon_attacks_only?(c[:id])).to be(false)
+      s.begin_turn_for(c[:id])
+      expect(s.weapon_attacks_only?(c[:id])).to be(true)
+      s.apply_move(c[:id])
+      expect(s.weapon_attacks_only?(c[:id])).to be(false)
+      s.begin_turn_for(c[:id])
+      expect(s.weapon_attacks_only?(c[:id])).to be(true)
     end
   end
 

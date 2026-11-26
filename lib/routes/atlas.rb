@@ -30,7 +30,7 @@ helpers do
   # creature_id) so a click on the map can target it in the Attack builder.
   # `acting_id` is the Acting Combatant (for the Acting ring + tooltip badge);
   # `viewer` gates the tooltip subtitle per atlas_token_tooltip.md.
-  def atlas_token_view(token, acting_id, viewer)
+  def atlas_token_view(token, acting_id, viewer, assigned = [])
     creature = Creatures.lookup(token[:creature_id]) rescue nil
     name = if token[:label] && !token[:label].to_s.empty?
              token[:label]
@@ -60,6 +60,8 @@ helpers do
       combatant_id: combatant && combatant[:id],
       initiative:   combatant ? combatant[:initiative_string].to_s : nil,
       acting:       !!(combatant && combatant[:id] == acting_id),
+      # The ring: its player's dice colour, or the DM's (token_color, api.rb).
+      ring:         token_color(token[:creature_id], assigned),
       unknown:      creature.nil?
     }
   end
@@ -97,6 +99,7 @@ helpers do
     # never reaches the browser (defense in depth beyond the opaque overlay the
     # client paints). The DM sees through the fog, so their Tokens are untouched.
     tokens = tokens.reject { |t| atlas_token_under_fog?(t, fog) } if viewer != :dm
+    assigned = DeviceRegistry.instance.list.map { |d| d['character_id'].to_s }.reject(&:empty?)
     {
       ok:          true,
       viewer:      viewer.to_s,
@@ -104,7 +107,7 @@ helpers do
       map:         { id: map[:id], name: map[:name], image: map[:image],
                      width: map[:width], height: map[:height],
                      grid: map[:grid], archived: map[:archived] },
-      tokens:      tokens.map { |t| atlas_token_view(t, acting_id, viewer) },
+      tokens:      tokens.map { |t| atlas_token_view(t, acting_id, viewer, assigned) },
       # Annotations (drawings) are shared — but a dm_only drawing (a secret
       # text note) is stripped from a player's snapshot, like a hidden Token.
       annotations: atlas_state.list_annotations(map_id: map[:id])

@@ -99,6 +99,44 @@ RSpec.describe 'Android app JSON API', type: :request do
       skill = j['skills'].find { |s| s['roll'] }
       expect(skill['roll']['dice_count']).to eq(skill['dice'])
     end
+
+    it 'sends the math behind each number, for the "?" on the sheet' do
+      j = api_get('/api/sheet')
+      vitals = j['vitals']
+      expect(vitals['combat_pool']).to be_a(Integer)
+      expect(vitals['math'].keys).to eq(%w[hp mana toxicity damage_reduction damage_resilience combat_pool])
+      expect(vitals['math']['hp']).to include('title' => 'Hit Points')
+      expect(vitals['math']['hp']['lines']).to all(be_a(String))
+      expect(vitals['math']['combat_pool']['table']['head']).to eq(%w[Dice Each Cost Left])
+      strength = j['attributes'].first
+      expect(strength['math']['title']).to eq('Strength')
+      expect(strength['check_math']['title']).to eq('Strength check')
+      expect(strength['save_math']['title']).to eq('Strength save')
+      j['skills'].each { |s| expect(s['math']['lines']).not_to be_empty, s['key'] }
+    end
+
+    it 'ends the math of every Check, Save and Skill on the dice and TN its Roll uses' do
+      j = api_get('/api/sheet')
+      pairs = j['attributes'].flat_map { |a| [[a['check'], a['check_math']], [a['save'], a['save_math']]] }
+      pairs += j['skills'].select { |s| s['roll'] }.map { |s| [s['roll'], s['math']] }
+      pairs.each do |roll, math|
+        lines = math['lines']
+        expect(lines.grep(/\ADice: /).first).to end_with("= #{roll['dice_count']}"), roll['name']
+        expect(lines.grep(/\ATN: /).first[/\d+\z/].to_i).to eq(roll['tn']), roll['name']
+      end
+    end
+
+    it 'sends no math for a Creature whose Tier is hidden: the math names the Tier' do
+      record = Creatures.lookup(pc[:id]).record
+      record[:hide_tier] = true
+      j = api_get('/api/sheet')
+      expect(j['tier']).to be_nil
+      expect(j['vitals']['math']).to eq({})
+      expect(j['attributes'].first.keys).not_to include('math', 'check_math', 'save_math')
+      expect(j['skills'].first.keys).not_to include('math')
+    ensure
+      record[:hide_tier] = false
+    end
   end
 
   describe 'GET /api/inventory' do
@@ -166,6 +204,20 @@ RSpec.describe 'Android app JSON API', type: :request do
       get '/sounds/RAGE_AGAIN.mp3', {}, player_env
       expect(last_response.status).to eq(200)
       expect(last_response.content_type).to include('audio/mpeg')
+    end
+
+    it 'says how many creatures act before the player' do
+      mine = start_combat_on_my_turn!
+      expect(api_get('/api/initiative')['me']['creatures_before']).to eq(0)
+      es = Encounter.state
+      # Whoever acts right after the player: everyone else is ahead of them again.
+      es.advance_turn
+      ahead = es.turns_before(mine[:id])
+      expect(ahead.length).to eq(es.combatants.length - 1)
+      expect(api_get('/api/initiative')['me']['creatures_before']).to eq(ahead.uniq.length)
+      # Each turn that ends leaves one fewer.
+      es.advance_turn
+      expect(api_get('/api/initiative')['me']['creatures_before']).to eq(ahead.uniq.length - 1)
     end
 
     it 'offers no options when it is not their turn' do

@@ -4,6 +4,11 @@ A native Android client for Crimson Steel DM Tools. It has its own GUI (not a We
 
 The Gradle project lives in `android/` and is built by `build_branches.sh` (see the claude-basics repository). Built APKs are committed to `android/versions/`.
 
+Runs on Android 5.1 (API 22) and newer, so the Fire 7 (2017, Fire OS 5) can
+use it. On older Android a few extras are missing: screenshots are sent only
+from Android 14, Save debug log writes straight to Downloads only from
+Android 10, and tapped cards flash a ripple only from Android 6.
+
 ## Connecting
 
 The app never asks for an IP address, and never probes other devices on the network one by one. It tries, in order:
@@ -50,7 +55,7 @@ The API answers only for the assigned Character and uses the same rules as the w
 
 ## Character sheet
 
-Shows vitals (HP, Mana, magic toxicity, Damage Reduction, Damage Resilience), the six Attributes, every Skill, and the character's Abilities.
+Shows vitals (HP, Mana, magic toxicity, Damage Reduction, Damage Resilience, Combat Pool), the six Attributes, every Skill, and the character's Abilities.
 
 Rollable entries:
 
@@ -60,6 +65,21 @@ Rollable entries:
 The server computes every Roll's Dice Count, final TN and Starting Value (Proficiencies, Dice Resolution, and the Character's items and active Modifiers), so the app and the web sheet always agree. The app only throws and scores the dice ([dice_resolution_design.md](../common/dice_resolution/dice_resolution_design.md)). The full Dice Cap is always rolled from the sheet; only combat actions let the player commit fewer dice.
 
 Abilities are descriptive only (tap to expand) and are not rollable.
+
+### The math
+
+The line with the race, class, Tier and Speed is pinned at the top of the sheet, with a **?** button at its right. While **?** is on (gold), a tap opens the math behind a number instead of rolling; tapping **?** again goes back to rolling.
+
+| Tap | Shows |
+|---|---|
+| HP, Mana | The Tier's formula with the Character's values filled in, each Class's Mana per level, then the damage taken or Mana spent. |
+| Toxicity | The Toxicity Threshold. |
+| Damage Reduction, Damage Resilience | One line per source: the Tier, each piece of armor, each active effect. |
+| Combat Pool | The Budget and the price table of the web sheet's Combat Pool popup ([creatures_minimal_stub.md](../common/ui/creatures_minimal_stub.md)). |
+| An Attribute's name or score | Its base, racial, inherent and item parts. |
+| **Check**, **Save**, a **Skill** | For each Class, the rate the ranks advance at (Aligned, Unaligned or Opposed; for an untrained Skill, the rate it would have) and the ranks that gives; then the Prowess, the bonus and dice it becomes, and the TN. |
+
+The server writes every line (`lib/sheet_math.rb`) from the same code that computes the number, so the math always ends on what the sheet shows; the app only displays it. A Character whose Tier is hidden (`hide_tier`) gets no math and no **?**, because the math names the Tier.
 
 ## Rolling
 
@@ -78,12 +98,12 @@ The public roll's badge reads *sent to DM* once the server confirms it, or *NOT 
 
 This is the player's half of the web app's Turn Action Stub ([turn_action_stub.md](../common/ui/turn_action_stub.md)): the player picks an action and how many dice to commit. Targets, defenses, rolling and applying the result stay with the DM.
 
-Top to bottom:
+Initiative is the first tab and the one the app opens on. Top to bottom:
 
 Anything waiting on the player (a defense, Luck, a roll — [action_flow.md](action_flow.md)) comes first, on anyone's turn. Then:
 
-1. **Status** — the player's own row: the name in its Tier colour, the Combat Pool as a row of small d10s, and **Acted** (their turn is over this Round) or **Waiting**. Tapping it opens HP, Mana, Combat Pool, Conditions and Main Actions left; tapping it again closes it. The player's own pool and Mana subtract this turn's pending requests. In the dice row, remaining dice are filled and spent dice are hollow; the fill colour shows how much is left (more than half green, a quarter to a half amber, under a quarter red), and while choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
-2. **Initiative** — one row, *\<name\>'s Turn* (*Your Turn* on the player's own), with that Combatant's Combat Pool dice under it (on the player's own turn the dice are in Status). Tapping it shows the whole order (each with Turn / Acted / Waiting) — no HP or other vitals; tapping again closes it.
+1. **Status** (pinned at the bottom of the screen, always in view however far the screen is scrolled) — the player's own row: the name in its Tier colour, the Combat Pool as a row of small d10s, and **Acted** (their turn is over this Round) or **Waiting**. Tapping it opens HP, Mana, Combat Pool, Conditions and Main Actions left; tapping it again closes it. The player's own pool and Mana subtract this turn's pending requests. In the dice row, remaining dice are filled and spent dice are hollow; the fill colour shows how much is left (more than half green, a quarter to a half amber, under a quarter red), and while choosing how many dice an action uses, that many dice turn yellow, counted from the first (leftmost) die.
+2. **Initiative** — one row, *\<name\>'s Turn* (*Your Turn* on the player's own), with that Combatant's Combat Pool dice under it (on the player's own turn the dice are in Status). Tapping it shows the whole order (each with Turn / Acted / Waiting) — no HP or other vitals; tapping again closes it. On anyone else's turn a large line under it says how many creatures act before the player's next turn — *3 creatures before you* — so there is no mistaking whose turn it is. It counts the acting creature and everyone after it up to the player — each once, however many turns it has — and leaves out any that cannot act (`Encounter::State#turns_before`). With nobody acting yet it reads *Waiting for the DM.*
    **How many dice?** — the dice picker under a chosen action: one plain die for each die below the action's minimum (always included), then one numbered die per count. A weapon's **Speed** adds one amber die marked **S** on the far left per point of Speed; they light up with the count, so 5 dice at Speed 1 lights 6 dice while the count still reads 5. Tapping a die that cannot be picked — a Speed die, one below the minimum, or a count the player cannot afford — flashes it red and does nothing else (the action stays open).
 3. **Actions** — picking an action (or opening a group) scrolls it to the top of the screen. On the player's turn, everything below; on anyone else's turn, **Free actions** only (e.g. Rage), and nothing while a die roll waits on the player ([action_flow.md](action_flow.md)). — **Melee**, **Ranged**, **Spell**, **Item**, **Move**, **Special** and **End Turn**; a group with nothing in it is not shown. Tapping a group opens its options (one option opens straight onto it); tapping again closes it. Melee and Ranged split the weapon attacks by whether the weapon is ranged; Special holds the Abilities and active Spells.
 
@@ -103,14 +123,25 @@ The options come from the same server code that builds the DM's turn menu (`api_
 
 Spells that take a minute or longer to cast are not offered, as on the web.
 
+### Spells
+
+**Spell** opens onto one row per Tier, each with its Mana cost (Tier colour);
+tapping a Tier lists its spells. A spell card reads *Heal (Invocation +3)*,
+then the dice it can roll (*4–7 dice*), then the spell's description. A
+Character with spells of one Tier only sees that Tier open already.
+
 ### Picking a target
 
 When there is an Active Map (`/api/initiative` → `map`: the player's view,
 with fogged and hidden Tokens left out), the target is picked by tapping its
-token: enemies ringed red, allies blue, the choice gold with its name;
-tokens that cannot be targeted are faded. Pinch to zoom, drag to move.
-Targets not on the map keep a button below it; with no map, every target is
-a button.
+token. Each token is ringed in its player's dice colour
+([dice_colors.md](dice_colors.md)); monsters and Characters with no phone use
+the DM's. An inner circle shows the token's Tier colour. The chosen target gets a gold ring outside that, with its name;
+tokens that cannot be targeted are faded. Pinch to zoom, drag to move. The DM's
+Encounter map rings Combatant tokens the same way. Every
+target also has a name button under the map. A target whose token is not on
+the Active Map (never placed, hidden, or under fog) can only be picked by its
+button. Tokens are not placed automatically: the DM places them.
 
 ### Requests
 
@@ -144,7 +175,7 @@ Reached from the gear at the top of every screen. **Done** (or back) returns to 
 |---|---|
 | App | The version (`BuildConfig.VERSION_NAME`, e.g. `v0.006 a (1a2b)`). |
 | Connection | The server address, the device id (the first 8 characters, as in the DM's device table), the assigned Character, whether a VPN is on, and this phone's network addresses. **Search for the server again** forgets the remembered server and searches from scratch. |
-| Debug log | **Save debug log** saves a copy as `crimson-steel-debug-<date>-<time>.log` in the phone's **Downloads** folder (Android 10+: straight into Downloads, no permission; Android 8–9: the system "save as" picker). There is no share sheet. **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
+| Debug log | **Save debug log** saves a copy as `crimson-steel-debug-<date>-<time>.log` in the phone's **Downloads** folder (Android 10+: straight into Downloads, no permission; Android 5.1–9: the system "save as" picker). There is no share sheet. **View log** shows the newest 300 lines on screen. **Clear log** empties it, after a confirmation. |
 
 ## Debug log
 
@@ -167,7 +198,7 @@ All endpoints answer JSON for the device's assigned Character, or `409 {"error":
 | Endpoint | Returns / does |
 |---|---|
 | `GET /api/hello` | Server identity, campaign name, the device's short id, and the assigned Character (or `null`). |
-| `GET /api/sheet` | The character sheet with server-computed Rolls. |
+| `GET /api/sheet` | The character sheet with server-computed Rolls, and the math behind each number (`math`, `check_math`, `save_math`). |
 | `GET /api/inventory` | Equipped, carried and Sell Pile rows, as the web inventory stub shows them. |
 | `GET /api/initiative` | Combat state, turn order (no vitals), the player's pool / Main Actions / Mana, and on their turn the options and this turn's requests. |
 | `POST /api/turn/requests` | Body `{ "key": "<option key>", "dice": <n> }`. Records a request for the DM. |

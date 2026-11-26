@@ -43,7 +43,7 @@ Scenarios.define 'simple_combat: four Common Orcs', seed_data: 'no_monsters' do
     define_method(:init_dice) { init_dice }
 
     def encounter = dm.http.get('/test/encounter').json
-    def orcs = encounter['combatants'].select { _1['name'] == 'Common Orc' }.sort_by { _1['id'] }
+    def orcs = encounter['combatants'].select { _1['name'].to_s.match?(/\ACommon Orc( \d+)?\z/) }.sort_by { _1['id'] }
     def red_tier = dm.browser.at_xpath("//details[summary[normalize-space()='General Red Tier']]")
   end
 
@@ -173,7 +173,7 @@ Scenarios.define 'simple_combat: four Common Orcs', seed_data: 'no_monsters' do
     check problems.empty?, problems.join('; ')
   end
 
-  step "both requests wait on the DM's Player actions panel" do
+  step "both requests wait on the DM's Player actions panel", blocking: false do
     html = dm.http.get('/encounter/flows_panel').body
     ['Standard Shield at Garroth Vask', 'Spiritual Hammer'].each do |s|
       check html.include?(s), "Player actions panel shows #{s}"

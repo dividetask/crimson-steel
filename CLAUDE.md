@@ -4,7 +4,7 @@
 
 Crimson Steel DM Tools is a local server that allows other players to connect to in order to view their character sheets, game notes, inventory, items for sale, current statuses, and view information relevant to their current choices. It also allows the DM to manage this information, add monsters, manage combat, manage hit points, and other useful tools.
 
-- **Common design documents** (`.md` files in `docs/common/`) — General, project-agnostic rules: dice/check resolution, shared UI conventions, glossary terms.
+- **Common design documents** (`.md` files in `docs/common/`) — General, project-agnostic rules: dice/check resolution, shared UI conventions, glossary terms. One folder per concept, each following the file contract in `docs/common/file_conventions.md` — read that before adding or editing anything under `docs/common/`. A concept's `*_design.md` holds the player-facing prose and the implementer rules in one file, split by `@player` / `@implementation` markers; config values are referenced as `{{Config Key}}`, never written as literals.
 - **Project design documents** (`.md` files in `docs/project/`) — Crimson Steel–specific rules: menu layout, page access, server behavior, anything that customizes the common rules for this project.
 - **Configuration templates** (`.yaml.example` files in `docs/`) — Contains default rule data, and example campaign data
 - **Configuration files** (`.json` in `data/`) — Contains rule data, and campaign data
@@ -37,6 +37,13 @@ There is no login, password, or account selection. Identity is purely based on w
 - Ask questions often especially when there is ambiguity or you believe I have made a mistake
 - Ask questions in plain chat text, not via the `AskUserQuestion` / multiple-choice prompt tool. Do not use that tool in this project — write the question(s) as normal prose and wait for a reply.
 
+### Say what's missing first
+
+- Before answering, list the information you'd need that I haven't given
+  you. Skip the list when nothing is missing.
+- If something on the list blocks the work, ask about it and stop (see
+  *Stop after asking questions*).
+
 ### Stop after asking questions
 
 - Whenever you have a question, or multiple questions, stop immediatly after asking them.
@@ -49,6 +56,27 @@ There is no login, password, or account selection. Identity is purely based on w
 - Don't write code comments that only restate the code. Comment the why, a
   non-obvious rule, or a link to the design doc — nothing else.
 - Keep chat messages and commit messages short and to the point.
+
+### End with an 80/20 summary
+
+- End your answer to each of my prompts with a line (`---`), then a
+  `## 80/20` section as the very last thing. It restates the bottom line only
+  and adds nothing new.
+- One 80/20 per prompt: only in the final reply to it. Replies to automated
+  events (scheduled build checks, notifications) get none.
+- Include a line only when it has something real to say:
+  - ✅ **Result:** always; one line.
+  - 👉 **Next:** only when I have to do something. A bullet per step, the
+    action in bold.
+  - ❓ **Decide:** only when the choice is mine.
+  - ⚠️ **Watch out:** only for a real risk.
+  - 🔀 **Git:** only when a repo changed.
+- Bold the key actions, so the bold words alone answer the question.
+
+### Never touch `main`
+
+- Never commit to, push to, or otherwise change `main`. It is mine to merge
+  into; your work goes on your `claude/` branch.
 
 ### Design document conventions
 
@@ -88,8 +116,10 @@ Rules:
   ensures every build is always higher than the last, regardless of branch, so
   APKs from different `claude/*` branches can be installed over each other
   without uninstalling first. Never set `versionCode` by hand.
-- Bump the number/letter on every commit that changes the app, and put the
-  hand-set part at the end of the commit message, e.g.
+- Bump the number/letter on **every commit you push**, even one that changes
+  only the server or docs: the build automation makes an APK from every
+  pushed tip, so a skipped bump leaves that APK labelled with the previous
+  version. Put the hand-set part at the end of the commit message, e.g.
   `Bigger aspect glyph tiles (v0.024 b)`.
 - Enable `buildConfig = true` so the app can show `BuildConfig.VERSION_NAME`.
 
@@ -188,6 +218,13 @@ Notes:
   through.
 - Put the same line at the end of the commit message body, e.g.
   `Update: APK only` or `Update: server + APK`.
+
+### Build logs (`android/build-logs/`)
+
+- Ignore build logs when merging: keep the target branch's
+  `android/build-logs/` as it is, whatever the other branch has. Each build
+  rewrites `build.log` on its own branch, so it conflicts on most merges —
+  resolve it this way without asking, and leave it out of the report.
 
 ### Device logs (`device-logs/`)
 

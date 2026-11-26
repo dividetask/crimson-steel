@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.dividetask.crimsonsteel"
-        minSdk 26
+        minSdk 22 // Fire 7 (2017): Fire OS 5, Android 5.1
         targetSdk 35
         // versionCode: timestamp-based, always increasing across branches.
         // versionName: predicted APK filename (vMAJOR.MINOR.apk = newest committed
@@ -19,7 +19,7 @@ android {
         // hand; the hash is added at build time because a commit can't contain
         // its own hash. (Rules: CLAUDE.md → Android build versioning.)
         versionCode((int) (System.currentTimeMillis() / 60000))
-        def versionBase = "v0.039 a"
+        def versionBase = "v0.060 a"
         def commitHash = "unknown"
         try {
             def process = ["git", "rev-parse", "--short=4", "HEAD"].execute()

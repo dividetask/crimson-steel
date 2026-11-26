@@ -1,37 +1,32 @@
+require_relative 'common_docs'
+
 # Parse the glossary markdown files under docs/common/ and render them
 # as a single Compendium > Glossary page. Each source file becomes a
 # group; ## headings become subsections; `**Term**: definition`
 # paragraphs become definition-list entries. The common glossary is
 # always rendered first because its definitions take precedence over
 # per-domain ones (see docs/common/common_glossary.md).
+#
+# The per-concept glossaries are discovered, not registered: every
+# `<concept>/<concept>_glossary.md` under docs/common/ is picked up, in
+# concept order. A glossary with no terms (an H1 and intro prose only) is
+# silently skipped, so an empty file costs nothing.
 module GlossaryDocs
-  SOURCES = [
-    {
-      key:   'common',
-      title: 'Common Glossary',
-      path:  File.expand_path('../docs/common/common_glossary.md', __dir__)
-    },
-    {
-      key:   'dice',
-      title: 'Dice Resolution',
-      path:  File.expand_path('../docs/common/dice_resolution/dice_resolution_glossary.md', __dir__)
-    },
-    {
-      key:   'check',
-      title: 'Check Resolution',
-      path:  File.expand_path('../docs/common/check_resolution/check_resolution_glossary.md', __dir__)
-    },
-    {
-      key:   'conditions',
-      title: 'Conditions',
-      path:  File.expand_path('../docs/common/conditions/conditions_glossary.md', __dir__)
-    }
-  ].freeze
+  COMMON_PATH = File.expand_path('../docs/common/common_glossary.md', __dir__)
 
   module_function
 
   def render
-    SOURCES.map { |src| render_source(src) }.join
+    sources.map { |src| render_source(src) }.join
+  end
+
+  # The Common Glossary first — its definitions take precedence — then one
+  # entry per concept folder that carries a glossary.
+  def sources
+    common = [{ key: 'common', title: 'Common Glossary', path: COMMON_PATH }]
+    common + CommonDocs.concepts.select(&:glossary?).map do |concept|
+      { key: concept.key, title: concept.title, path: concept.glossary_path }
+    end
   end
 
   def render_source(src)

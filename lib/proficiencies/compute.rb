@@ -6,6 +6,21 @@ module Proficiencies
     module_function
 
     def roll_inputs(key:, creature:, attribute_override: nil)
+      b = breakdown(key: key, creature: creature, attribute_override: attribute_override)
+      bonus_penalty = b[:bonus] + b[:penalty]
+      modifier = bonus_penalty.zero? ? nil : ['Competency', bonus_penalty]
+      out = { dice_cap: b[:dice_cap], competency_modifier: modifier }
+      skill_mods = skill_modifiers_for(creature, b[:key])
+      out[:skill_modifiers] = skill_mods unless skill_mods.empty?
+      out
+    end
+
+    # Every step behind roll_inputs, for showing the math: the winning Prowess
+    # source's ranks and attribute, then the translation into dice and bonus.
+    # `source_key` differs from `key` when the Substitution Ability's source
+    # won. `penalty` (the Non-Proficiency Penalty, or 0) is kept apart from
+    # `bonus`; roll_inputs' Competency Modifier is their sum.
+    def breakdown(key:, creature:, attribute_override: nil)
       key = key.to_s
       raise ArgumentError, "bare Set Skill key #{key.inspect}" if key.end_with?('_')
 
@@ -15,22 +30,13 @@ module Proficiencies
       end
 
       driving_attr = (attribute_override || entry['attribute']).to_sym
-      direct_value, direct_trained = direct_prowess(key, entry, driving_attr, creature)
+      direct = direct_prowess(key, entry, driving_attr, creature)
       substituted = substituted_prowess(key, creature)
+      used = substituted && substituted[:prowess] > direct[:prowess] ? substituted : direct
 
-      prowess, trained = if substituted && substituted.first > direct_value
-                           substituted
-                         else
-                           [direct_value, direct_trained]
-                         end
-
-      dice_cap, bonus_penalty = DiceResolution.translate_prowess(prowess)
-      bonus_penalty += Config.non_proficiency_penalty if !trained && !key.end_with?('_save')
-      modifier = bonus_penalty.zero? ? nil : ['Competency', bonus_penalty]
-      out = { dice_cap: dice_cap, competency_modifier: modifier }
-      skill_mods = skill_modifiers_for(creature, key)
-      out[:skill_modifiers] = skill_mods unless skill_mods.empty?
-      out
+      dice_cap, bonus = DiceResolution.translate_prowess(used[:prowess])
+      penalty = !used[:trained] && !key.end_with?('_save') ? Config.non_proficiency_penalty : 0
+      used.merge(key: key, dice_cap: dice_cap, bonus: bonus, penalty: penalty)
     end
 
     def skill_modifiers_for(creature, key)
@@ -53,15 +59,19 @@ module Proficiencies
     end
 
     def direct_prowess(key, entry, driving_attr, creature)
-      base_ranks = creature.ranks_for(key)
-
+      base_ranks  = creature.ranks_for(key)
       floor_ranks = floor_lift(key, entry, creature)
-      effective_ranks = [base_ranks, floor_ranks].max
+      prowess_parts(key, driving_attr, creature, ranks: [base_ranks, floor_ranks].max,
+                                                 base_ranks: base_ranks, floor_ranks: floor_ranks)
+    end
 
-      attr_contrib = (creature.attribute_value(driving_attr).to_f /
-                      Config.attribute_contribution_divisor).floor
-
-      [effective_ranks + attr_contrib, effective_ranks.positive?]
+    # One Prowess source: its ranks plus the attribute's contribution.
+    def prowess_parts(source_key, attr, creature, ranks:, base_ranks:, floor_ranks:)
+      value   = creature.attribute_value(attr)
+      contrib = (value.to_f / Config.attribute_contribution_divisor).floor
+      { source_key: source_key, attribute: attr, attribute_value: value, attribute_contribution: contrib,
+        base_ranks: base_ranks, floor_ranks: floor_ranks, ranks: ranks,
+        prowess: ranks + contrib, trained: ranks.positive? }
     end
 
     def floor_lift(key, entry, creature)
@@ -93,11 +103,9 @@ module Proficiencies
           unless source_entry
 
         source_ranks = creature.ranks_for(source_key)
-        source_attr  = source_entry['attribute'].to_sym
-        attr_contrib = (creature.attribute_value(source_attr).to_f /
-                        Config.attribute_contribution_divisor).floor
-        [source_ranks + attr_contrib, source_ranks.positive?]
-      end.max_by(&:first)
+        prowess_parts(source_key, source_entry['attribute'].to_sym, creature,
+                      ranks: source_ranks, base_ranks: source_ranks, floor_ranks: 0)
+      end.max_by { |p| p[:prowess] }
     end
   end
 

@@ -86,6 +86,10 @@
       <span class="ta-res"><span class="ta-res-label">Mana</span> <%= mana ? "#{mana[:remaining]}/#{mana[:max]}" : dash %></span>
       <span class="ta-res"><span class="ta-res-label">Combat Pool</span> <%= pool ? "#{pool[:remaining]}/#{pool[:max]}" : dash %></span>
       <span class="ta-res"><span class="ta-res-label">Main Actions</span> <%= ma_label %></span>
+      <%# Full round attack: only weapon attacks so far, so more of them need no Main Action (encounter_design.md). %>
+      <% if !out_of_combat && encounter_state.weapon_attacks_only?(acting[:combatant_id]) %>
+        <span class="ta-res ta-full-round" title="Only weapon attacks so far this turn: more attacks need no Main Action, only Combat Pool. A Move, a Main-action spell or an Item ends it.">Full round attack</span>
+      <% end %>
     </div>
   </header>
   <%# Actions the player asked for from the Android app this turn (lib/player_requests.rb).

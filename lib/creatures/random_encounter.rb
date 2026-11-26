@@ -46,7 +46,7 @@ module Creatures
       new_id = Dataset.next_id
       copy = deep_dup(template)
       copy[:id] = new_id
-      copy[:name] = name_override if name_override
+      copy[:name] = unique_spawn_name(name_override || copy[:name])
       copy[:loot_table] = loot_table if loot_table
       # Resolve a weighted race_table (if any) to a concrete race on the
       # spawn, then clear the table so the instance is a fixed-race Creature.
@@ -92,6 +92,23 @@ module Creatures
 
       Dataset.insert!(copy)
       new_id
+    end
+
+    # A name no other Creature has (docs/project/encounter_naming.md): the
+    # first spawn keeps the plain name ("Common Orc"); the second renames
+    # that one "Common Orc 1" and is "Common Orc 2"; after that each takes
+    # the lowest free number. Templates do not count; only spawned
+    # Creatures are ever renamed.
+    def unique_spawn_name(base)
+      base = base.to_s
+      numbered = /\A#{Regexp.escape(base)} (\d+)\z/
+      others = Dataset.all.values.reject { |r| Array(r[:tags]).include?('enemy_template') }
+      plain = others.select { |r| r[:name].to_s == base }
+      used = others.filter_map { |r| r[:name].to_s[numbered, 1]&.to_i }
+      return base if plain.empty? && used.empty?
+      free = -> { n = 1; n += 1 while used.include?(n); used << n; n }
+      plain.select { |r| r[:spawned_from] }.each { |r| Dataset.rename!(r[:id], "#{base} #{free.call}") }
+      "#{base} #{free.call}"
     end
 
     # Roll Cleric domains from a domain_picks spec (list of { count, from }).

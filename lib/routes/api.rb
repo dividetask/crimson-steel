@@ -61,19 +61,24 @@ helpers do
     d = CreatureSheet.build(acc)
     h = d[:header]
     v = d[:vitals]
+    # The math behind each number (SheetMath), for the app's "?". It names
+    # the Tier, so a Creature whose Tier is hidden gets none.
+    explain = !h[:hide_tier]
     attributes = Array(d[:attributes_table]).map do |a|
-      save_tokens = Array(a.dig(:save, :tokens)).reject { |t| t[:conditional] }
-                                                .map { |t| [(t[:type] || 'Resistance').to_s, t[:amount].to_i] }
-      { key: a[:key].to_s, label: a[:attr], score: a[:score],
-        check: api_roll("#{a[:attr]} check", a.dig(:check, :dice), api_competency(a.dig(:check, :bonus))),
-        save:  api_roll("#{a[:attr]} save", a.dig(:save, :dice),
-                        api_competency(a.dig(:save, :bonus)) + save_tokens, ranks: a.dig(:save, :ranks)) }
+      row = { key: a[:key].to_s, label: a[:attr], score: a[:score],
+              check: api_roll("#{a[:attr]} check", a.dig(:check, :dice), api_competency(a.dig(:check, :bonus))),
+              save:  api_roll("#{a[:attr]} save", a.dig(:save, :dice),
+                              api_competency(a.dig(:save, :bonus)) + SheetMath.save_modifiers(a),
+                              ranks: a.dig(:save, :ranks)) }
+      next row unless explain
+      row.merge(math: SheetMath.attribute(a), check_math: SheetMath.check(a), save_math: SheetMath.save(acc, a))
     end
     skills = CreatureSheet.all_skills(acc).map do |s|
       r = CreatureSheet.skill_roll(acc, s[:key])
       roll = r ? { name: r[:roll_name], dice_count: r[:dice_count], tn: r[:tn], starting_value: r[:starting_value],
                    base_tn: r[:base_tn], bonus_penalty_list: r[:bonus_penalty_list], ranks: r[:ranks] } : nil
-      s.merge(roll: roll)
+      row = s.merge(roll: roll)
+      explain ? row.merge(math: SheetMath.skill(acc, s[:key])) : row
     end
     {
       ok: true,
@@ -81,7 +86,9 @@ helpers do
       tier: (h[:hide_tier] ? nil : h[:tier]),
       vitals: {
         hp: v[:hp], temp_hp: v[:temp_hp].to_i, mana: v[:mana], toxicity: v[:toxicity],
-        damage_reduction: v[:damage_reduction].to_i, damage_resilience: v[:damage_resilience].to_i
+        damage_reduction: v[:damage_reduction].to_i, damage_resilience: v[:damage_resilience].to_i,
+        combat_pool: v[:combat_pool].to_i,
+        math: (explain ? SheetMath.vitals(acc, v) : {})
       },
       speed: d[:speed], initiative_dice: d.dig(:initiative, :dice_count), perception: d[:perception],
       attributes: attributes, skills: skills,
@@ -165,6 +172,7 @@ helpers do
               name: sp[:display].to_s, kind: kind, tier: sp[:tier].to_i,
               skill: (rolled ? api_skill_view(skill, cap, sp[:competency]) : nil), speed: 0,
               category: api_category_for_cost(min), detail: parts.join(" \u00b7 "),
+              description: api_spell_description(sp[:name]),
               dice: rolled ? api_dice_choices(min..[cap, min - 1].max, pool) : [],
               pool_cost: rolled ? nil : min, mana_cost: sp[:mana_cost].to_i,
               # What the player must point it at: a creature (target picker),
@@ -216,6 +224,13 @@ helpers do
     end
 
     out << end_turn
+    # Reckless Attacks dice already spent: only weapon attacks are left this turn.
+    if (es.full_round_dice_spent?(combatant[:id]) rescue false)
+      out.each do |o|
+        next if o[:kind] == 'attack' || !%w[main minute].include?(o[:category].to_s)
+        o[:disabled_reason] ||= 'only weapon attacks are left (Reckless Attacks dice spent)'
+      end
+    end
     out.each { |o| o[:disabled] = !o[:disabled_reason].nil? }
     # A sound tied to the action (config/action_sounds.yml): the app offers a
     # button to play it on the device.
@@ -234,12 +249,37 @@ helpers do
     { width: m[:width], height: m[:height], image: m[:image],
       origin: (m[:grid] || {})[:origin] || [0, 0],
       tokens: snap[:tokens].map do |t|
-        { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id] }
+        { x: t[:x], y: t[:y], size: t[:size] || 1, label: t[:label], image: t[:image], combatant_id: t[:combatant_id],
+          color: t[:ring], tier: t[:tier] }
       end,
       terrain: snap[:terrain].map { |t| { shape: t[:shape_kind], points: t[:points], texture: t[:texture] } },
       fog: snap[:fog].map { |f| { shape: f[:shape_kind], points: f[:points] } } }
   rescue StandardError
     nil
+  end
+
+  # A Spell's catalog description (a tiered variant such as "Standard Shield"
+  # falls back to its base Spell's).
+  def api_spell_description(name)
+    v = (Abilities.lookup(name) rescue nil)
+    v = (Abilities.lookup(spell_base_axis(name).first) rescue nil) if v.nil? || v['description'].to_s.empty?
+    v && v['description'].to_s.strip
+  rescue StandardError
+    nil
+  end
+
+  # The newest app build on this server: phones older than it must update
+  # before they can play (docs/project/app_updates.md).
+  def api_app_release
+    rel = AppRelease.latest
+    rel && { version: rel[:version], commit: rel[:commit] }
+  end
+
+  # A token's ring: the dice colour of the player whose phone has that
+  # Character; anyone without one (monsters, unassigned Characters) is the DM's.
+  def token_color(creature_id, assigned)
+    who = assigned.include?(creature_id.to_s) ? creature_id.to_s : DiceColors::DM
+    DiceColors.instance.hex_for(who)
   end
 
   # In Combat as the players see it: combat running and the party's Phase is
@@ -306,7 +346,8 @@ get '/api/hello' do
            campaign: (Chronicle.store.campaign_name rescue nil),
            device: assignment_short_id(current_device_id),
            character: info ? { id: cid, name: info[:name] } : nil,
-           dice_color: info ? DiceColors.instance.hex_for(cid) : nil)
+           dice_color: info ? DiceColors.instance.hex_for(cid) : nil,
+           app: api_app_release)
 end
 
 # The player's dice colour and every colour on offer, with who has each
@@ -358,7 +399,12 @@ get '/api/initiative' do
     me = { combatant_id: mine[:id],
            pool: pool_max && { remaining: (es.combat_pool_remaining(mine[:id]) rescue 0), max: pool_max },
            main_actions_remaining: (es.main_actions_remaining(mine[:id]) rescue nil),
-           mana: v && v[:mana], toxicity: v && v[:toxicity] }
+           mana: v && v[:mana], toxicity: v && v[:toxicity],
+           # Full round attack (encounter_design.md): weapon attacks need no Main Action left.
+           weapon_attacks_only: es.weapon_attacks_only?(mine[:id]),
+           # How many creatures act before this one's next turn (0 on its own
+           # turn; nil when nobody is acting): the app's "3 creatures before you".
+           creatures_before: (es.turns_before(mine[:id]) rescue nil)&.uniq&.length }
   end
   key = mine && PlayerRequests.turn_key(es, mine[:id])
   map = api_target_map if api_in_combat?
@@ -505,7 +551,7 @@ end
 # docs/project/app_updates.md). Any device: an unassigned phone may update too.
 get '/api/app/latest' do
   rel = AppRelease.latest
-  api_json(ok: true, version: rel && rel[:version], size: rel && rel[:size], url: rel && '/api/app/apk')
+  api_json(ok: true, version: rel && rel[:version], commit: rel && rel[:commit], size: rel && rel[:size], url: rel && '/api/app/apk')
 end
 
 # The APK itself, for Settings → App updates on the phone.

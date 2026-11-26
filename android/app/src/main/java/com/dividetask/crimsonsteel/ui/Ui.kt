@@ -117,10 +117,12 @@ object Ui {
     fun makeTappable(v: View, ctx: Context, onTap: () -> Unit) {
         v.isClickable = true
         v.isFocusable = true
-        val attrs = intArrayOf(android.R.attr.selectableItemBackground)
-        val ta = ctx.obtainStyledAttributes(attrs)
-        v.foreground = ta.getDrawable(0)
-        ta.recycle()
+        // The pressed ripple needs Android 6 (View.foreground); older devices (Fire 7) go without.
+        if (android.os.Build.VERSION.SDK_INT >= 23) {
+            val ta = ctx.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
+            v.foreground = ta.getDrawable(0)
+            ta.recycle()
+        }
         v.setOnClickListener { onTap() }
     }
 

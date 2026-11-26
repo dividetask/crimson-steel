@@ -154,6 +154,8 @@ Sneak Attack:
 Reckless Attacks:
   type: talent
   required_condition: rage
+  # Only during a full round attack (encounter_design.md → Full round attack).
+  requires_weapon_attacks_only: true
   modifiers:
     - target: combat_pool
       type: Circumstance

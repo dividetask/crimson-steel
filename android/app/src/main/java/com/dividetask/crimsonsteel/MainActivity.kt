@@ -35,8 +35,8 @@ import com.dividetask.crimsonsteel.ui.Ui
 class MainActivity : Activity() {
 
     private enum class Tab(val label: String, val pollMs: Long) {
-        SHEET("Sheet", 5000),
         INITIATIVE("Initiative", 2000),
+        SHEET("Sheet", 5000),
         INVENTORY("Items", 5000),
         NOTES("Notes", 10000),
         SCENE("Scene", 5000),
@@ -44,7 +44,7 @@ class MainActivity : Activity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var root: FrameLayout
-    private var current = Tab.SHEET
+    private var current = Tab.INITIATIVE
     private var screen: LiveScreen<*>? = null
     private val tabViews = mutableMapOf<Tab, TextView>()
     private var headerName: TextView? = null
@@ -158,6 +158,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // The installer's answer can arrive after this screen was closed: it is reopened with it.
+        com.dividetask.crimsonsteel.net.AppUpdater.handleStatus(this, intent)?.let { updateStatus = it }
         Session.init(this)
         savedInstanceState?.getString(KEY_TAB)?.let { n -> Tab.entries.find { it.name == n }?.let { current = it } }
         root = FrameLayout(this).apply {
@@ -217,6 +219,13 @@ class MainActivity : Activity() {
             searching = false
             r.onSuccess { onHello(it) }
              .onFailure {
+                 if (!com.dividetask.crimsonsteel.net.LocalNetwork.onLocalNetwork(this)) {
+                     DebugLog.i(TAG, "not on Wi-Fi")
+                     showMessage("Not on Wi-Fi",
+                         "This device isn't connected to Wi-Fi. Connect it to the same Wi-Fi network as the DM's computer, then try again.",
+                         action = "Search again") { search() }
+                     return@onFailure
+                 }
                  val vpnHint = if (Session.vpnActive) {
                      "\n\nThis phone has a VPN or firewall app turned on (for example NetGuard). If it blocks " +
                          "Crimson Steel, allow the app in it, then try again."
@@ -233,13 +242,45 @@ class MainActivity : Activity() {
         Session.hello { r -> r.onSuccess { onHello(it) }.onFailure { onApiError(it) } }
     }
 
+    /** The update in progress on the "Update required" screen: what Android or the download last said. */
+    private var updateStatus: String? = null
+
+    /** The server's build is newer than this app: every tab waits until it is installed. */
+    private fun showUpdateRequired(version: String) {
+        showMessage("Update required",
+            updateStatus ?: "The server has Crimson Steel $version. Install it to keep playing.",
+            action = "Update to $version") {
+            com.dividetask.crimsonsteel.net.AppUpdater.start(this, version) { msg ->
+                updateStatus = msg
+                showUpdateRequired(version)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        com.dividetask.crimsonsteel.net.AppUpdater.handleStatus(this, intent)?.let { msg ->
+            updateStatus = msg
+            checkAssignment()
+        }
+    }
+
     private fun onHello(h: Hello) {
+        if (com.dividetask.crimsonsteel.net.AppUpdater.needsUpdate(h.app)) {
+            playing = false
+            showUpdateRequired(h.app!!.version)
+            handler.removeCallbacks(poll)
+            handler.postDelayed(poll, pollDelay())
+            return
+        }
+        updateStatus = null
         val c = h.character
         if (c == null) {
             playing = false
             showMessage("Connected to ${h.campaign.ifBlank { "Crimson Steel" }}",
                 "Waiting for the DM to assign this device a character.\n\n" +
-                    "DM: open the Status page on the server and assign device “${h.device}”.")
+                    "DM: open the Status page on the server and assign this device:",
+                big = h.device)
         } else if (!playing) {
             playingId = c.id
             showPlaying(c.name)
@@ -268,7 +309,9 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun showMessage(title: String, body: String, action: String? = null, onAction: (() -> Unit)? = null) {
+    /** [big]: shown large under the body (the device id the DM assigns by). */
+    private fun showMessage(title: String, body: String, action: String? = null, big: String? = null,
+                            onAction: (() -> Unit)? = null) {
         playing = false
         screen = null
         if (title != lastMessage) DebugLog.i(TAG, "screen: $title")
@@ -281,6 +324,13 @@ class MainActivity : Activity() {
             Ui.matchWidth())
         col.addView(Ui.text(this, body, 15f, Ui.TEXT_DIM).apply { gravity = Gravity.CENTER },
             Ui.matchWidth(Ui.dp(this, 10)))
+        if (big != null) {
+            col.addView(Ui.text(this, big, 44f, Ui.TEXT, bold = true).apply {
+                gravity = Gravity.CENTER
+                typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+                setTextIsSelectable(true)
+            }, Ui.matchWidth(Ui.dp(this, 14)))
+        }
         if (action != null && onAction != null) {
             col.addView(Button(this).apply { text = action; setOnClickListener { onAction() } },
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {

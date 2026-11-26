@@ -37,7 +37,7 @@ no magic toxicity, phase Downtime. Everything else is the example campaign.
     Thora `XXX9876543`, Orc 1 `XX98`, Ash `X99876543`, Orc 2 `X987`,
     Orc 3 `X986`, Lira `X9765432`, Orc 4 `9876`, Garroth `987543`.
 12. Check: the orcs are numbered Common Orc 1–4 on the tablets and on the
-    DM's Combat Tracker. *Fails until orc numbering lands (another thread).*
+    DM's Combat Tracker.
 13. Thora's tablet: Cast Standard Shield on Garroth. It rolls nothing, so it
     does not hold up her next request.
 14. Thora's tablet: Cast Spiritual Hammer on Common Orc 1. Spiritual Hammer

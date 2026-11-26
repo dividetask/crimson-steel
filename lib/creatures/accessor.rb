@@ -97,23 +97,40 @@ module Creatures
     end
 
     def max_hit_points
+      hit_points_breakdown[:total]
+    end
+
+    # The parts behind max_hit_points, for showing the math: the Tier's HP
+    # Formula, the values it read, and the hp_bonus Modifiers.
+    def hit_points_breakdown
       formulas = Creatures::Advancement.data['HP Formula'] || []
       t = tier
       raise "Tier #{t} beyond HP Formula range" if t >= formulas.length
       base = Creatures::Formula.eval(formulas[t], hp_formula_vars)
-      base + aggregated_modifiers(target: 'hp_bonus').sum { |m| m[:amount] }
+      modifiers = aggregated_modifiers(target: 'hp_bonus').sum { |m| m[:amount] }
+      { tier: t, formula: formulas[t], vars: hp_formula_vars, base: base,
+        modifiers: modifiers, total: base + modifiers }
     end
 
     def max_mana
+      mana_breakdown[:total]
+    end
+
+    # The parts behind max_mana: the Tier's Mana Base Formula, each leveling
+    # Class's mana_per_level × Class Level, and the mana_bonus Modifiers.
+    def mana_breakdown
       formulas = Creatures::Advancement.data['Mana Base Formula'] || []
       t = tier
       raise "Tier #{t} beyond Mana Base Formula range" if t >= formulas.length
       base = Creatures::Formula.eval(formulas[t], mana_formula_vars)
-      class_contrib = leveling_classes.sum do |key, entry|
+      classes = leveling_classes.map do |key, entry|
         cls = Creatures::Advancement.look_up_class(key) || {}
-        Integer(cls['mana_per_level'] || 0) * entry[:level]
+        per_level = Integer(cls['mana_per_level'] || 0)
+        { class_key: key, level: entry[:level], per_level: per_level, amount: per_level * entry[:level] }
       end
-      base + class_contrib + aggregated_modifiers(target: 'mana_bonus').sum { |m| m[:amount] }
+      modifiers = aggregated_modifiers(target: 'mana_bonus').sum { |m| m[:amount] }
+      { tier: t, formula: formulas[t], vars: mana_formula_vars, base: base, classes: classes,
+        modifiers: modifiers, total: base + classes.sum { |c| c[:amount] } + modifiers }
     end
 
     def trained_skills
@@ -128,13 +145,21 @@ module Creatures
     end
 
     def ranks_for(key)
+      rank_sources(key).sum { |s| s[:ranks] }
+    end
+
+    # Each leveling Class's part in ranks_for(key) (Ranks Computation):
+    # `category` is the Proficiency Category the Class gives the key, `rate`
+    # the one it advances at — nil for a Skill the Class Entry has not
+    # trained, which gets no ranks.
+    def rank_sources(key)
       key = key.to_s
-      if key == 'martial'
-        martial_ranks
-      elsif key.end_with?('_save')
-        save_ranks(key.sub(/_save\z/, '').to_sym)
-      else
-        skill_ranks(key)
+      always = key == 'martial' || key.end_with?('_save')
+      leveling_classes.map do |class_key, entry|
+        category = proficiency_category(class_key, key)
+        rate = always || trained?(class_key, key) ? category : nil
+        { class_key: class_key, level: entry[:level], category: category, rate: rate,
+          ranks: Proficiencies::Ranks.apply_rate(entry[:level], rate || :_none) }
       end
     end
 
@@ -304,35 +329,28 @@ module Creatures
       []
     end
 
-    def skill_ranks(skill_key)
-      leveling_classes.sum do |class_key, entry|
-        Proficiencies::Ranks.ranks_for_skill(class_key, entry[:level], skill_key, trained: trained?(class_key, skill_key))
-      end
-    end
-
-    def save_ranks(attr_key)
-      leveling_classes.sum do |class_key, entry|
-        cls = Creatures::Advancement.look_up_class(class_key) || {}
+    # The Proficiency Category a Class gives a key: Martial from
+    # `martial_advancement`, a Save from the Class's `saves` lists, a Skill by
+    # Skill Rate Resolution (as if trained). nil for a Skill of an unknown Class.
+    def proficiency_category(class_key, key)
+      cls = Creatures::Advancement.look_up_class(class_key) || {}
+      if key == 'martial'
+        (cls['martial_advancement'] || 'unaligned').to_sym
+      elsif key.end_with?('_save')
+        attr  = key.sub(/_save\z/, '')
         saves = cls['saves'] || {}
         # Aligned (fast) and Opposed (slow) are explicit; a Save Attribute in
         # neither list takes the Unaligned (medium) rate — so emptying a Class's
         # `saves.aligned` drops those Saves to Unaligned.
-        rate = if (saves['aligned'] || []).include?(attr_key.to_s)
-                 :aligned
-               elsif (saves['opposed'] || []).include?(attr_key.to_s)
-                 :opposed
-               else
-                 :unaligned
-               end
-        Proficiencies::Ranks.apply_rate(entry[:level], rate)
-      end
-    end
-
-    def martial_ranks
-      leveling_classes.sum do |class_key, entry|
-        cls = Creatures::Advancement.look_up_class(class_key) || {}
-        rate = (cls['martial_advancement'] || 'unaligned').to_sym
-        Proficiencies::Ranks.apply_rate(entry[:level], rate)
+        if (saves['aligned'] || []).include?(attr)
+          :aligned
+        elsif (saves['opposed'] || []).include?(attr)
+          :opposed
+        else
+          :unaligned
+        end
+      else
+        Proficiencies::Ranks.skill_rate(class_key, key, trained: true)
       end
     end
 
