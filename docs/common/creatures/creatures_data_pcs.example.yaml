@@ -163,12 +163,12 @@ characters:
               - healing_word
               - command
               - lesser_ward
-              - divine_favor
+              - lesser_divine_favor
               - shield_of_faith
               - magic_weapon
               - lesser_spiritual_weapon
               - hold_person
-              - silence
+              - standard_silence
               - blind
               - heal_simple_wounds
               - standard_ward

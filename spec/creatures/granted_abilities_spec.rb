@@ -27,8 +27,8 @@ RSpec.describe 'Creatures granted_abilities', type: :model do
   it 'cleric deity+domain resolves through deities.yaml' do
     a = Creatures::Accessor.new(korth)
     names = a.granted_abilities.map { |g| g[:name] }
-    # Karthak / War: Divine Favor, Shield of Faith, Lesser Spiritual Hammer, Silence
-    expect(names).to include('Divine Favor', 'Shield of Faith', 'Lesser Spiritual Hammer', 'Silence')
+    # Karthak / War: the Divine Favor and Silence series, Shield of Faith, Lesser Spiritual Hammer
+    expect(names).to include('Lesser Divine Favor', 'Shield of Faith', 'Lesser Spiritual Hammer', 'Standard Silence')
   end
 
   it 'source filter narrows to race only' do

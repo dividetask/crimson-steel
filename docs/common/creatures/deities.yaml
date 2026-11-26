@@ -95,10 +95,20 @@ Domains:
   Vengeance: {}
   War:
     spells:
-      - Divine Favor
+      - Trivial Divine Favor
+      - Lesser Divine Favor
+      - Standard Divine Favor
+      - Improved Divine Favor
+      - Advanced Divine Favor
+      - Superior Divine Favor
       - Shield of Faith
       - Lesser Spiritual Hammer
-      - Silence
+      - Trivial Silence
+      - Lesser Silence
+      - Standard Silence
+      - Improved Silence
+      - Advanced Silence
+      - Superior Silence
       - Trivial Spiritual Shield
       - Lesser Spiritual Shield
       - Standard Spiritual Shield

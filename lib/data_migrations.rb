@@ -24,7 +24,12 @@ module DataMigrations
     # Shield for everyone else, both on the Trivial / Lesser / Standard ladder;
     # Spiritual Weapon / Hammer became Tier 1 "Lesser" spells.
     '2026-11-25-shield-and-spiritual-weapon-renames' => lambda do
-      DataMigrations.rename_known_spells!
+      DataMigrations.rename_known_spells!(SPELL_RENAMES, shields: true)
+    end,
+
+    # Silence (was Tier 2) and Divine Favor (was Tier 1) became Tier 0-5 series.
+    '2026-11-26-silence-and-divine-favor-series' => lambda do
+      DataMigrations.rename_known_spells!(SERIES_RENAMES)
     end
   }.freeze
 
@@ -37,12 +42,17 @@ module DataMigrations
     'spiritual_weapon' => 'lesser_spiritual_weapon',
     'spiritual_hammer' => 'lesser_spiritual_hammer'
   }.freeze
+  SERIES_RENAMES = {
+    'silence'      => 'standard_silence',
+    'divine_favor' => 'lesser_divine_favor'
+  }.freeze
 
   module_function
 
   # Renames old spell keys in every data/ Creature's `choices.spellcasting`.
   # Matches snake_case keys and display names ("Standard Shield") alike.
-  def rename_known_spells!
+  # `shields:` also applies the class-dependent SHIELD_RENAMES.
+  def rename_known_spells!(renames, shields: false)
     ds = Creatures::Dataset
     changed_sources = []
     names = []
@@ -55,8 +65,8 @@ module DataMigrations
         school = class_key == 'cleric' ? 'spiritual' : 'arcane'
         renamed = picks.map do |p|
           key = p.to_s.strip.downcase.tr(' ', '_')
-          if SHIELD_RENAMES[key] then format(SHIELD_RENAMES[key], school)
-          elsif SPELL_RENAMES[key] then SPELL_RENAMES[key]
+          if shields && SHIELD_RENAMES[key] then format(SHIELD_RENAMES[key], school)
+          elsif renames[key] then renames[key]
           else p
           end
         end

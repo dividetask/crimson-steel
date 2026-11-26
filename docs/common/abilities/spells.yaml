@@ -359,12 +359,38 @@ Command:
 
 Divine Favor:
   type: spell
-  tier: 1
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
   school: pneumancy
   activation_time: bonus
   range: Touch
   target: object
   duration: "1 turn"
+  variant_overrides:
+    - duration: "1 attack"
+      description: "Adds the Radiant weapon enchantment to the touched weapon for its next attack."
+    - null
+    - duration: "rank turns"
+      description: "Adds the Radiant weapon enchantment to the touched weapon for rank turns."
+    - duration: "rank turns"
+      modifiers:
+        - { target: attack, type: Guidance, add: 1 }
+        - { target: damage, type: Guidance, add: 1 }
+      description: "Adds the Radiant weapon enchantment and a +1 Guidance bonus to attack and damage to the touched weapon for rank turns."
+    - range: Close
+      target: "20"
+      duration: "rank turns"
+      modifiers:
+        - { target: attack, type: Guidance, add: 1 }
+        - { target: damage, type: Guidance, add: 1 }
+      description: "Adds the Radiant weapon enchantment and a +1 Guidance bonus to attack and damage to every ally's weapon within range for rank turns."
+    - range: Close
+      target: "20"
+      duration: "rank turns"
+      modifiers:
+        - { target: attack, type: Guidance, add: 1 }
+        - { target: damage, type: Guidance, add: 1 }
+      description: "Adds the Radiant weapon enchantment and a +1 Guidance bonus to attack and damage to every ally's weapon within range for rank turns. An undead or fiend hit by a blessed weapon must make a Wisdom save or be turned."
   description: "Adds the Radiant weapon enchantment to the touched weapon until the end of the turn. Radiant is an Equipment weapon enchantment analogous to Flaming; it adds radiant damage to attacks made with the weapon."
 
 Shield of Faith:
@@ -490,25 +516,53 @@ Hold Person:
 
 Silence:
   type: spell
-  tier: 2
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
   school: resonance
   range: Medium
   target: "1"
+  # Tier 2+: a creature target saves; an area (or object) anchor silences
+  # everyone inside with no save.
   area:
     shape: circle
     size: 4
     anchor: target
     on_enter:
-      - attribute: wis
+      - attribute: none
         fail: silenced
-        success: "0"
   save:
     - attribute: wis
       fail: silenced
       success: "0"
-  duration: "rank turns"
+  duration: "rank minutes"
   skills: [perform_]
-  description: "Complete silence prevails in a 20-foot radius sphere centered on the target. The area moves with the target. No sound issues from, enters, or passes through the area; verbal-component spells cannot be cast. An unwilling creature target attempts a Wisdom save to negate the spell. Items in a creature's possession or magic items that emit sound receive the benefit of the target's save."
+  variant_overrides:
+    - range: Close
+      area: null
+      duration: "rank turns"
+      channel:
+        mode: fire
+        apply_on_cast: true
+        save:
+          - attribute: wis
+            fail: silenced
+            success: "0"
+        description: "Make a casting check against the target's Wisdom save. If you win, the target is silenced until your next turn; if you lose, the spell ends."
+      description: "Concentrate on one creature within range. Each turn make a casting check against its Wisdom save: if you win it is silenced until your next turn; if you lose the spell ends."
+    - range: Close
+      area: null
+      duration: "rank turns"
+      description: "One creature within range makes a Wisdom save or is silenced for rank turns: it cannot speak or cast spells with verbal components."
+    - null
+    - range: Long
+      description: "Complete silence fills a 20-foot radius sphere centered on a creature, object or point within range, for rank minutes. A targeted creature or object carries the area with it. A creature target makes a Wisdom save to negate the spell; creatures inside an area cast on a point or object get no save. No sound issues from, enters, or passes through the area; verbal-component spells cannot be cast."
+    - range: Long
+      description: "As Improved Silence, and scrolls and wands cannot be used inside the area."
+    - range: Long
+      area: null
+      target: "20"
+      description: "Every enemy spellcaster in sight makes a Wisdom save or is silenced for rank minutes: it cannot speak or cast spells with verbal components."
+  description: "Complete silence fills a 20-foot radius sphere centered on a creature or point within range, for rank minutes. A targeted creature carries the area with it and makes a Wisdom save to negate the spell; creatures inside an area cast on a point get no save. No sound issues from, enters, or passes through the area; verbal-component spells cannot be cast."
 
 Standard Surgery:
   type: spell
