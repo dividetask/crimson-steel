@@ -1,5 +1,11 @@
+@chapter 5 Characters
+
 # Creatures — Design
 
+@player
+The first four chapters were the engine: Tier, dice, Checks, and the state a Creature carries from moment to moment. This chapter is about the Creature itself — what it was born as, what it has trained to be, and how those choices become the numbers every other chapter reads. A **Creature** is anything the rules can act on: your character, the innkeeper, the ogre in the cave. All are built from the same parts and obey the same rules; a monster is simply a Creature the DM runs.
+
+@implementation
 Owns the Creature record: identity, Race + Aspect, Classes + Levels + Trained Skills + per-Class Choices, Tier Override, Tier Attribute Advancements, Group, Tags. Computes Tier, Effective Attributes, Speed, ranks for any proficiency key, Granted Abilities, and aggregated `modifiers:` from those Abilities. Produces a Creature Accessor that other domains read through.
 
 Sibling domains:
@@ -9,6 +15,212 @@ Sibling domains:
 - **Conditions** holds per-Creature mutable state (HP damage, Ability Damage, Effects, etc.). The Creatures record is the *baseline*; Conditions' state layers on top at the consuming domain. Death checks read Creatures' attribute scores and max HP through the Accessor.
 - **Abilities** is the source of truth for what each Granted Ability does. Creatures hands ability names back to callers; mechanical detail is looked up through Abilities.
 - **Equipment** does not appear in this design — equipment is associated with a Creature through Creature ID at the Equipment level, not stored on the Creature record.
+
+## What a Creature is
+
+@player
+Every Creature is described by five things:
+
+- a **Name** and a **Player** — a Creature with no Player is run by the DM;
+- a **Race** — what it was born as;
+- six **Attributes** — the scores introduced in the Magical Tier chapter;
+- its **Classes** — what it has trained as, with a level in each;
+- its **Tags** — short labels for the kind of Creature it is (player character, hero, noble, commoner, animal), which decide how quickly its levels become Tier.
+
+Everything else on a character sheet — Tier, Hit Points, Mana, Speed, ranks, abilities — is worked out from those five. This chapter gives the baseline; wounds, spent Mana and passing effects (the Conditions chapter) and gear (the Equipment chapter) are layered on top.
+
+## Creating a character
+
+@player
+A new Player Character begins with one level in one Class. Take these steps in order — later steps read the results of earlier ones.
+
+1. **Buy your Attributes.** All six start at the same value and are raised or lowered from one shared pool of points. Each score has a total price — negative below the starting value, so lowering one can pay for raising another — and none may leave the allowed range. The starting value, pool, range and prices are the **Attribute Allocation** rules.
+2. **Choose a Race** from the **Playable Races**; its adjustments apply on top of the scores you bought.
+3. **Choose a Class** from the Class list.
+4. **Train your Skills.** Your **Skill Pick Budget** is `{{Skill Pick Formula}}`, where *int* is your Effective Intelligence and the bonus-skills term comes from your Class. Train that many Skills — any Skill, though your Class decides how fast each grows. A Skill that is really a family (a craft, a profession, a kind of performance) is trained one member at a time.
+5. **Choose your spells**, if your Class casts them (see *Classes and levels*).
+6. **Choose a deity and domains**, if you are a Cleric (see *Deities and domains*).
+7. **Equip yourself** from the Equipment chapter.
+8. **Work out the rest** — Tier, Effective Attributes, Hit Points, Mana, Speed, ranks and Granted Abilities — as the remainder of this chapter describes.
+
+The DM, not the sheet, enforces the budgets in steps 1 and 4.
+
+## Attributes, from base to Effective
+
+@player
+The scores you bought are your **Base Attributes**. The rules use the **Effective Attribute** — wherever this book names an Attribute, that is what it means. Build it in order:
+
+1. Start from the Base Attribute.
+2. Add your Race's adjustment, if any.
+3. Add the **Inherent bonus** for your Tier, which every Attribute receives.
+4. Add {{Per-Tier Inherent Chosen Bonus Amount}} for each time you have picked that Attribute as a **chosen bonus** (both bonuses are explained under *Tier*).
+5. A total below 1 becomes 1.
+
+A base Strength of 14, a Race that adds 2, and Strength picked once as a chosen bonus make an Effective Strength of 14 + 2 + the Tier's Inherent bonus + {{Per-Tier Inherent Chosen Bonus Amount}}.
+
+Magic items and passing conditions that change an Attribute act on the Effective Attribute while they last (the Equipment and Conditions chapters).
+
+## Races
+
+@player
+A **Race** is what a Creature was born as. It gives four things:
+
+- **Size** — its size category.
+- **Speed** — how far it moves, in feet.
+- **Attribute adjustments** — bonuses and penalties to particular Attributes.
+- **Abilities** — inborn traits, from resistance to poison to natural weapons. An ability may name a Tier; the Creature has it once its own Tier is that high.
+
+Races come in families: a sub-race **inherits** from its parent, which may inherit in turn — a Hill Dwarf is a Dwarf, and a Dwarf is a Humanoid. Size and Speed come from the most specific Race in the line that states one. Attribute adjustments add up along the line. Abilities are gathered from the whole line, and where a sub-race and an ancestor name the same ability the sub-race's version counts.
+
+A Player Character's Race must be one of the **Playable Races**. The broad parents only carry what their sub-races share: you play a Hill Dwarf or a Mountain Dwarf, never simply "a Dwarf". Every other Race — orcs, wolves, trolls — is for the DM's Creatures and is made of the same four parts.
+
+## Classes and levels
+
+@player
+A **Class** is a path of training. A Creature holds a **Class Level** in each of its Classes; their sum is its **Total Class Level**. A Class sets:
+
+| A Class sets | Meaning |
+|---|---|
+| **Martial advancement** | How quickly its levels build general combat training. |
+| **Saves** | How quickly its levels build each of the six Saving Throws. |
+| **Skills** | Which trained Skills it advances quickly or slowly, and how many bonus Skills it adds to the Skill Pick Budget. |
+| **Mana per level** | Mana added for every level held in the Class. |
+| **Abilities by level** | The class features gained at each Class Level. |
+| **Spell selection** | For a casting Class, how its spells are chosen. |
+
+The Class list gives all of this for every Class, level by level.
+
+A casting Class chooses its spells in one of these ways: a **number of spells** that grows with Class Level; a **number of spells of each Spell Tier**, read from the Class's table; a pool of **points** that grows with Class Level, each spell costing points by its Tier; **domains**, chosen with a deity in place of individual spells; or **everything of a kind** — every spell cast with the Class's own casting Skill. A Class may also limit its choices to spells cast with a particular Skill. Spells and casting are the subject of the Magic and Abilities chapter.
+
+### Gaining levels and multiclassing
+
+@player
+A new level goes into one of your Classes — one you hold, or a new one. Then update everything that reads Class Level: your ranks, your Mana, the class features listed at the new level, the spells your Class's selection rule now allows, and your Tier if your Total Class Level has reached a breakpoint. Two things do not move: the Skill Pick Budget does not grow with Class Level (trained Skills advance further instead), and Hit Points rise with Tier and Constitution, never with level.
+
+A Creature with several Classes keeps a separate level, trained Skills and spell choices for each, and adds their contributions together: ranks and Mana sum across Classes, and it has every feature each Class grants at the level held in that Class. Tier reads the Total Class Level; a feature that grows with level reads the level of the Class that granted it.
+
+### Taking an Archetype
+
+@player
+An **Archetype** is a specialised form of a Class, its **Parent Class**. A Creature takes an Archetype in place of its Parent Class once it reaches the Archetype's eligibility level: every level held in the Parent Class becomes a level in the Archetype, and new levels are taken there from then on. An Archetype is never chosen at character creation.
+
+An Archetype keeps whatever its Parent Class sets unless it states its own value. Its class features are added to the parent's at each level, and any Skills it names adjust the parent's lists; neither replaces them.
+
+- A Creature cannot hold levels in both a Class and one of its Archetypes, nor in two Archetypes of the same Parent Class.
+- An Archetype may be combined freely with any Class that is not its parent.
+
+## Tier
+
+@player
+Tier — the magical density of the Magical Tier chapter — is not chosen; it follows from Total Class Level. Each kind of Creature has a list of **Tier Breakpoints**: the Total Class Level at which it reaches each Tier. A Creature's Tier is the highest Tier whose breakpoint its Total Class Level has reached.
+
+Its tags decide which list it reads; player characters, heroes, bosses, nobles, commoners and animals each have one. Tags that match several lists use whichever gives the highest Tier; tags that match none use whichever gives the lowest. The DM may instead simply set a Creature's Tier — a **Tier Override** — and the breakpoints are ignored.
+
+| | Tier by Tier |
+|---|---|
+| Tier | {{Tiers}} |
+| Inherent bonus to every Attribute | {{Tier Minimum Inherent Bonus}} |
+| Chosen bonuses picked on reaching the Tier | {{Tier Inherent Chosen Bonus Count}} |
+
+A new Tier changes a great deal at once:
+
+- **Inherent bonus.** Every Attribute carries the bonus for your current Tier, which replaces the previous Tier's rather than adding to it.
+- **Chosen bonuses.** On reaching a Tier that grants them, pick that many Attributes; each rises by a further {{Per-Tier Inherent Chosen Bonus Amount}} for good. You may not pick the same Attribute twice at one Tier, but may pick it again at a later one. A pick not yet made simply does not apply.
+- **Hit Points and Mana** follow formulas that change with Tier (below).
+- **Turns.** At the higher Tiers a Creature acts more than once in a Round (the Combat chapter).
+- **Everything else that reads Tier** — your Toxicity Threshold, how quickly you heal, how you fare against an opponent of another Tier — moves with it.
+
+## Ranks: Skills, Saves and Martial
+
+@player
+**Ranks** measure training. The Skills chapter turns them into dice; here is where they come from. Class Levels give ranks at one of three speeds, the **Proficiency Categories**: **Aligned** (fast — what the Class specialises in), **Unaligned** (ordinary) and **Opposed** (slow — what it neglects). How many ranks each gives at each Class Level is set by the **Proficiency Advancement Rates** in the configuration table at the end of this chapter; the Class list prints the result level by level.
+
+For each of your Classes, find the category it gives, read off the ranks for your level in that Class, and add the results across Classes.
+
+- **Skills.** A Skill gains ranks from a Class only if you trained it in that Class, at the category that Class gives it. Some Classes name the few Skills they advance fast and treat the rest as ordinary; others name the few they treat as ordinary and advance all the rest fast.
+- **Saves.** Every Class trains every Save: each of the six Saving Throws gains ranks from every Class you hold, at the category that Class gives that Save.
+- **Martial.** General combat training gains ranks from every Class you hold, at that Class's Martial advancement.
+
+## Hit Points, Mana and Speed
+
+@player
+**Maximum Hit Points** depend on Constitution and Tier alone. Each Tier has its own **HP Formula**, written in terms of your Effective Constitution; work it out for your Tier and round down. A Creature becomes harder to kill by gaining a Tier or raising its Constitution, not by gaining levels.
+
+**Maximum Mana** is two parts added together: the **Mana Base Formula** for your Tier, written in terms of your Effective Intelligence and rounded down; and, for each of your Classes, its Mana per level multiplied by your level in it.
+
+**Speed** is your Race's Speed; a line that states none uses the default base Speed. Speed is never less than zero.
+
+Abilities that add to one of these numbers say so, and follow the stacking rule of the Dice Resolution chapter: of several of the same Type, only the largest bonus and the largest penalty count. How much of your Hit Points and Mana is *left* is the Conditions chapter's subject.
+
+## What your Race and Classes grant
+
+@player
+A Creature's **Granted Abilities** are everything it can do beyond the basic rules. Gather them from:
+
+- **its Race** — every racial ability whose Tier it has reached;
+- **its Class Levels** — every class feature listed at or below its level in each Class, an Archetype's included;
+- **its Classes themselves** — the spells a Class teaches all its members;
+- **its chosen spells** — once the Class has granted its spellcasting feature;
+- **its deity and domains**, for a Cleric.
+
+An ability gained twice is still one ability. One that grows with level reads the level of the Class that granted it; a racial ability reads Tier, and in any formula Tier 0 counts as 0.5. What each ability does is on the Class and Spell lists and in the Magic and Abilities chapter.
+
+### Deities and domains
+
+@player
+A Cleric draws power from a deity. Every deity favours certain **domains**, and holds certain others **anathema**. A Cleric chooses one deity and three domains:
+
+- Any domain may be chosen except one that is anathema to the deity.
+- Every chosen domain grants its domain spells.
+- A chosen domain that the deity favours also grants that domain's **Channel Divinity**.
+- At Cleric level 4, the Cleric also gains the deity's own Channel Divinity.
+
+The deities, their domains, and what each domain grants are set out in the Deities and Domains catalog.
+
+## For the DM — NPCs and monsters
+
+@player
+Everything above applies unchanged to the Creatures you run: an innkeeper, a bandit captain and a troll are each a Race, six Attributes, and usually some Class Levels. What differs is the setting up.
+
+- **Tags set the pace.** Tag a Creature for what it is — hero, boss, noble, commoner, animal — and its levels become Tier on that list, so the same levels can mean a different Tier for a commoner than for a hero.
+- **Or set the Tier outright** with a Tier Override, for a Creature whose power does not come from training.
+- **NPC classes** exist only for your Creatures. They work like any other Class but are never offered to players.
+- **Any Race** may be used, not only the playable ones. A beast is a Race whose natural weapons are among its racial abilities.
+- **Hidden Tier.** You may keep a Creature's Tier secret; it still drives every number.
+- **A quick monster** needs only a name, a Race and six Attributes — plus, if wanted, a Class and level, a Tier Override and a few trained Skills.
+
+## For the DM — Templates and spawning
+
+@player
+Keep a Creature you expect to reuse as a **template**: a complete Creature that never enters play itself. When you need one, **spawn** a copy. Each copy is its own Creature with its own wounds and gear; copies are numbered so no two share a name, and are discarded once the fight and its looting are over.
+
+A template may leave some facts open, to be rolled once for each copy:
+
+- **Race** — a list of Races, each with a chance.
+- **Class** — a list of Classes, each with a chance and a level; a cleric's entry may name pools from which its domains are drawn without repeats.
+- **Trained Skills** — a list of candidates: shuffle it and train as many, from the top, as the copy's Skill Pick Budget allows.
+- **Chosen bonuses** — picks drawn at random from a list of Attributes; here the same Attribute may come up twice.
+- **Gear** — one table for the copy's weapons, armour and pocket change, another for what it drops when it falls (the Equipment chapter).
+
+To roll on a list of chances, roll a percentage with two d{{Die Size}}s — one for the tens, one for the ones, reading a {{Die Size}} as zero and a double zero as one hundred — then read down the list, adding the chances as you go. The first entry whose running total reaches your roll is the result; if the chances total less than one hundred per cent, the last entry takes what is left.
+
+## For the DM — Random encounter tables
+
+@player
+A **Random Encounter Table** builds a group of Creatures for you. Read its rows from top to bottom. Each row names templates and how many copies of each to spawn, and is one of these kinds:
+
+- **Guaranteed** — it always happens.
+- **Chance** — roll a percentage; it happens if the roll is no higher than its chance.
+- **Weighted choice** — several results, each with a chance, rolled like the lists above; a roll past the last entry means nothing happens.
+
+A row may be made conditional on an earlier row, and is skipped without rolling unless that row happened.
+
+The number of copies is a plain number or a dice expression — so many dice of a stated size, plus or minus a fixed amount, such as two four-sided dice plus one — rolled when the row happens. A row may also give its copies a different name or a different table of drops. Nothing joins a fight until you put it there (the Combat chapter).
+
+## What lives in the next chapter
+
+@player
+This chapter ends with a Creature and its ranks. The next chapter, **Skills**, turns ranks and Attributes into dice: the Skill list, Prowess, the Dice Cap, and what it costs to attempt something you never trained.
 
 ## Common types
 

@@ -22,6 +22,13 @@ Reaction Action Minimum: 2
 Bonus Action Minimum: 2
 Main Action Minimum: 4
 
+# Combat Pool dice a Move costs. A Move is a Main Action.
+Move Cost: 4
+
+# Combat Pool dice it costs to point a sustained Spell at a new target.
+# Retargeting is a Main Action.
+Retarget Cost: 4
+
 Flatfooted Bonus:
   type: Circumstance
   amount: 1
@@ -36,6 +43,10 @@ Helpless Bonus:
 
 Flatfooted Suppressors:
   - uncanny_dodge
+
+# Damage a Creature ignores for each Tier it stands above the source of
+# the damage (Tier 0 counts as 0.5; the product is rounded down).
+Inherent Damage Reduction Per Tier: 5
 
 Set Value Spend Ratio: 1   #DELETE ME
 

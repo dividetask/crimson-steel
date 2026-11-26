@@ -257,7 +257,7 @@ The HP track is the sum of all Severities of HP damage. The Ability track is per
 
 @player
 
-The chapters above are the engine. Future chapters will cover the players and the world that engine runs: Creatures (the attribute scores, Tiers, and Mana Max that Conditions reads), Abilities (the catalog that names what an effect *means*), Combat (Damage Severity decisions, Initiative, turn structure), Magic (Toxicity Sources, Mana costs), and Atlas (Maps, Tokens, Zone Effects). Each one composes against the same Roll → Check → Condition vocabulary you've now seen end to end.
+The chapters so far are the engine. The rest of the book covers the people and the world that engine runs: **Characters** (the attribute scores, Tiers, and Mana Max that Conditions reads), **Skills**, **Equipment**, **Combat** (Damage Severity decisions, Initiative, turn structure), **Magic and Abilities** (what an effect *means*, Mana costs, Toxicity Sources), **Time and the Calendar**, **The Map** (Maps, Tokens, Zone Effects), and **The Chronicle**. Each one composes against the same Roll → Check → Condition vocabulary you've now seen end to end.
 
 ## Common types
 

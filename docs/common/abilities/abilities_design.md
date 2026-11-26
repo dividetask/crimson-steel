@@ -1,5 +1,11 @@
+@chapter 9 Magic and Abilities
+
 # Abilities — Design
 
+@player
+Everything a Creature can do beyond swinging a weapon or testing a Skill is an **Ability**: a wizard's Spells, a barbarian's rage, a rogue's sneak attack, the venom in a spider's bite. This chapter gives the rules they all share. The Spells themselves are on the Spell list, and each Class's Abilities are on the Class list.
+
+@implementation
 The Abilities module is a strict **reference**: it answers "what does this Ability do?" in a form other modules can consume. It rolls no dice, tracks no active effects, and consumes no resources.
 
 Sibling domains:
@@ -7,6 +13,222 @@ Sibling domains:
 - **Combat** owns the action paths that Triggers fire during, and the geometry of `area`. Combat also computes implicit damage from attack rolls when no damage Effect is declared. Combat reads Bonus Type stacking rules when summing modifier totals on a Combatant.
 - **Dice Resolution** owns Roll mechanics; this module's deferred-damage Formulas are evaluated by callers after the relevant Roll.
 - **Creatures** aggregates `modifiers:` entries across earned Abilities into the Creature's effective bonus totals.
+
+## What an Ability is
+
+@player
+An Ability is either a **Spell** — shaped magic with a Tier and a School, paid for in Mana and cast with a casting Skill — or a **Talent**, which is everything else: a Class feature, a racial gift, a monster's natural weapon.
+
+Abilities work in four ways. An **active** Ability takes an action, and usually Mana or dice. A **passive** one is always on: a standing Bonus to Speed, to a Skill, to damage reduction. A **triggered** one fires by itself during another action when its Trigger is met. A **Reaction** answers what someone else is doing, on their turn.
+
+A Creature's Abilities come from its **Race** (some wake only at a higher Tier), its **Class levels**, the **Spells it has chosen** through a Class's spellcasting, a Cleric's **deity and domains**, and its **items**: a Wand lends its Spell while held, and some rings and tattoos grant an Ability outright.
+
+## Reading a Spell
+
+@player
+Every Spell on the Spell list is described by the same entries.
+
+| Entry | What it tells you |
+|---|---|
+| **Tier** | The Spell's magical density ({{Tiers}}). It sets the Mana cost and adds to the casting check. Tier 0 counts as 0.5 in formulas. |
+| **School** | Its discipline. The Schools are listed under **Spell Schools** in the configuration table at the end of this chapter. |
+| **Casting Skills** | The Skills that can cast it — Arcana if none is named — plus the universal casting Skill ({{Universal Spell Casting Skills}}), which can cast anything. |
+| **Activation time** | A Main Action unless stated; otherwise Bonus, Reaction, Free, a full turn, several turns, or minutes and more. |
+| **Range** | Self, Touch, Close, Medium, Long, or a distance in feet. |
+| **Target** | Yourself, an object, or a number of creatures. A *willing* Spell does nothing to a creature that refuses it. |
+| **Area** | A shape and a size on the map, for Spells that fill a space. |
+| **Duration** | Instant, a length of time, permanent, or "concentration". |
+| **Save** | The Attribute the target saves with, and the result of a failed, a successful and sometimes a fumbled save. |
+| **Attack roll** | The Spell is aimed like a weapon and answered with a Defensive Action, not a save. |
+| **Damage Type** | Sets the Severity of its damage and any side effects (see **Combat**). |
+
+Some Spells add a **prerequisite** (a lower Spell you may need to know first), a **property** such as *language-dependent* (a target that cannot understand you is unaffected), or the **item forms** the Spell may take.
+
+### Rank and Variants
+
+@player
+Many entries scale with your **Rank**: your Proficiency Ranks in the Skill you cast with (see **Skills**). "Rank turns" is one turn per Rank, and "1 + Rank" targets grows as you train. Ranges scale too. **Touch** is your reach ({{Default Reach Feet}} feet unless something lengthens it), while **Close**, **Medium** and **Long** each add a set distance per Rank to a base — the **Range Formulas** in the configuration table.
+
+A Spell may come in **Variants**. One with a Tier axis is a ladder of Spells: Heal exists at every Tier, each version stronger and separately named. One with an **Aspect** axis is a single Spell in several flavours: Elemental Dart as fire, acid, electricity or cold. Each Variant has its own line on the Spell list, and you learn and cast the Variant, not the family.
+
+## Learning Spells
+
+@player
+How you gain Spells depends on your Class, and the Class list has the numbers. A Class uses one of five patterns: a pool of **points** that grows with level, each Spell costing points by its Tier; a **count** of Spells known; a count **for each Spell Tier**; a **deity and domains** that bring their own Spells; or **every** Spell of the Class's tradition, automatically. A Class may also limit which Spells qualify and fix the Skill they are cast with — a Cleric's domain Spells always use Invocation, a Bard's a Perform Skill.
+
+## Casting a Spell
+
+@player
+A cast is a Check (see **Check Resolution**): your casting Roll is the Initiating Roll, and the target's resistance is the Defending Roll.
+
+1. **Pay the Mana.** A Spell costs Mana by its Tier — the **Mana Cost Per Tier** entry in the configuration table. Without the Mana you cannot cast.
+2. **Choose the casting Skill** from those the Spell allows. It supplies your Dice Cap, Competency and Rank for this cast.
+3. **Commit dice.** Roll at least the Action Minimum for the Spell's activation — {{Main Action Minimum}} dice for a Main Action, {{Bonus Action Minimum}} for a Bonus Action, {{Reaction Action Minimum}} for a Reaction — and at most the Skill's Dice Cap. In a fight, every die committed is spent from your Combat Pool.
+4. **Find your Target Number.** Start at the Base TN of {{Base Target Number}} and apply the Skill's **Competency**, your **Inherent** Bonus, and a **Guidance** Bonus equal to the Spell's Tier (none at Tier 0).
+5. **The target answers** with a Saving Throw or a Defensive Action, as the Spell dictates.
+6. **Roll.** Your DoIS minus the target's is the Degree of Success. The cast succeeds when it reaches the Default Success Threshold of {{Default Success Threshold}}.
+
+The Mana and the dice are spent whether or not the Spell takes hold.
+
+Not every Spell is rolled. One with no save, no attack roll and no damage simply works, and costs exactly its Action Minimum in Combat Pool dice. One that stores its dice in a Reservoir (see *Channeling and Concentration*) pours the dice from step 3 into it instead of rolling them. One that only counts Successes with nobody resisting — a healing Spell staunching a wound — is rolled unopposed.
+
+### Saves and spell attacks
+
+@player
+A Spell with a **save** is resisted by a Saving Throw in the Attribute it names — a Wisdom save, a Dexterity save. The target rolls its full Dice Cap for that save, and a Saving Throw never costs Combat Pool. Bonuses and Penalties cross between the two Rolls as in any opposed Check, Inherent included, so Ascendancy applies when your Tiers differ.
+
+- If the cast succeeds, the target has **failed** its save and takes the Spell's *fail* result.
+- Otherwise the target has **saved** and takes the *success* result: often nothing, sometimes a lesser effect, sometimes the full effect **halved**.
+- A *fumble* result, where the Spell lists one, replaces the fail result when the save's Degree of Failure reaches the Default Fumble Threshold of {{Default Fumble Threshold}}.
+
+A Spell with an **attack roll** is an attack. The target may answer with a Defensive Action — a Dodge, or a Block if it carries a shield; a Spell cannot be parried — paying Combat Pool as usual, or stand undefended. A cast that succeeds is a hit.
+
+Effects an entry lists outside its save apply however the save goes. Some lasting Spells let the victim **shake them off**: on its own turn it spends the action the Spell names to save again, and success ends the effect.
+
+### Spell damage
+
+@player
+A damaging Spell that states a formula uses it. One that states none deals the **default Spell damage**. Add together:
+
+- floor(casting Attribute / 4), using the Attribute behind the Skill you cast with;
+- the Spell's Tier (Tier 0 counts as 0.5);
+- that Skill's Competency, which therefore counts for the Roll and for the damage;
+- your Successes: for a save Spell, your casting Roll's DoIS; for an attack-roll Spell, the Degree of Success of the hit.
+
+Round the total down. A successful save against default damage halves it. What remains is reduced and sorted into Severities like any other damage (see **Combat**).
+
+To **halve** a result, halve each Severity's amount separately, rounding down. A point lost to rounding drops one Severity step — Major to Moderate, Moderate to Minor — and only a leftover Minor is lost; dropped points are not halved again. Halving 1 Major, 1 Moderate and 3 Minor leaves 1 Moderate and 2 Minor.
+
+### Worked example — a compulsion
+
+@player
+Mira casts a Tier 1 enchantment that compels its target on a failed Wisdom save. Her target is a guard.
+
+- She pays the Tier 1 Mana cost and casts with Arcana, in which she has a Dice Cap of {{Minimum Dice Count + 2}} and Competency +1. The Spell is a Main Action, so she must commit at least {{Main Action Minimum}} dice; she commits all {{Minimum Dice Count + 2}}, and they leave her Combat Pool.
+- Her Roll carries Competency +1, her Inherent +1 and Guidance +1 for the Spell's Tier.
+- The guard rolls his full Wisdom-save Dice Cap, {{Minimum Dice Count + 1}} dice, at no cost. He has Competency +1 and Inherent +1.
+- His two Bonuses cross to Mira as Penalties and cancel her own Competency and Inherent, leaving her Guidance: she rolls at TN {{Base Target Number - 1}}. Her three Bonuses cross to him, and his own two cancel all but the Guidance: he rolls at TN {{Base Target Number + 1}}. Their Inherents match, so there is no Ascendancy.
+- Mira scores a DoIS of {{Default Success Threshold + 2}} and the guard a DoIS of 1, for a Degree of Success of {{Default Success Threshold + 1}}. That reaches the Default Success Threshold: the guard fails his save and is compelled.
+
+## Area Spells
+
+@player
+A Spell with an **Area** fills a shape on the map — a line, cone, square or circle, its size counted in 5-foot squares. The Area sits on a point you choose, or is centred on a target or on you and moves with that creature. A Spell with an Area and no target affects every creature inside.
+
+You make **one** casting Roll. Every creature caught makes its own save, and each save is compared with your Roll separately, so the same cast can take one creature and spare its neighbour. Your Bonuses cross onto every save. Theirs all cross onto your Roll, where only the strongest of each Type counts — for Ascendancy you are measured against the highest-Tier creature you caught.
+
+An Area with a Duration **lingers** on the map (see the **Map** chapter). Creatures inside when it appears save at once; if the Spell also lists a save for *entering* the Area or for *ending a turn* in it, the DM calls for that save when it happens. Once the Duration is up, the Area vanishes at the start of the caster's turn.
+
+## Channeling and Concentration
+
+@player
+A **Channeled** Spell lasts only while you feed it. On each of your turns you must spend a Main Action **channeling** it, or it ends as that turn ends; the cast counts as the first turn's channel. Its Duration is therefore the longest it can last, not a promise. A channel costs Combat Pool dice — never fewer than {{Main Action Minimum}} — and what they do depends on the Spell:
+
+| The Spell channels by… | Each turn's channel… |
+|---|---|
+| **Firing** | …produces the effect again: the dice are rolled as the Spell's attack or casting Roll, often at a new target. Your Combat Pool, not your Dice Cap, limits them. |
+| **Filling** | …adds its dice to a **Reservoir** for later. Again the Dice Cap does not apply. |
+| **Maintaining** | …is pure upkeep, at exactly {{Main Action Minimum}} dice. |
+| **Sustaining itself** | …is not needed. The cast fills a Reservoir once and the Spell then runs for its whole Duration. |
+
+### Reservoirs
+
+@player
+A **Reservoir** is a pile of dice set aside for one Ability. The cast that conjures it may pour in no more than your Dice Cap. Most Reservoirs empty at the start of your turn, so unused dice are lost; a self-sustaining Spell's Reservoir stays as long as the Spell does.
+
+To use a Reservoir you **discharge** it: spend dice from it, with the action the entry names (usually a Reaction), for the effect it describes. Shield of Faith is the model — when the warded ally is attacked, the caster spends Reservoir dice and rolls them as a block against that attack. Dice rolled out of a Reservoir obey your Dice Cap. A self-sustaining Spell never discharges; its Reservoir sets the size of what it does each turn.
+
+### Losing concentration
+
+@player
+A Channeled Spell ends when a turn passes without a channel, when its Duration runs out, or when you drop it. Damage can also break it: whenever you take damage, make a **Concentration save** for each Channeled Spell you hold — a Check with the Skill you cast it with, at a Circumstance Penalty equal to the Spell's Tier plus the damage taken. Fail, and the Spell ends with whatever was in its Reservoir. Despite the name, this is a Skill Check, not a Saving Throw.
+
+## Long Casts and Rituals
+
+@player
+An activation of a **full turn** takes both of your turn's Main Actions and takes effect as the turn ends. An activation of **several turns** is a **Long Cast**: commit both Main Actions on each of those turns, and the Spell takes effect at the end of the last. Let a turn end without that commitment, or fail a Concentration save, and the cast is cancelled — no effect, and the Mana is gone. An activation of **minutes or more** cannot be attempted in a fight at all.
+
+A **Ritual** lets a Creature cast a Spell it does not have as an Ability. Rituals are kept inscribed in a Ritual book. Drawing the ritual circle costs gold and time set by the Spell's Tier — the **Ritual** entry in the configuration table — and lets you cast that Spell once, at its normal activation time, Mana cost and any other cost. The casting consumes the circle.
+
+## Spells from Items
+
+@player
+A Spell packed into an item can be used by anyone: the item supplies the Spell, and the user casts it with one of the Spell's own casting Skills or the universal one.
+
+| Form | Spells | Use |
+|---|---|---|
+| **Scroll** | Any | Read to cast once, as if you knew the Spell. No Mana. Used up. |
+| **Wand** | Any | While held, its Spell is yours to cast, with your own Mana. Never used up. |
+| **Potion** | Those that allow it | The drinker is the target. No Mana. Used up. |
+| **Oil** | Those that allow it | Thrown at a target or applied to one beside you. No Mana. Used up. |
+
+The item's Tier decides which Variant of a Tier-ladder Spell it holds. Prices are in the **Equipment** chapter.
+
+## Magic Toxicity
+
+@player
+Magic that pours energy into a body leaves **magic toxicity** behind (see **Magical Tier** and **Conditions**). Potions and Oils always add it — more for a higher-Tier item, and more again when the item's Tier is above the drinker's. A Spell adds it when its entry says so, which chiefly means healing and restoring Mana; the toxicity goes to the creature that receives the magic. Scrolls and Wands add nothing of their own.
+
+What happens next depends on the magic. **Beneficial** magic is refused by a body already above its Toxicity Threshold: no effect, and no toxicity added. **Harmful** magic is never refused. Either way, every point that lands above the Threshold is dealt as Charisma Ability Damage. A Spell is harmful if it has an attack roll or deals damage, and beneficial otherwise, unless its entry says differently.
+
+## Talents
+
+@player
+A Talent's entry reads like a Spell's — activation time, range, target, duration, sometimes a save — but it has no School, and it costs Mana only when its entry says so. Using an active Talent in a fight costs Combat Pool dice equal to the Action Minimum of its action ({{Main Action Minimum}} for a Main Action, {{Bonus Action Minimum}} for a Bonus Action, {{Free Action Minimum}} for a Free Action) plus its Mana. If it calls for a Roll, you choose dice as for a Spell and those dice are the cost instead.
+
+Some Talents carry a **required condition** and work only while you are in that state — a barbarian's fiercest tricks only while raging.
+
+### Triggers and Reactions
+
+@player
+A **triggered** Talent takes no action. It fires during your own action when its Trigger happens — you attack, your attack hits, you roll a 1, you make a kill — and adds what its entry says: extra dice, extra damage, a reroll, a condition on the target. Further requirements (the target must be Flatfooted, the attack must be a bite) are in its description, and the DM rules on whether they are met.
+
+A **Reaction** is used during another creature's Main Action, and a creature gets one Reaction per Main Action. A Reaction that rolls dice pays for them from the Combat Pool, at least {{Reaction Action Minimum}}; one that rolls nothing costs only its Mana.
+
+### Channel Divinity
+
+@player
+**Channel Divinity** is a Cleric's family of Talents, granted by deity and domains (see **Characters**). Each use costs Mana — the deity's own channel more than the rest — and any Roll it calls for uses Invocation. A channel that fires on a table works the same way: roll the dice you spend for **Channel Successes**, then roll on the table. The Channel Successes scale the entry, and the DM applies it.
+
+### Luck
+
+@player
+**Luck** rerolls dice, and a bard's Bardic Inspiration is its main source: a Main Action, some Mana and a Performance check, each Success putting one point of Luck into a Reservoir that empties at the start of the bard's next turn. Luck is spent as a Reaction and must be committed **before** the dice of the Roll it is spent on are thrown. Each point rerolls one die by the Reroll rules of **Dice Resolution**: Luck that helps rerolls a Roll's worst dice; Luck that hinders, which needs its own Talent, rerolls its best. No die is rerolled twice, a Roll cannot take more Luck than it has dice, and Luck from several sources does not stack — only the largest helping and the largest hindering amount count.
+
+If the Performance check comes out below zero, the bard gains nothing and the DM gains that many points of Luck instead, to spend the same way until the fight ends.
+
+## Bonus Types
+
+@player
+Every Bonus and Penalty an Ability grants has a **Bonus Type**, and the stacking rule of **Dice Resolution** applies: of each Type, only your largest Bonus and your largest Penalty count.
+
+| Type | Comes from |
+|---|---|
+| **Competency** | Training and raw attributes. |
+| **Circumstance** | The situation — terrain, position, a foe caught off guard. |
+| **Morale** | Emotion, alchemy and body chemistry. |
+| **Guidance** | Magic that steers or strengthens — Spells and enchanted gear. |
+| **Inherent** | Your own Tier. |
+| **Ascendancy** | The amplified gap when Tiers clash on an opposed Check. |
+| **Racial** | Your Race. |
+| **Luck** | A twist of fortune. |
+
+The same list is the **Bonus Types List** in the configuration table. Most Spell buffs and magical gear grant Guidance, so they do not add together: the larger wins. Nor is a Bonus always to a Target Number — Abilities also grant typed Bonuses to Speed, damage reduction, damage resilience, saves and Attributes, and those stack by the same rule.
+
+## For the DM — Adjudicating Magic
+
+@player
+Most magic resolves by the numbers above; some is left to you.
+
+- **Effects in words.** Charms, compulsions, illusions, magical darkness and mist describe what they do rather than count it. You decide what a failed save means in the scene.
+- **Triggers and Areas.** You rule on whether a Trigger's conditions are met, and on whether a move counts as entering a lingering Area.
+- **Tables.** When an Ability rolls on a table, the die picks the entry and you apply it.
+- **Order.** Settle a cast in this order: the Spell, its dice, its targets, the target's defense, any Luck — and only then roll.
+
+## What lives in the next chapter
+
+@player
+Spells last for turns, minutes, hours and days, and a Ritual's circle takes time to draw. The next chapter, **Time and the Calendar**, sets out how the game measures all of it, from the {{Round Length}}-second Round to the months of the year.
 
 ## Common types
 

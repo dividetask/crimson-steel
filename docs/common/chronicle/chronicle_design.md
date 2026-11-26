@@ -1,8 +1,69 @@
+@chapter 12 The Chronicle
+
 # Chronicle — Design
 
+@player
+The **Chronicle** is the campaign's memory: what the story is called, what day it is, how far the tale has come, and everything the table has written down along the way. At a table without a screen it is the DM's binder and the players' notebooks — and the rules below are what keep the two apart.
+
+@implementation
 Owns the Campaign's mutable state: the Campaign Name, the current Timestamp, the Current Chapter, the Chapter list, and the Entry collection. State is loaded from `data/chronicle_data.json` (or the example file in development mode) at startup and persisted on every mutation.
 
 Chronicle delegates calendar arithmetic to the Timekeeping domain and creature data to the Creatures domain. It does not perform calculations itself beyond the bookkeeping needed to manage its own state.
+
+## What the Chronicle holds
+
+@player
+One Chronicle belongs to one **Campaign** — the playthrough your table is on. It keeps four things:
+
+- the **Campaign Name**;
+- the **current date and time**, kept as described in the **Time and the Calendar** chapter;
+- the **Chapters** of the story so far;
+- the **Entries** — every note and every creature the table has recorded.
+
+## Chapters of the story
+
+@player
+A **Chapter** is a numbered, named stretch of the story. The campaign starts in Chapter 1, and the DM moves it on to the next Chapter when the story turns a corner.
+
+Every Entry belongs to the Chapter that was current when it was written, and stays there. Moving on to a new Chapter does not move old Entries; it only decides where *new* ones land. Removing a Chapter does not throw its Entries away either — they remain, to be filed elsewhere or deleted one by one.
+
+## Notes and creature entries
+
+@player
+An **Entry** is one record in the Chronicle. There are two kinds.
+
+- A **Note** is writing: a recap, a description of a place, a rumour, a plan.
+- A **Creature Reference** is a page about someone or something the party has met. It points at that Creature rather than copying it, so the name always matches the Creature's own. The page may carry a portrait and a smaller token picture, and it may show a different Tier from the Creature's real one.
+
+Every Entry, of either kind, has room for **two texts**: a **public description** that players may read, and a **DM description** that only the DM ever sees. One Entry can therefore hold both what the party knows and what is really going on.
+
+## Who sees an Entry
+
+@player
+The DM sees every Entry, always. For a player, work down this list and stop at the first line that applies:
+
+1. If the Entry is **hidden from** a Creature you control, you do not see it — whatever else is true of it.
+2. If the Entry is **shared**, you see it.
+3. If you are its **owner** — you wrote it — you see it.
+4. Otherwise you do not see it.
+
+Players may write Entries of their own. An Entry a player writes is private to that player and the DM until it is shared. An Entry the DM writes belongs to no player, so until it is shared only the DM sees it.
+
+Even when you can see an Entry, you read only its public description.
+
+## The Scene
+
+@player
+Most of what is in the Chronicle is history. The **Scene** is the part that matters right now — the room the party is standing in, the people in it, the note they just found. An Entry is put in the Scene by marking it **active**; taking the mark away files it back with the rest of its Chapter's notes without losing anything.
+
+Entries are kept in two orders, both set by hand: their order among the notes of their Chapter, and their order in the Scene. Placing an Entry at a position moves everything from that position onward down by one.
+
+The Scene is separate from the map on the table. Changing one does not change the other.
+
+## The rest of the book
+
+@player
+This is the last chapter of rules. What follows is reference: the **Spell** list, the **Class** list, and the **Glossary**, which gathers the terms of every chapter in one place.
 
 ## Common types
 

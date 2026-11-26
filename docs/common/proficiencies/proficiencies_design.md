@@ -1,8 +1,132 @@
+@chapter 6 Skills
+
 # Proficiencies — Design
 
+@player
+A **Skill** is something a Creature has trained to do — pick a lock, read a liar, shape a spell. The **Characters** chapter says how many **ranks** your Classes give you in each one. This chapter turns those ranks into the two numbers every Roll needs — how many dice you may throw, and how far your training moves the Target Number — and then walks through making a Skill Check at the table.
+
+@implementation
 Owns the Skill catalog, the Prowess formula, and the ability-driven substitutions (Floor Ability, Substitution Ability) that may produce a higher Prowess than the queried key alone. Pure calculation — Proficiencies holds no state. Per-Creature ranks, attributes, and ability membership are read through a Creature accessor the caller supplies.
 
 Rank accumulation across class levels, Class skill lists, and the rule that every Class trains every Save are not Proficiencies concerns; those live in `creatures/creatures_design.md` (see *Ranks Computation* under that domain's Operations).
+
+## What a Skill is
+
+@player
+Every Skill in the **Skill catalog** carries two things: a short description of what it covers, and a **driving Attribute** — the one Attribute that feeds it. Climbing and swimming run on Strength, sneaking and lock-work on Dexterity, lore on Intelligence, noticing and reading people on Wisdom, and talking your way through on Charisma.
+
+A few entries deserve a second look:
+
+- **Set Skills** are families rather than single Skills — crafts, professions, performances, games. You never train the family itself. You train one member of it (a particular craft, a particular instrument), and that member is a Skill in its own right, with the family's driving Attribute. A rule that names the family applies to every member of it.
+- **Casting Skills** are the Skills spells are cast with. Each tradition of magic has its own; the **Magic and Abilities** chapter says which Skill a given Spell uses.
+- **Martial** is general combat training. It is rolled for weapon attacks and for parrying and blocking, but you do not pick it as a trained Skill — your Classes hand out its ranks automatically (see *Saves and Martial* below).
+
+## From ranks to Prowess
+
+@player
+Your **Prowess** in a Skill is your training plus your raw talent:
+
+> **Prowess = ranks + floor(driving Attribute ÷ {{Attribute Contribution Divisor}})**
+
+Use the Attribute's *Effective* value — after Race, Tier, anything you are wearing, and any effect currently raising or lowering it. Nothing else goes into Prowess. A Bonus or Penalty on a Roll never changes it; only ranks and the Attribute do. That is why an item that raises an *Attribute* can give you more dice, while a Bonus to the *Roll* only moves the Target Number.
+
+## From Prowess to dice
+
+@player
+Prowess is spent in blocks of {{Dice Count Range}} — the **Dice Count Range**.
+
+- Every **full block** becomes one point of **Competency**: a Bonus, of the Competency Type, on every Roll you make with the Skill.
+- The **leftover** points raise your **Dice Cap** — the most dice you may throw on one Roll with that Skill — above the minimum of {{Minimum Dice Count}}.
+
+> **Competency = floor(Prowess ÷ {{Dice Count Range}})**
+>
+> **Dice Cap = {{Minimum Dice Count}} + (Prowess − Competency × {{Dice Count Range}})**
+
+| Prowess | Competency | Dice Cap |
+|---|---|---|
+| 0 | none | {{Minimum Dice Count}} |
+| 1 | none | {{Minimum Dice Count + 1}} |
+| {{Dice Count Range - 1}} | none | {{Minimum Dice Count}} + {{Dice Count Range - 1}} — the largest Dice Cap there is |
+| {{Dice Count Range}} | +1 | {{Minimum Dice Count}} |
+| {{Dice Count Range + 1}} | +1 | {{Minimum Dice Count + 1}} |
+
+The Dice Cap climbs to its maximum, then drops back to {{Minimum Dice Count}} as the next point of Competency arrives, and starts climbing again. Each block trades a handful of dice for a Target Number that is one point easier on every die you do roll.
+
+If something drives your Prowess below zero, the same arithmetic runs in reverse: a Prowess of −1 is a Competency *Penalty* of 1 with the Dice Cap at its maximum.
+
+The Dice Cap is a ceiling, not an order. You may always roll fewer dice — and in a fight you often will, because every die is paid for (see the **Combat** chapter).
+
+### Worked example — reading a Skill off the sheet
+
+@player
+You have 3 ranks in a Skill, and its driving Attribute contributes {{Dice Count Range - 1}} more. Your Prowess is {{Dice Count Range + 2}}.
+
+- One full block of {{Dice Count Range}} gives **+1 Competency**.
+- The 2 points left over give a **Dice Cap of {{Minimum Dice Count + 2}}**.
+
+On a Check with that Skill you roll up to {{Minimum Dice Count + 2}} dice, and the +1 Competency Bonus lowers the Target Number from {{Base Target Number}} to {{Base Target Number - 1}} before any other modifier is counted.
+
+## Acting untrained
+
+@player
+A Skill you have no ranks in is **untrained**. You may still attempt it: your Prowess is just the Attribute's contribution, so you still get dice. But the attempt carries the **Non-Proficiency Penalty** — a Competency modifier of {{Non-Proficiency Penalty Value}}, added to whatever Competency your Prowess produced.
+
+- The penalty moves the **Target Number only**. It never takes dice away.
+- **Saving Throws never take it**, however few ranks you have.
+
+## Abilities that change your ranks
+
+@player
+Two abilities, named in the configuration table at the end of this chapter, bend the arithmetic above.
+
+**The Floor Ability** (`{{Floor Ability}}`). A Creature with it counts as having at least `floor(level ÷ 2)` ranks in every Skill, where *level* is its level in the Class that granted the ability. If the Creature's real ranks are higher, the real ranks are used. The floor does not reach the **Restricted Skills** (`{{Restricted Skills}}`), and it never changes a Skill's driving Attribute.
+
+**The Substitution Ability** (`{{Substitution Ability}}`). A Creature with it may answer certain Checks with a different Skill altogether. The **Substitution Map** lists, for each *source* Skill, the Skills it can stand in for. When a Check calls for one of those, work out your Prowess both ways — the called-for Skill, and the source Skill with *its own* ranks and *its own* driving Attribute — and use the higher. On a tie, use the Skill that was called for.
+
+## Saves and Martial
+
+@player
+**Saving Throws** run on the same arithmetic. Each of the six Attributes has a save; its Prowess is your ranks in that save plus the contribution of that same Attribute, and Competency and Dice Cap follow as above. Every Class trains every save, at a rate the Class sets, so you always have save ranks to count. Two things set a save apart from a Skill Check: it is never untrained, and you do not choose its dice — a save always rolls its full Dice Cap, and costs nothing to roll.
+
+**Martial** also runs on the same arithmetic, with Dexterity as its driving Attribute. Its ranks come from each Class's Martial rate rather than from a trained-Skill pick. Martial ranks do double duty: they set the dice and Competency of your attacks, parries and blocks, and they also feed your Combat Pool (see the **Combat** chapter).
+
+## Making a Skill Check
+
+@player
+When the outcome of something you attempt is in doubt, the DM calls for a Check and names the Skill.
+
+1. **Find your numbers.** Look up the Skill's Dice Cap and Competency. They change only when your ranks or the Attribute change, so write them next to the Skill once and reuse them.
+2. **Gather modifiers.** Start with your Competency. Add any Bonus or Penalty in play — a condition you are suffering, an item's magical Guidance, a modifier the DM assigns for the circumstances. Modifiers of the same Type do not stack; see the **Dice Resolution** chapter.
+3. **Set the Target Number.** Start from {{Base Target Number}}, subtract the net modifier, and keep the result between {{Minimum Target Number}} and {{Maximum Target Number}}. Anything that would push past those limits becomes Starting Successes or Starting Failures instead.
+4. **Roll.** Throw up to your Dice Cap. Apply any Rerolls, then any Nudge, and count your Degree of Individual Success.
+5. **Read the result.** With nobody opposing you, {{Default Success Threshold}} or more is a Success, −{{Default Fumble Threshold}} or less is a Fumble, and anything in between is a Failure.
+
+Many effects do not stop at yes or no — they count your Successes, and each one buys a little more. The effect's own text says what a Success is worth.
+
+### How the DM sets difficulty
+
+@player
+There is no difficulty number to roll against. The bar never moves: a Check needs {{Default Success Threshold}} net Successes. To make a task easier or harder, the DM gives the Roll a **Circumstance** Bonus or Penalty, and that moves the Target Number. A Roll takes only its largest Circumstance Bonus and its largest Circumstance Penalty, so the DM sizes up the whole situation and assigns one of each at most.
+
+### Opposed Skill Checks
+
+@player
+When someone is actively working against you, both sides roll and the Check is resolved as in the **Check Resolution** chapter: your Bonuses become their Penalties and theirs become yours, and their Degree of Individual Success is subtracted from yours. The DM names the Skill the other side answers with. Two pairings are fixed:
+
+- **Deception** is opposed by the listener's **Sense Motive**.
+- **Persuasion** is opposed by the listener's **Persuasion** or **Sense Motive**, whichever serves the listener better.
+
+A Skill Roll carries no Inherent Bonus, so a difference in Tier is *not* amplified in an opposed Skill Check the way it is in an attack. A higher Tier still tells, through the higher Attributes it brings.
+
+### Working together
+
+@player
+Allies who can genuinely contribute add their own Rolls to your side of the Check as Supporting Rolls. Each helper rolls their own Skill with their own numbers, and their Degree of Individual Success — good or bad — is added to the side's total. A clumsy helper can sink the attempt.
+
+## What lives in the next chapter
+
+@player
+The next chapter, **Equipment**, covers what a Creature carries: coin, weapons, armor, and the magical items whose Bonuses feed the Rolls described here.
 
 ## Common types
 

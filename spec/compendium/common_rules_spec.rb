@@ -40,14 +40,21 @@ RSpec.describe 'Compendium Common Rules', type: :request do
 
     it 'orders the player manual by @chapter and reports duplicates' do
       expect(CommonDocs.chapters.map { |c| [c.chapter, c.chapter_title] })
-        .to eq([[1, 'Magical Tier'], [2, 'Dice Resolution'],
-                [3, 'Check Resolution'], [4, 'Conditions']])
+        .to eq([[1, 'Magical Tier'], [2, 'Dice Resolution'], [3, 'Check Resolution'],
+                [4, 'Conditions'], [5, 'Characters'], [6, 'Skills'], [7, 'Equipment'],
+                [8, 'Combat'], [9, 'Magic and Abilities'], [10, 'Time and the Calendar'],
+                [11, 'The Map'], [12, 'The Chronicle']])
       expect(CommonDocs.duplicate_chapters).to be_empty
     end
 
     it 'treats a concept with no @chapter as absent from the book' do
-      expect(CommonDocs.find('equipment').chapter?).to be false
-      expect(CommonDocs.chapters.map(&:key)).not_to include('equipment')
+      # Every shipped concept is a chapter, so stand one up without the directive.
+      real     = CommonDocs.concepts
+      unlisted = CommonDocs::Concept.new(key: 'demo', title: 'Demo', chapter: nil, chapter_title: 'Demo')
+      allow(CommonDocs).to receive(:concepts).and_return(real + [unlisted])
+
+      expect(unlisted.chapter?).to be false
+      expect(CommonDocs.chapters.map(&:key)).not_to include('demo')
     end
   end
 
@@ -209,11 +216,19 @@ RSpec.describe 'Compendium Common Rules', type: :request do
     end
 
     it 'orders the Common Rules group by chapter, then the unnumbered concepts' do
-      expect(CommonDocs.in_nav_order.map(&:chapter)).to eq([1, 2, 3, 4] + [nil] * 8)
+      expect(CommonDocs.in_nav_order.map(&:chapter)).to eq((1..12).to_a)
       body = visit('/compendium').body
-      # equipment carries no chapter, so it sorts below every chapter concept.
+      # equipment is chapter 7, conditions chapter 4.
       expect(body.index('?view=common:equipment'))
         .to be > body.index('?view=common:conditions')
+    end
+
+    it 'sorts a concept with no chapter below every numbered one' do
+      real     = CommonDocs.concepts
+      unlisted = CommonDocs::Concept.new(key: 'aaa_demo', title: 'Aaa Demo', chapter: nil, chapter_title: 'Aaa Demo')
+      allow(CommonDocs).to receive(:concepts).and_return([unlisted] + real)
+
+      expect(CommonDocs.in_nav_order.map(&:key).last).to eq('aaa_demo')
     end
 
     it 'shows a chapter number in the Common Rules group exactly as the player list does' do

@@ -1,6 +1,62 @@
+@chapter 10 Time and the Calendar
+
 # Timekeeping — Design
 
+@player
+Spells run out, poisons come due, wounds close, and shops restock — all on the clock. This chapter is how the table keeps that clock: the Round that every duration is counted in, and the calendar the campaign's days fall on.
+
+@implementation
 Owns calendar and clock calculations: translating timestamps into year/month/day/time-of-day, advancing time across Day and Round rollovers, and computing day-of-week. Pure calculation — Timekeeping holds no state. Callers pass a Timestamp in and receive derived values back.
+
+## The Round
+
+@player
+The **Round** is the game's unit of time. One Round is {{Round Length}} seconds in the world.
+
+Everything is counted in Rounds, however long it lasts. A fight is tracked Round by Round. Longer spans — a minute, an hour, a day — are each a fixed number of Rounds; the **Conditions** chapter's configuration table lists them under `Frequency Rounds`, because that is how often a slow poison or a disease comes due.
+
+The **time of day** is simply how many Rounds have passed since midnight, at {{Round Length}} seconds each. When the count reaches a full day, it starts again from zero and the date moves on by one.
+
+## The calendar
+
+@player
+A year has these **Months**, in order:
+
+> {{Month Names}}
+
+Their lengths in Days, in the same order:
+
+> {{Month Lengths}}
+
+The **week** runs through these Days and then starts over. It pays no attention to Months or years — the day after the last name is always the first name again:
+
+> {{Day of Week Names}}
+
+**Leap Years.** A year whose number divides evenly by {{Leap Year Interval}} is a Leap Year, and gains one extra Day in Month number {{Leap Month}}.
+
+**Where the count starts.** The calendar is counted from the first Day of the first Month of the year {{Default Starting Year}}. That Day falls on the first name in the week above, and every other date follows from it. Dates before it work the same way, counting backwards.
+
+## Keeping time at the table
+
+@player
+The DM is the timekeeper. The campaign has exactly one current date and time of day, recorded in the campaign's Chronicle (see the **Chronicle** chapter).
+
+- **In a fight**, the clock moves by itself: each time a Round of combat is completed, add one Round.
+- **Outside a fight**, the DM advances the clock by however long the party spends — some Rounds for a hurried search, hours for a march, days for a rest.
+- **To advance by Rounds**, add them to the time of day. Each full day's worth of Rounds carries over as one Day on the date.
+- **To advance by Days**, step the date forward, walking through the Month lengths above and rolling the year when the last Month ends.
+- **To correct a mistake**, the clock can be moved backwards in exactly the same way.
+
+Whenever the clock moves, check what was waiting on it:
+
+- **Effects with a duration** end when their last Round has passed (see the **Conditions** chapter).
+- **Afflictions** come due at their own frequency. If time jumps past several of an Affliction's intervals at once, it is owed one resolution for each interval missed — it does not skip to the present.
+- **Natural Recovery** is counted in whole Recovery Ticks — one Day each in the tabletop game (see the **Conditions** chapter).
+
+## What lives in the next chapter
+
+@player
+The next chapter, **The Map**, turns from *when* to *where*: the maps a scene is played on, the tokens that stand on them, and the areas that spells leave behind.
 
 ## Common types
 

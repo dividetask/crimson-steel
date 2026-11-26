@@ -1,5 +1,11 @@
+@chapter 11 The Map
+
 # Atlas — Design
 
+@player
+Sooner or later someone asks "where exactly am I standing?" The **Atlas** is the answer: the Maps a scene is played on, the Tokens that stand on them, the Zones that spells leave behind, and the Fog that hides what the party has not yet seen. At the table it is the battle mat and everything on it.
+
+@implementation
 Atlas owns the Campaign's spatial state: a catalog of Maps and the Tokens placed on them. State is loaded from `data/atlas_data.json` (or the example file in development mode) at startup and persisted on every mutation.
 
 Atlas is a record-keeping domain. It does not interpret Map Units, snap Tokens to grids, or evaluate visibility — those are UI concerns. It also does not own the rules of Combat or the identity of Creatures; Tokens cross-reference the Creatures domain by Creature ID and Combat by the same Creature ID.
@@ -8,6 +14,81 @@ Sibling domains:
 - **Creatures** owns Creature identity, Tier, and the data behind a Token's hover content. Atlas stores `creature_id` and looks up display data through a `creature_lookup` callback.
 - **Combat** owns the active fight. Atlas does not subscribe to Combat events; the consuming application is expected to call *Place Token* / *Remove Token* in response to *Start Combat* / *End Combat* if it wants Combatant tokens placed automatically.
 - **Chronicle** owns the narrative scene; Atlas owns the spatial scene. The two are independent — switching the Active Map does not change the Active Chronicle Entries and vice versa.
+
+## Maps and the grid
+
+@player
+A **Map** is a named backdrop for a scene — a drawing, a printed floor plan, or a blank sheet. It may have a width and a height, or run on with no edge at all.
+
+A Map may carry a **Grid**: square cells, hexes, or none. New Maps start with a `{{Default Grid Type}}` Grid unless the DM chooses otherwise.
+
+Positions on a Map are measured in **Map Units**, and one Map Unit is one Grid cell. How much ground a cell stands for is your campaign's decision. The rest of this book counts the areas of spells in 5-foot squares, so a table that wants those areas to drop straight onto the mat uses a 5-foot cell.
+
+Only one Map is the **Active Map** at a time — the one on the table. A Map that is not needed for now can be **archived**: it is put away with everything on it and can be brought back unchanged. Deleting a Map is final, and takes its Tokens, its painted terrain and its Fog with it.
+
+Nothing stops a piece from standing beyond the edge of the drawing. Maps grow, and a position that is off the paper today may be on it tomorrow.
+
+## Tokens on the map
+
+@player
+A **Token** marks one Creature on one Map. It has:
+
+- a **position**, in Map Units;
+- a **size** — Tokens are square, and a Token is {{Default Token Size}} cell on a side unless it is given another size;
+- optionally its own **label** and **picture**; without them it shows the Creature's name and likeness;
+- optionally an **owner** — the player character whose player may move it. A Token with no owner is moved by the DM alone;
+- a **hidden** mark. Players do not see a hidden Token.
+
+A Token belongs to the Map it was placed on. To take a Creature to another Map, remove its Token from the first and place a new one on the second.
+
+## Zones on the map
+
+@player
+A **Zone** is an area that stays on the Map after the action that created it is over — a bank of fog, a patch of grease, a circle of silence. A Zone is only the *where*. What it does to those inside comes from the effect that made it (see the **Magic and Abilities** chapter).
+
+Every Zone has a **shape** — square, circle, cone or line — and a **size** in cells: the side of a square, the radius of a circle, the length of a cone or line.
+
+Every Zone also has an **anchor**, which fixes its centre:
+
+- **A point.** The Zone stays where it was put.
+- **A target or the caster.** The Zone is centred on that Creature's Token and moves whenever the Token moves. If the Token is taken off the Map, the Zone stays where it last was until the DM removes it.
+
+**Who is inside?** A Token is inside a Zone if any part of the Token overlaps any part of the Zone. Touching counts.
+
+**Moving in and out.** When a Token moves, compare the Zones it overlapped before with the Zones it overlaps after.
+
+- A Zone it now overlaps and did not before, it has **entered**. Entering may call for a save, if the Zone's effect has one for those who walk in.
+- A Zone it no longer overlaps, it has **exited**. Nothing is rolled for leaving; it is the DM's cue to end whatever applied only inside.
+
+A Zone anchored to a Creature moves first, and the comparison is made afterwards — so a moving Zone can sweep over Creatures that never took a step. In every case the DM decides whether a given entry or exit counts. Ending a turn inside a Zone is covered in the **Combat** chapter.
+
+Zones are independent of Tokens. Clearing the pieces off a Map leaves its Zones in place, and the reverse.
+
+## Fog of war and hidden things
+
+@player
+**Fog** is how the DM keeps part of a Map out of the players' sight. A Map with no Fog hides nothing; concealment begins only where the DM lays Fog down, as rectangles or ellipses.
+
+- Players do not see what is under Fog, and they are not shown any Token whose centre lies under it.
+- The DM always sees through Fog.
+- **Revealing** removes Fog from an area and returns that area to the players' sight.
+
+The usual way to run an unexplored place is to cover the whole Map and reveal it piece by piece as the party advances.
+
+Fog is not the only way to hide something. A single Token can be marked hidden wherever it stands, and a note the DM writes on the Map can be kept for the DM alone.
+
+## Drawing on the map
+
+@player
+Two kinds of marking can be added to a Map. Neither has any effect on the rules by itself.
+
+- **Annotations** are quick, temporary marks — an arrow, a rectangle or ellipse, a line of text. They show intent: "I go here", "the fire is about this big". The DM may draw any of them; players may draw arrows. All of a Map's Annotations can be wiped at once, or only one author's.
+- **Terrain** is the permanent furniture of the scene — walls, floors, earth — painted on as rectangles or ellipses. It is not removed when the Annotations are wiped, and it lasts until the DM clears it or the Map is deleted.
+
+## What lives in the next chapter
+
+@player
+The last chapter, **The Chronicle**, covers the campaign's written record: the date, the Chapters of the story, and the notes that players and DM keep.
 
 ## Common types
 
