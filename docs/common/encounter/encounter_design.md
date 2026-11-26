@@ -22,6 +22,8 @@ Combat is played in **Rounds** of {{Round Length}} seconds. When the last turn o
 
 Most Creatures take one **turn** per Round; higher Tiers take more. **Turns Per Round**, by Tier from Tier 0 upward, is: {{Turns Per Round}}.
 
+{{table: Turns Per Round | index: Tier | value: Turns per Round}}
+
 To fit fast and slow Creatures into one Round, the Round is cut into **Time Ticks** — as many as the Turns Per Round of the fastest Creature in the fight. Each Creature spreads its turns evenly over them, each turn falling at the middle of an equal slice of the Round: with `R` Time Ticks and `T` turns, your turn `i` falls on tick `floor((R × (2i − 1) + T) / (2T))`.
 
 *Example.* With four Time Ticks, a Creature with one turn acts on tick 2, one with two turns on ticks 1 and 3, and one with four turns on every tick.
@@ -177,7 +179,7 @@ A target that is not ready hands the attacker a Circumstance Bonus:
 - **Unaware** — the target has not yet acted in this fight, or cannot perceive its attacker (the attacker is **Hidden** from it).
 - **Helpless** — the target cannot act at all (see *Down and out*), and so gets no Defensive Action.
 
-All three are Circumstance Bonuses, so they never add together: only the largest that applies counts, and Helpless stands in place of the other two. Their sizes are under **Flatfooted Bonus**, **Unaware Bonus** and **Helpless Bonus** in the configuration table at the end of this chapter; abilities named under **Flatfooted Suppressors** there keep a Creature from being caught Flatfooted or Unaware at all.
+All three are Circumstance Bonuses, so they never add together: only the largest that applies counts, and Helpless stands in place of the other two. The Flatfooted Bonus is {{Flatfooted Bonus > amount}}, the Unaware Bonus {{Unaware Bonus > amount}} and the Helpless Bonus {{Helpless Bonus > amount}}. A Creature with one of the **Flatfooted Suppressors** (`{{Flatfooted Suppressors}}`) is never caught Flatfooted or Unaware at all.
 
 ## Damage
 
@@ -207,7 +209,7 @@ Physical damage — bludgeoning, slashing, piercing — is split by how much of 
 ### Other Damage Types
 
 @player
-Every other Damage Type lands whole at one fixed Severity, and most bring a side effect — both listed under **damage_types** in the configuration table at the end of this chapter. In outline:
+Every other Damage Type lands whole at one fixed Severity, and most bring a side effect. In outline:
 
 - **Fire** does a little extra damage on every hit.
 - **Cold** also gives the target Shock equal to the damage dealt.
@@ -216,6 +218,10 @@ Every other Damage Type lands whole at one fixed Severity, and most bring a side
 - **Radiant** lands at a higher Severity against undead.
 - **Emotional** attacks score more for each Critical Success.
 - **Force** has no side effect.
+
+The full list. A Damage Type that is a *kind of* another follows that Type's rules wherever it states none of its own:
+
+{{table: damage_types | columns: parent=Kind of, severity=Severity, mechanics=Side effects | label: Damage Type}}
 
 Damage from Spells and abilities is reduced and split by the same rules. A magical weapon may also add **rider dice**: roll them at the attack's Target Number once the hit lands; each Success adds damage of the rider's own Type, given its Severity separately, and a 1 never subtracts (see **Equipment**).
 

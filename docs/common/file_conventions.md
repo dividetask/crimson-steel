@@ -33,7 +33,9 @@ page.
 | `<concept>_tests.md` | Canonical test cases. | The end of the DM page. Never shown to players. |
 
 Other `.yaml` files in the folder are **catalogs** (spell lists, loot tables,
-creature data) rather than tunables. They are not rendered as config tables.
+creature data) rather than tunables. They are not rendered as config tables. A
+chapter prints the part of a catalog it needs with a `{{table: …}}` directive —
+see **Paths and tables** below.
 
 ### Why the config lives in YAML
 
@@ -130,6 +132,55 @@ You have a Skill Bonus of +{{Base Target Number - 1}}.
 - That's {{Minimum Target Number - 1}} below the Minimum.
 ```
 
+## Paths and tables
+
+A value that is not a plain top-level config key is reached by a **path**: its
+steps separated by `>`.
+
+| Written | Reaches |
+|---|---|
+| `{{Flatfooted Bonus > amount}}` | A value nested inside a config key. |
+| `{{Turns Per Round > 3}}` | One entry of a list, counted from 0 — here, Tier 3. |
+| `{{skills.yaml > Skills > athletics > attribute}}` | A value in a catalog. The first step is the catalog's file name; the concept's own folder is searched first, then every other concept folder. |
+
+A path takes the same integer offset as a key. A list prints as its entries, and
+a map as its `name: value` pairs — which is rarely what a reader wants, so print
+those as a table instead.
+
+`{{table: <path>}}`, on a line of its own, prints the value at the path as a
+table. The value's own shape picks the layout:
+
+| Value | Table |
+|---|---|
+| A map of records (`Weapons`, a catalog of Races) | A row per name, a column per field. |
+| A map of lists (`Tier Breakpoints`), with `index:` given | A row per name, a column per position. |
+| A map of plain values (`Mana Cost Per Tier`), or of lists without `index:` | Two columns: name and value. |
+| A list of records | A row per position, a column per field. |
+| A list of plain values (`HP Formula`) | Two columns: position and value. |
+
+Options follow the path, each introduced by `|`:
+
+| Option | Does |
+|---|---|
+| `columns: a, b=Heading, c.d` | Shows only these fields, in this order. `=` gives the column its heading; `.` reaches into a nested value, and through a list into each of its entries. |
+| `rows: x, y` | Shows only these rows, in this order. A path is accepted in place of the list — `rows: character_creation.yaml > Playable Races` — so one part of the rules can decide what another prints. |
+| `label: Race` | Heading of the name column. |
+| `value: Mana` | Heading of the value column. |
+| `index: Tier` | Heading of the position column, and the prefix of numbered columns: `Tier 0`, `Tier 1`, … |
+| `inherit: parent` | Names the field that points at a row's parent. The row then starts from its parent's values: its own win, numbers inside a nested map add up, and lists join. |
+
+```markdown
+{{table: creatures_race.yaml | rows: character_creation.yaml > Playable Races | inherit: parent | columns: size, speed, attribute_adjustments=Adjustments | label: Race}}
+```
+
+Names written in `snake_case` are shown as titles (`hill_dwarf` reads *Hill
+Dwarf*; a family key such as `craft_` reads *Craft (any)*). Values are shown as
+they are stored. A path that names nothing, and a value with no table shape,
+render as the same loud marker an unknown key does.
+
+**A table is the data, not a copy of it.** Never retype a catalog into a
+markdown table — the copy is wrong the first time the catalog is retuned.
+
 ## Portability
 
 `docs/common/` is shared with other projects built on the same rules — a
@@ -167,8 +218,8 @@ a player. Numeric assertions belong here rather than in the prose.
 
 1. The folder carries all four files, or the Coverage page shows why not.
 2. Every player passage is marked `@player`; everything else is left unmarked.
-3. No config value is written as a literal — `{{Config Key}}` throughout.
-4. The chapter renders with no `[unknown config key]` markers.
+3. No config or catalog value is written as a literal — `{{Config Key}}`, a `>` path, or `{{table: …}}` throughout.
+4. The chapter renders with no `[unknown config key]` or `[unknown table]` markers.
 5. No player content sits under an implementer-only heading.
 6. Nothing names a route, a page, or an interface element.
 7. Every term used appears in this concept's glossary or in

@@ -1,5 +1,6 @@
 require_relative 'doc_markdown'
 require_relative 'config_tables'
+require_relative 'catalog_tables'
 
 # The Common Rules: one page per concept folder under docs/common/.
 #
@@ -35,7 +36,9 @@ require_relative 'config_tables'
 #
 # Inside any document, {{Config Key}} substitutes the live value from the
 # concept's own *_config.yaml (falling back to any other concept's config),
-# so a worked example can never drift from the value the code reads.
+# so a worked example can never drift from the value the code reads. A `>`
+# path reaches a nested value or a catalog ({{skills.yaml > Skills}}), and
+# {{table: <path>}} prints one as a table.
 module CommonDocs
   ROOT = File.expand_path('../docs/common', __dir__)
 
@@ -243,37 +246,118 @@ module CommonDocs
     end
   end
 
-  # Replace {{Config Key}} with the live value. A worked example often
-  # needs a number *derived* from a config value rather than the value
-  # itself, so `{{Key + n}}` and `{{Key - n}}` are accepted too — an
-  # example written that way stays correct when the value is retuned.
-  # Only a bare integer offset is allowed; this is not an expression
-  # language. An unknown key renders as a visible marker rather than
+  # What a path resolves to when it names nothing.
+  MISSING = Object.new.freeze
+
+  # Replace {{…}} with live rule data.
+  #
+  #   {{Key}}                 a config value
+  #   {{Key > field}}         a value nested inside one
+  #   {{file.yaml > Key}}     a value in a catalog (any YAML file in a
+  #                           concept folder; the concept's own wins)
+  #   {{<path> + n}}          a number, offset — so a worked example follows
+  #                           the value when it is retuned. Only a bare
+  #                           integer offset: this is not an expression
+  #                           language.
+  #   {{table: <path> | …}}   the value as a table (CatalogTables)
+  #
+  # A path that names nothing renders as a visible marker rather than
   # silently disappearing.
-  def substitute(text, values)
+  def substitute(text, values, concept: nil)
     text.gsub(/\{\{([^}\n]+)\}\}/) do
       expr = Regexp.last_match(1).strip
-      key, op, offset = expr.match(/\A(.*?)\s*(?:([+-])\s*(\d+))?\z/).captures
-      key = key.strip
+      next table(expr.delete_prefix('table:'), values, concept) if expr.start_with?('table:')
 
-      unless values.key?(key)
-        next %(<span class="doc-missing-key">[unknown config key: #{key}]</span>)
-      end
+      path, op, offset = expr.match(/\A(.*?)\s*(?:([+-])\s*(\d+))?\z/).captures
+      path  = path.strip
+      value = lookup(path, values, concept)
+      next missing("unknown config key: #{path}") if value.equal?(MISSING)
 
-      value = values[key]
       if op.nil?
         inline_value(value)
       elsif value.is_a?(Numeric)
         (op == '+' ? value + offset.to_i : value - offset.to_i).to_s
       else
-        %(<span class="doc-missing-key">[#{key} is not a number]</span>)
+        missing("#{path} is not a number")
       end
     end
   end
 
+  def missing(message)
+    %(<span class="doc-missing-key">[#{ConfigTables.escape(message)}]</span>)
+  end
+
+  # `rows` may itself be a path to a list, so a table can follow another
+  # part of the rules ("the playable races") instead of repeating it.
+  def table(spec, values, concept)
+    path, *rest = spec.split('|').map(&:strip)
+    options = rest.to_h { |option| option.split(':', 2).map { |part| part.to_s.strip } }
+
+    data = lookup(path, values, concept)
+    return missing("unknown table: #{path}") if data.equal?(MISSING)
+
+    if options['rows']
+      listed = lookup(options['rows'], values, concept)
+      options['rows'] = listed.is_a?(Array) ? listed : options['rows'].split(',').map(&:strip)
+    end
+    CatalogTables.render(data, options) || missing("#{path} is not a table")
+  end
+
+  def lookup(path, values, concept = nil)
+    head, *rest = path.split('>').map(&:strip)
+    node = if head.to_s.end_with?('.yaml')
+             file = catalog_file(head, concept)
+             file ? catalog(file) : MISSING
+           else
+             values.fetch(head, MISSING)
+           end
+    rest.each do |segment|
+      break if node.equal?(MISSING)
+      node = step(node, segment)
+    end
+    node
+  end
+
+  def step(node, segment)
+    case node
+    when Hash
+      return node[segment] if node.key?(segment)
+      number = Integer(segment, exception: false)
+      number && node.key?(number) ? node[number] : MISSING
+    when Array
+      index = Integer(segment, exception: false)
+      index && index >= 0 && index < node.length ? node[index] : MISSING
+    else
+      MISSING
+    end
+  end
+
+  # A catalog is named by file name alone and found in a concept folder.
+  def catalog_file(name, concept)
+    return nil unless name == File.basename(name)
+    own = concept && File.join(concept.dir, name)
+    return own if own && File.file?(own)
+    Dir.glob(File.join(ROOT, '*', name)).min
+  end
+
+  def catalog(path)
+    @catalogs ||= {}
+    mtime = File.mtime(path)
+    entry = @catalogs[path]
+    return entry[1] if entry && entry[0] == mtime
+
+    data = begin
+      YAML.safe_load(File.read(path, encoding: 'UTF-8'), aliases: true)
+    rescue Psych::Exception
+      MISSING
+    end
+    @catalogs[path] = [mtime, data]
+    data
+  end
+
   def inline_value(value)
     case value
-    when Array then value.join(', ')
+    when Array, Hash then CatalogTables.cell(value)
     else value.to_s
     end
   end
@@ -299,10 +383,10 @@ module CommonDocs
       # The player's manual carries the chapter's own title, not the
       # design document's "— Design" heading.
       text = concept.chapter_title if audience == :player && block.level == 1
-      return DocMarkdown.render("#{'#' * block.level} #{substitute(text, values)}")
+      return DocMarkdown.render("#{'#' * block.level} #{substitute(text, values, concept: concept)}")
     end
 
-    html = DocMarkdown.render(substitute(block.text, values))
+    html = DocMarkdown.render(substitute(block.text, values, concept: concept))
     if audience == :dm && block.mode == :player
       %(<div class="doc-player"><p class="doc-player-tag">Player-facing</p>#{html}</div>)
     else

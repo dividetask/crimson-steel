@@ -96,9 +96,18 @@ What the reference books cover, and where it lives here. **Written** means the b
 
 Places where the documents, the config and the engine say different things, and rules a chapter had to leave out because nothing defines them. The chapters state the designed rule; in each case the text or the engine has to move. File and line references are as of 2026-11-26.
 
+### Settled
+
+Rulings given on 2026-11-26. The book follows them; what is still to do is noted.
+
+- **Every Check needs a Degree of Success of the Default Success Threshold** — attacks, spell attacks and saves included — counted after subtracting the opposing Rolls. *Still to do:* the engine applies damage, and fails a save, on any net Success (item 1).
+- **One shared book.** There is no DM-only text; what the DM needs sits in sections headed "For the DM — …". A players-only manual may be cut from it later.
+- **Every die is a d10**, and a percentage is rolled on two of them. *Still to do:* the loot and encounter tables still write their quantities in d2, d3, d4, d6, d8 and d16.
+- **Catalog data is printed live**, with `{{table: …}}` — see [common/file_conventions.md](common/file_conventions.md) → *Paths and tables*.
+
 ### Resolution
 
-1. **How many net Successes does an attack or a cast need?** The Default Success Threshold, say [check_resolution_design.md](common/check_resolution/check_resolution_design.md), [encounter_design.md](common/encounter/encounter_design.md) → *Defensive Actions → Outcome*, and Sneak Attack's "from 2 to 3". Any net Success, says the engine: `Encounter::State#resolve_attack_payload` applies damage when `net.positive?`, `Encounter::Cast.resolve_save` fails the save the same way, and [encounter_tests.md](common/encounter/encounter_tests.md) reads "applies damage when the net DoS is positive".
+1. **The engine hits on any net Success.** Settled above: a Check needs the Default Success Threshold. `Encounter::State#resolve_attack_payload` applies damage when `net.positive?`, `Encounter::Cast.resolve_save` fails the save the same way, a spell attack hits the same way (`cast_attack_target`), and [encounter_tests.md](common/encounter/encounter_tests.md) reads "applies damage when the net DoS is positive".
 2. **Should more training ever make a Check worse?** Each new point of Competency resets the Dice Cap to its minimum. Rolling the full Dice Cap, average net Successes fall at every reset — at the shipped values, 3.0 at Prowess 4 and 2.4 at Prowess 5. In a fight the cheaper dice make up for it; outside a fight nothing does.
 3. **Is Set-Value Spend in the game?** It is designed ([encounter_design.md](common/encounter/encounter_design.md) → *Set-Value Spend translation*) and coded (`Encounter::State#set_value_spend`), but `Set Value Spend Ratio` is marked `#DELETE ME` and the "Preroll" entry the design cites is not in the dice glossary. No chapter mentions it.
 
@@ -170,15 +179,16 @@ Places where the documents, the config and the engine say different things, and 
 - "Saturation" is still used for magic toxicity in `spells.yaml`, `talents.yaml:63` and `equipment_config.yaml` (`Consumable Saturation`).
 - `abilities_glossary.md:61` sends "Channeled Ability" to the common glossary, which does not define it.
 - [creatures_design.md](common/creatures/creatures_design.md) says the shipped Classes leave aligned saves empty (Sorcerer and Paragon set them), that a Class has two aligned saves, and that `HP Formula` lives in the config (it is in the advancement catalog). `creatures_tests.md:142` puts Arcane Trickster features at levels 1–2; the catalog has them at 3.
-- Loot and encounter tables roll d2, d3, d4 and d6 for quantities. Chapter 2 says every die is a d10.
+- Loot and encounter tables write quantities in d2, d3, d4, d6, d8 and d16 (`loot_tables.yaml`, `random_encounter_tables.yaml`), and the dice-expression reader has no way to write a small range in d10s. Settled above: every die is a d10.
 
 ## Data the book does not print
 
-A chapter prints its concept's `*_config.yaml` and nothing else. Three kinds of data a table needs are therefore missing or hard to read.
+Chapters 5–9 print their tables straight from the config and the catalogs. What is still missing:
 
-- **Catalogs that are not config, so no chapter shows them:** the Point Buy costs and Playable Races (`character_creation.yaml`); every Race's size, Speed, adjustments and abilities (`creatures_race.yaml`); `Tier Breakpoints`, `HP Formula` and `Mana Base Formula` (`creatures_advancement.yaml`); the Skill list with each Skill's Attribute (`skills.yaml`); Deities and Domains (`deities.yaml`); the Afflictions (`conditions_afflictions.yaml`); the named conditions such as blind, prone and shaken (`conditions_effect_names.yaml`); the Talents not reached through a Class (`talents.yaml`, `modifier_abilities.yaml`); the roll tables (`roll_tables.yaml`); Archetypes and NPC classes, which the Class list leaves out; the shops' stock lists and the loot tables (`shops.yaml`, `loot_tables.yaml`).
-- **Config that prints, but as raw nested data rather than a table:** weapons, armor, materials, weapon and armor Properties, guidance items, currency, the Tier and bonus surcharges (`equipment_config.yaml`); the Damage Types (`encounter_config.yaml`); the Natural Recovery rates (`conditions_config.yaml`); Mana cost and Ritual cost by Tier, the ranges, the Spell Schools and the Bonus Types (`abilities_config.yaml`).
-- **Values `{{…}}` cannot reach.** Substitution reads scalar and flat-list keys of `*_config.yaml` only, with an integer offset. Anything nested, anything in a catalog, and any product of two values has to be named instead of shown — which is why chapters 5–9 say "see the configuration table" where a rulebook would print a number.
+- **Chapter 4's tables** — the Afflictions (`conditions_afflictions.yaml`), the named conditions such as blind, prone and shaken (`conditions_effect_names.yaml`, where many have no description yet), and the Natural Recovery rates.
+- **Talents** that are not reached through a Class (`talents.yaml`, `modifier_abilities.yaml`), and **Archetypes and NPC classes**, which the Class list leaves out.
+- **Shops and loot tables** (`shops.yaml`, `loot_tables.yaml`) and the **random encounter tables** — chapters 5 and 7 explain how to roll them, and print none.
+- **Anything that needs arithmetic.** `{{…}}` takes an integer offset and nothing else, so a product of two values — a Tier 2 potion's price, the ranks a Class Level is worth — is described, not shown.
 
 ## Review notes on chapters 1–4
 

@@ -15,9 +15,11 @@ Rank accumulation across class levels, Class skill lists, and the rule that ever
 @player
 Every Skill in the **Skill catalog** carries two things: a short description of what it covers, and a **driving Attribute** — the one Attribute that feeds it. Climbing and swimming run on Strength, sneaking and lock-work on Dexterity, lore on Intelligence, noticing and reading people on Wisdom, and talking your way through on Charisma.
 
+{{table: skills.yaml > Skills | columns: attribute=Attribute, description=Covers | label: Skill}}
+
 A few entries deserve a second look:
 
-- **Set Skills** are families rather than single Skills — crafts, professions, performances, games. You never train the family itself. You train one member of it (a particular craft, a particular instrument), and that member is a Skill in its own right, with the family's driving Attribute. A rule that names the family applies to every member of it.
+- **Set Skills** are families rather than single Skills — crafts, professions, performances, games — marked *(any)* in the table. You never train the family itself. You train one member of it (a particular craft, a particular instrument), and that member is a Skill in its own right, with the family's driving Attribute. A rule that names the family applies to every member of it.
 - **Casting Skills** are the Skills spells are cast with. Each tradition of magic has its own; the **Magic and Abilities** chapter says which Skill a given Spell uses.
 - **Martial** is general combat training. It is rolled for weapon attacks and for parrying and blocking, but you do not pick it as a trained Skill — your Classes hand out its ranks automatically (see *Saves and Martial* below).
 
@@ -77,11 +79,13 @@ A Skill you have no ranks in is **untrained**. You may still attempt it: your Pr
 ## Abilities that change your ranks
 
 @player
-Two abilities, named in the configuration table at the end of this chapter, bend the arithmetic above.
+Two abilities bend the arithmetic above.
 
 **The Floor Ability** (`{{Floor Ability}}`). A Creature with it counts as having at least `floor(level ÷ 2)` ranks in every Skill, where *level* is its level in the Class that granted the ability. If the Creature's real ranks are higher, the real ranks are used. The floor does not reach the **Restricted Skills** (`{{Restricted Skills}}`), and it never changes a Skill's driving Attribute.
 
 **The Substitution Ability** (`{{Substitution Ability}}`). A Creature with it may answer certain Checks with a different Skill altogether. The **Substitution Map** lists, for each *source* Skill, the Skills it can stand in for. When a Check calls for one of those, work out your Prowess both ways — the called-for Skill, and the source Skill with *its own* ranks and *its own* driving Attribute — and use the higher. On a tie, use the Skill that was called for.
+
+{{table: Substitution Map | label: Source Skill | value: Stands in for}}
 
 ## Saves and Martial
 

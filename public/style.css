@@ -542,6 +542,11 @@ body {
   color: #444;
 }
 
+/* {{table: …}} in a chapter: inherits .explainer table. */
+.catalog-table th,
+.catalog-table td { vertical-align: top; }
+.catalog-table tbody th { font-weight: 600; white-space: nowrap; }
+
 /* === Coverage overview === */
 
 .coverage-table {

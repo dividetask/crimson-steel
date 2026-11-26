@@ -34,7 +34,7 @@ Everything else on a character sheet — Tier, Hit Points, Mana, Speed, ranks, a
 @player
 A new Player Character begins with one level in one Class. Take these steps in order — later steps read the results of earlier ones.
 
-1. **Buy your Attributes.** All six start at the same value and are raised or lowered from one shared pool of points. Each score has a total price — negative below the starting value, so lowering one can pay for raising another — and none may leave the allowed range. The starting value, pool, range and prices are the **Attribute Allocation** rules.
+1. **Buy your Attributes.** All six start at {{character_creation.yaml > Attribute Allocation > starting_value}} and are raised or lowered from one shared pool of {{character_creation.yaml > Attribute Allocation > point_buy}} points. Each score has a total price — negative below the starting value, so lowering one can pay for raising another — and none may go below {{character_creation.yaml > Attribute Allocation > minimum}} or above {{character_creation.yaml > Attribute Allocation > maximum}}. The prices are in the table under this list.
 2. **Choose a Race** from the **Playable Races**; its adjustments apply on top of the scores you bought.
 3. **Choose a Class** from the Class list.
 4. **Train your Skills.** Your **Skill Pick Budget** is `{{Skill Pick Formula}}`, where *int* is your Effective Intelligence and the bonus-skills term comes from your Class. Train that many Skills — any Skill, though your Class decides how fast each grows. A Skill that is really a family (a craft, a profession, a kind of performance) is trained one member at a time.
@@ -42,6 +42,10 @@ A new Player Character begins with one level in one Class. Take these steps in o
 6. **Choose a deity and domains**, if you are a Cleric (see *Deities and domains*).
 7. **Equip yourself** from the Equipment chapter.
 8. **Work out the rest** — Tier, Effective Attributes, Hit Points, Mana, Speed, ranks and Granted Abilities — as the remainder of this chapter describes.
+
+The total price of each score:
+
+{{table: character_creation.yaml > Attribute Allocation > cost | label: Score | value: Total price}}
 
 ## Attributes, from base to Effective
 
@@ -70,7 +74,11 @@ A **Race** is what a Creature was born as. It gives four things:
 
 Races come in families: a sub-race **inherits** from its parent, which may inherit in turn — a Hill Dwarf is a Dwarf, and a Dwarf is a Humanoid. Size and Speed come from the most specific Race in the line that states one. Attribute adjustments add up along the line. Abilities are gathered from the whole line, and where a sub-race and an ancestor name the same ability the sub-race's version counts.
 
-A Player Character's Race must be one of the **Playable Races**. The broad parents only carry what their sub-races share: you play a Hill Dwarf or a Mountain Dwarf, never simply "a Dwarf". Every other Race — orcs, wolves, trolls — is for the DM's Creatures and is made of the same four parts.
+A Player Character's Race must be one of the **Playable Races**, listed here with everything their line gives them. The broad parents only carry what their sub-races share: you play a Hill Dwarf or a Mountain Dwarf, never simply "a Dwarf". An adjustment to `all` applies to every Attribute.
+
+{{table: creatures_race.yaml | rows: character_creation.yaml > Playable Races | inherit: parent | columns: size, speed, attribute_adjustments=Attribute adjustments, abilities.name=Abilities | label: Race}}
+
+Every other Race — orcs, wolves, trolls — is for the DM's Creatures and is made of the same four parts.
 
 ## Classes and levels
 
@@ -114,6 +122,10 @@ Tier — the magical density of the Magical Tier chapter — is not chosen; it f
 
 Its tags decide which list it reads; player characters, heroes, bosses, nobles, commoners and animals each have one. Tags that match several lists use whichever gives the highest Tier; tags that match none use whichever gives the lowest. The DM may instead simply set a Creature's Tier — a **Tier Override** — and the breakpoints are ignored.
 
+The Total Class Level at which each kind of Creature reaches each Tier:
+
+{{table: creatures_advancement.yaml > Tier Breakpoints | index: Tier | label: Tag}}
+
 | | Tier by Tier |
 |---|---|
 | Tier | {{Tiers}} |
@@ -131,7 +143,9 @@ A new Tier changes a great deal at once:
 ## Ranks: Skills, Saves and Martial
 
 @player
-**Ranks** measure training. The Skills chapter turns them into dice; here is where they come from. Class Levels give ranks at one of three speeds, the **Proficiency Categories**: **Aligned** (fast — what the Class specialises in), **Unaligned** (ordinary) and **Opposed** (slow — what it neglects). How many ranks each gives at each Class Level is set by the **Proficiency Advancement Rates** in the configuration table at the end of this chapter; the Class list prints the result level by level.
+**Ranks** measure training. The Skills chapter turns them into dice; here is where they come from. Class Levels give ranks at one of three speeds, the **Proficiency Categories**: **Aligned** (fast — what the Class specialises in), **Unaligned** (ordinary) and **Opposed** (slow — what it neglects). The **Proficiency Advancement Rates** give the ranks each one is worth at a Class Level, and the Class list prints the result level by level:
+
+{{table: Proficiency Advancement Rates | label: Category | value: Ranks at a Class Level}}
 
 For each of your Classes, find the category it gives, read off the ranks for your level in that Class, and add the results across Classes.
 
@@ -142,9 +156,13 @@ For each of your Classes, find the category it gives, read off the ranks for you
 ## Hit Points, Mana and Speed
 
 @player
-**Maximum Hit Points** depend on Constitution and Tier alone. Each Tier has its own **HP Formula**, written in terms of your Effective Constitution; work it out for your Tier and round down.
+**Maximum Hit Points** depend on Constitution and Tier alone. Each Tier has its own **HP Formula**, written in terms of your Effective Constitution (`con`); work it out for your Tier and round down.
 
-**Maximum Mana** is two parts added together: the **Mana Base Formula** for your Tier, written in terms of your Effective Intelligence and rounded down; and, for each of your Classes, its Mana per level multiplied by your level in it.
+{{table: creatures_advancement.yaml > HP Formula | index: Tier | value: Maximum Hit Points}}
+
+**Maximum Mana** is two parts added together: the **Mana Base Formula** for your Tier, written in terms of your Effective Intelligence (`int`) and rounded down; and, for each of your Classes, its Mana per level multiplied by your level in it.
+
+{{table: creatures_advancement.yaml > Mana Base Formula | index: Tier | value: Base Mana}}
 
 **Speed** is your Race's Speed; a line that states none uses the default base Speed. Speed is never less than zero.
 
@@ -173,7 +191,13 @@ A Cleric draws power from a deity. Every deity favours certain **domains**, and 
 - A chosen domain that the deity favours also grants that domain's **Channel Divinity**.
 - At Cleric level 4, the Cleric also gains the deity's own Channel Divinity.
 
-The deities, their domains, and what each domain grants are set out in the Deities and Domains catalog.
+The deities:
+
+{{table: deities.yaml > Deities | columns: domains=Favoured domains, anathema, channel_divinity=Channel Divinity | label: Deity}}
+
+The domains, and what each grants. A domain with nothing beside it has no spells or Channel Divinity yet:
+
+{{table: deities.yaml > Domains | columns: spells=Domain spells, channel_divinity=Channel Divinity | label: Domain}}
 
 ## For the DM — NPCs and monsters
 

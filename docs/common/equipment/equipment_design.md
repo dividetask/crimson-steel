@@ -27,6 +27,8 @@ An Inventory can belong to a **Creature**, to the **Party** (one shared stash of
 @player
 Prices are in Gold. The `Currency` table gives the value in Gold of each coin — Gold, Silver and Copper — and coins change freely into one another at those values. A **Gem** carries its own value. Your **Total Wealth** is the Gold value of all your coins and gems.
 
+{{table: Currency | columns: symbol=Written, value_in_gold=Value in Gold | label: Coin}}
+
 When you pay:
 
 1. A price above your Total Wealth cannot be paid, and nothing is spent.
@@ -58,6 +60,18 @@ Read an entry in the `Weapons` table like this:
 - A figure on the weapon's own entry overrides all of these.
 - A weapon that names an ammunition type fires that `Ammunition`, sold by the bundle.
 
+{{table: Weapon Categories | columns: base_damage=Base damage, speed=Speed | label: Category}}
+
+{{table: Weapon Tags | columns: damage_formula=Base damage, speed=Speed, description=What it is | label: Tag}}
+
+{{table: Damage Type Defaults | columns: bleed=Bleed, threshold=Threshold | label: Damage Type}}
+
+The weapons. A dash under one of the last three columns means the weapon takes that figure from its category, tags and Damage Type:
+
+{{table: Weapons | columns: category=Category, damage_type=Damage Type, tags=Tags, ammo_type=Fires, affliction=Injects, base_price=Price in Gold, base_damage=Own base damage, speed=Own Speed, threshold=Own Threshold | label: Weapon}}
+
+{{table: Ammunition | columns: bundle_size=In a bundle, base_price=Bundle price in Gold, used_by=Fired by | label: Ammunition}}
+
 **Threshold** decides how deep a wound goes: a hit fills the target's Minor damage up to the Threshold plus the target's Damage Resilience, then Moderate by the same amount, and the rest is Major — so a lower Threshold wounds worse. **Bleed** decides how freely it bleeds: a hit inflicts the bleeding Affliction (see **Conditions**) with a Potency of the weapon's Bleed plus the damage dealt.
 
 **Natural weapons** — bites, claws, slams — share the table. A Creature has them because of what it is; they are never carried, bought or sold. Some inject a poison: a hit also inflicts the Affliction named on the entry, with a Potency of the listed amount plus the damage dealt. Every Creature can also attack **Unarmed**.
@@ -74,7 +88,13 @@ The `Armor` table gives every piece a **category** — Clothing, Light, Medium, 
 
 A **shield** gives neither. It lets you **Block**, a Defensive Action that answers melee, ranged and spell attacks alike (see **Combat**): no shield in hand, no Block.
 
+{{table: Armor Category Defaults | columns: damage_reduction=Damage Reduction, resilience_increment=Resilience Increment, thickness=Thickness | label: Category}}
+
+{{table: Armor | columns: category=Category, material=Material, metal=Metal Armor, base_price=Price in Gold | label: Armor}}
+
 A material gives the object a **Hardness** and **Hit Points** (the formula uses the category's Thickness); each Tier of a magical piece adds 2 to its Hardness. This book does not yet give rules for breaking gear. Armor marked as metal is **Metal Armor**, which matters to some Damage Types — Electricity above all (see **Combat**).
+
+{{table: Materials | columns: hardness=Hardness, hit_points=Hit Points | label: Material}}
 
 ## Magical gear
 
@@ -100,6 +120,8 @@ Every Item has a **Tier**, the same measure of magical density the **Magical Tie
 | Glory | Glorious | No rider. Attacking a Creature of a higher Tier, you count as a higher Tier yourself (see **Combat**). |
 | Vicious | Vicious | Rider dice deal the weapon's own damage, all of it Major. Every hit also deals Minor damage to the wielder, more for each rider die showing a 1. |
 
+{{table: Weapon Properties | columns: min_tier=Minimum Tier, cost=Cost in Gold, applies_to=Goes on, subtypes=Kinds, damage_rider.dice=Rider dice | label: Property}}
+
 ### Armor Properties
 
 @player
@@ -110,10 +132,14 @@ Every Item has a **Tier**, the same measure of magical density the **Magical Tie
 | Fortification | Fortified | A Guidance Bonus to your Damage Resilience. Body armor only, never a shield. |
 | Elemental Resistance | Fireproof, Acidproof, Grounded or Coldproof | Takes a fixed amount off every hit of its one element before the wound is sorted by Severity. |
 
+{{table: Armor Properties | columns: min_tier=Minimum Tier, cost=Cost in Gold, applies_to=Goes on, subtypes=Kinds, damage_resistance.amount=Taken off a hit | label: Property}}
+
 ### Attribute and save items
 
 @player
 The `Items` table lists worn Items that grant a flat **Guidance Bonus** while equipped: belts for Strength, Dexterity and Constitution, headbands for Intelligence, Wisdom and Charisma, and the Cloak of Resistance for saving throws. A Bonus to an Attribute raises the Attribute itself and everything worked out from it. Each entry pairs every Bonus on offer with the Tier of the Item that grants it.
+
+{{table: Items | columns: slot=Slot, guidance_attribute=Raises, guidance_bonus=Bonuses on offer, tier=Tier of each | label: Item}}
 
 ### Reading an item's name
 
@@ -136,18 +162,24 @@ The casting Check uses one of the Skills the spell names, or Evocation. The Spel
 
 Each Potion or Oil imposes **magic toxicity**, read from `Consumable Saturation` by the Item's Tier:
 
-1. Take the **Base** and the **Minimum** for that Tier.
-2. If the Creature affected is of a lower Tier than the Item, multiply both by the **Lower Tier Multiplier**.
+1. Take the **Base** and the **Minimum** for that Tier. From Tier 0 upward the Base is {{Consumable Saturation > Base}} and the Minimum is {{Consumable Saturation > Minimum}}.
+2. If the Creature affected is of a lower Tier than the Item, multiply both by the **Lower Tier Multiplier**, {{Consumable Saturation > Lower Tier Multiplier}}.
 3. The toxicity is the Base, less any reduction one of your Abilities gives, but never less than the Minimum.
 
 **Conditions** says what magic toxicity does. One consequence belongs here: once your magic toxicity is above your Toxicity Threshold, a helpful dose is blocked. It is used up, and neither healing nor Mana comes of it — though a Ward's Temporary Hit Points still take hold. A harmful dose is never blocked.
 
 Also on the shelf: **alchemical items** (Alchemist's fire and Acid jars, in the `Consumables` table), which need no magical knowledge to use; **Poison Vials**, each holding doses of one poison Affliction from **Conditions**, its Quantity being the doses left; and **Ritual books**, which hold the rituals inscribed in them (see **Magic and Abilities**).
 
+{{table: Consumables | columns: base_price=Price in Gold | label: Alchemical item}}
+
 ## Tattoos and unique items
 
 @player
 The `Tattoos` table lists each Tattoo by its place and the Abilities it grants; a Tattoo can fix the level at which a granted Ability works, so that it never grows with its bearer. `Unique Items` are one of a kind: they have no price and are never for sale — the DM places them — and each grants an Ability, a spell or an effect of its own while worn.
+
+{{table: Tattoos | columns: slot=Place, grants=Grants, guidance_attribute=Raises, base_price=Price in Gold | label: Tattoo}}
+
+{{table: Unique Items | columns: description=What it does | label: Unique Item}}
 
 ## What things cost
 
@@ -168,17 +200,25 @@ An Item's **Unit Price** — the price of one — depends on what it is:
 - A Scroll costs half what a Potion or Oil of the same spell and Tier costs.
 - A Tier 0 spell Item, which would carry no surcharge at all, costs half the Tier 1 price — Tier 0 counting as 0.5, as everywhere else.
 
+{{table: Default Tier Surcharge | label: Tier | value: Tier Surcharge in Gold}}
+
+{{table: Default Bonus Surcharge | label: Bonus | value: Bonus Surcharge in Gold}}
+
+Ordinary gear, with the Slot it is worn in, if any:
+
+{{table: Misc Items | columns: slot=Slot, base_price=Price in Gold | label: Item}}
+
 ### Worked example — pricing a potion
 
 @player
-A Tier 2 Potion of Heal has no Base Price and no Properties. Take the Tier 2 entry of `Default Tier Surcharge`, divide it by {{Consumable Surcharge Divisor}} because it is a consumable, and multiply by {{Innately Usable Price Multiplier}} because anyone can drink it. The Scroll of the same spell and Tier costs half as much.
+A Tier 2 Potion of Heal has no Base Price and no Properties. Take the Tier 2 entry of `Default Tier Surcharge` ({{Default Tier Surcharge > 2}}), divide it by {{Consumable Surcharge Divisor}} because it is a consumable, and multiply by {{Innately Usable Price Multiplier}} because anyone can drink it. The Scroll of the same spell and Tier costs half as much.
 
 ## For the DM — shops
 
 @player
 A **Specific Shop** is a named place whose stock and gold persist; trade changes them until you **refresh** the shop:
 
-1. For every line of stock, coins included, flip a coin. One face and the line is gone; the other and it stays, its Quantity re-rolled to a random number from 1 up to what it had.
+1. For every line of stock, coins included, roll a d{{Die Size}}. On the lower half of its faces the line is gone. On the upper half it stays, but only part of it: roll percentile dice and keep that percentage of its Quantity, rounded up.
 2. Roll the shop's Loot Table and add the result.
 
 A **Generic Shop** — an alchemist, a smith — has no stock until the party walks in, and then stocks by the size of the settlement. Each entry in its list has a minimum population, below which it is not carried, and a Quantity of a base amount plus a further amount per thousand inhabitants. Its gold, for buying from the party, is a base amount plus one that grows with the square root of the population. The stock stands for the rest of the game day.
@@ -211,7 +251,7 @@ A row calling for a magical Item gives a recipe: the kind of gear (melee weapon,
 3. **Property.** Strike every Property whose minimum Tier is above the Tier rolled, or that cannot go on this kind of gear, and choose from the rest by weight. "None" is always allowed — a Tier with no Property — and is the result when nothing else survives.
 4. **Kind.** If the Property comes in several kinds, as Elemental does, choose one evenly.
 
-The Item never has more than one Property. To choose by weight, total the weights, roll a random number from 1 to the total, and count down the list.
+The Item never has more than one Property. To choose by weight, turn each weight into its share of the total, as a percentage, and roll percentile dice down the list as for a Weighted Choice.
 
 ## For the DM — loot after a fight
 

@@ -13,7 +13,9 @@ Owns calendar and clock calculations: translating timestamps into year/month/day
 @player
 The **Round** is the game's unit of time. One Round is {{Round Length}} seconds in the world.
 
-Everything is counted in Rounds, however long it lasts. A fight is tracked Round by Round. Longer spans — a minute, an hour, a day — are each a fixed number of Rounds; the **Conditions** chapter's configuration table lists them under `Frequency Rounds`, because that is how often a slow poison or a disease comes due.
+Everything is counted in Rounds, however long it lasts. A fight is tracked Round by Round. Longer spans — a minute, an hour, a day — are each a fixed number of Rounds. These are the spans the game uses for how often something comes due, such as a slow poison or a disease:
+
+{{table: Frequency Rounds | label: Span | value: Rounds}}
 
 The **time of day** is simply how many Rounds have passed since midnight, at {{Round Length}} seconds each. When the count reaches a full day, it starts again from zero and the date moves on by one.
 

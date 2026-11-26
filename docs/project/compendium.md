@@ -19,6 +19,7 @@ The short version:
 - `docs/common/<concept>/<concept>_design.md` holds both halves. A player sees the `@player` passages; the DM sees everything, with the player passages visually marked so the merged document can be reviewed at a glance.
 - `@chapter <n> [title]` places the concept in the player's manual and names it there. No `@chapter` means the concept is DM-only.
 - `{{Config Key}}` substitutes the live value from `<concept>_config.yaml`, so a worked example cannot drift from the value the code reads.
+- A `>` path reaches a nested value or a catalog, and `{{table: <path>}}` prints one as a table, so the weapons, the Races or the Skill list in a chapter are the catalog itself rather than a copy of it.
 
 There is no "which document is canonical" rule any more, because there is only one document.
 
@@ -102,8 +103,9 @@ These pages support the same `@function` and ` ```test ` stripping as the Common
 
 | Module | Responsibility |
 |---|---|
-| `lib/common_docs.rb` | Concept discovery, directive and marker parsing, `{{Config Key}}` substitution, per-audience rendering. |
+| `lib/common_docs.rb` | Concept discovery, directive and marker parsing, `{{Config Key}}` substitution and `>` paths, per-audience rendering. |
 | `lib/config_tables.rb` | `*_config.yaml` → table, including the comment-derived descriptions and `@dm` visibility. |
+| `lib/catalog_tables.rb` | A nested config value or a catalog section → table, for the `{{table: …}}` directive. |
 | `lib/doc_markdown.rb` | Shared kramdown + Mermaid rendering for every documentation surface. |
 | `lib/glossary_docs.rb` | The merged Glossary. |
 | `lib/design_docs.rb` | The hand-curated website-design pages. |

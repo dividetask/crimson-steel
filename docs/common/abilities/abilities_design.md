@@ -31,7 +31,7 @@ Every Spell on the Spell list is described by the same entries.
 | Entry | What it tells you |
 |---|---|
 | **Tier** | The Spell's magical density ({{Tiers}}). It sets the Mana cost and adds to the casting check. Tier 0 counts as 0.5 in formulas. |
-| **School** | Its discipline. The Schools are listed under **Spell Schools** in the configuration table at the end of this chapter. |
+| **School** | Its discipline — see the Schools below. |
 | **Casting Skills** | The Skills that can cast it — Arcana if none is named — plus the universal casting Skill ({{Universal Spell Casting Skills}}), which can cast anything. |
 | **Activation time** | A Main Action unless stated; otherwise Bonus, Reaction, Free, a full turn, several turns, or minutes and more. |
 | **Range** | Self, Touch, Close, Medium, Long, or a distance in feet. |
@@ -44,10 +44,20 @@ Every Spell on the Spell list is described by the same entries.
 
 Some Spells add a **prerequisite** (a lower Spell you may need to know first), a **property** such as *language-dependent* (a target that cannot understand you is unaffected), or the **item forms** the Spell may take.
 
+The Schools:
+
+{{table: Spell Schools | label: School | value: What it covers}}
+
+The casting Skills:
+
+{{table: Casting Skills List | label: Casting Skill | value: Tradition}}
+
 ### Rank and Variants
 
 @player
-Many entries scale with your **Rank**: your Proficiency Ranks in the Skill you cast with (see **Skills**). "Rank turns" is one turn per Rank, and "1 + Rank" targets grows as you train. Ranges scale too. **Touch** is your reach ({{Default Reach Feet}} feet unless something lengthens it), while **Close**, **Medium** and **Long** each add a set distance per Rank to a base — the **Range Formulas** in the configuration table.
+Many entries scale with your **Rank**: your Proficiency Ranks in the Skill you cast with (see **Skills**). "Rank turns" is one turn per Rank, and "1 + Rank" targets grows as you train. Ranges scale too. **Touch** is your reach ({{Default Reach Feet}} feet unless something lengthens it), while **Close**, **Medium** and **Long** each add a set distance per Rank to a base. The **Range Formulas**, in feet:
+
+{{table: Range Formulas | label: Range | value: Feet}}
 
 A Spell may come in **Variants**. One with a Tier axis is a ladder of Spells: Heal exists at every Tier, each version stronger and separately named. One with an **Aspect** axis is a single Spell in several flavours: Elemental Dart as fire, acid, electricity or cold. Each Variant has its own line on the Spell list, and you learn and cast the Variant, not the family.
 
@@ -61,12 +71,14 @@ How you gain Spells depends on your Class, and the Class list has the numbers. A
 @player
 A cast is a Check (see **Check Resolution**): your casting Roll is the Initiating Roll, and the target's resistance is the Defending Roll.
 
-1. **Pay the Mana.** A Spell costs Mana by its Tier — the **Mana Cost Per Tier** entry in the configuration table. Without the Mana you cannot cast.
+1. **Pay the Mana.** A Spell costs Mana by its Tier — the **Mana Cost Per Tier** table under this list. Without the Mana you cannot cast.
 2. **Choose the casting Skill** from those the Spell allows. It supplies your Dice Cap, Competency and Rank for this cast.
 3. **Commit dice.** Roll at least the Action Minimum for the Spell's activation — {{Main Action Minimum}} dice for a Main Action, {{Bonus Action Minimum}} for a Bonus Action, {{Reaction Action Minimum}} for a Reaction — and at most the Skill's Dice Cap. In a fight, every die committed is spent from your Combat Pool.
 4. **Find your Target Number.** Start at the Base TN of {{Base Target Number}} and apply the Skill's **Competency**, your **Inherent** Bonus, and a **Guidance** Bonus equal to the Spell's Tier (none at Tier 0).
 5. **The target answers** with a Saving Throw or a Defensive Action, as the Spell dictates.
 6. **Roll.** Your DoIS minus the target's is the Degree of Success. The cast succeeds when it reaches the Default Success Threshold of {{Default Success Threshold}}.
+
+{{table: Mana Cost Per Tier | label: Spell Tier | value: Mana}}
 
 The Mana and the dice are spent whether or not the Spell takes hold.
 
@@ -115,6 +127,8 @@ Mira casts a Tier 1 enchantment that compels its target on a failed Wisdom save.
 @player
 A Spell with an **Area** fills a shape on the map — a line, cone, square or circle, its size counted in 5-foot squares. The Area sits on a point you choose, or is centred on a target or on you and moves with that creature. A Spell with an Area and no target affects every creature inside.
 
+{{table: Area Shapes | label: Shape | value: How its size is counted}}
+
 You make **one** casting Roll. Every creature caught makes its own save, and each save is compared with your Roll separately, so the same cast can take one creature and spare its neighbour. Your Bonuses cross onto every save. Theirs all cross onto your Roll, where only the strongest of each Type counts — for Ascendancy you are measured against the highest-Tier creature you caught.
 
 An Area with a Duration **lingers** on the map (see the **Map** chapter). Creatures inside when it appears save at once; if the Spell also lists a save for *entering* the Area or for *ending a turn* in it, the DM calls for that save when it happens. Once the Duration is up, the Area vanishes at the start of the caster's turn.
@@ -148,7 +162,9 @@ A Channeled Spell ends when a turn passes without a channel, when its Duration r
 @player
 An activation of a **full turn** takes both of your turn's Main Actions and takes effect as the turn ends. An activation of **several turns** is a **Long Cast**: commit both Main Actions on each of those turns, and the Spell takes effect at the end of the last. Let a turn end without that commitment, or fail a Concentration save, and the cast is cancelled — no effect, and the Mana is gone. An activation of **minutes or more** cannot be attempted in a fight at all.
 
-A **Ritual** lets a Creature cast a Spell it does not have as an Ability. Rituals are kept inscribed in a Ritual book. Drawing the ritual circle costs gold and time set by the Spell's Tier — the **Ritual** entry in the configuration table — and lets you cast that Spell once, at its normal activation time, Mana cost and any other cost. The casting consumes the circle.
+A **Ritual** lets a Creature cast a Spell it does not have as an Ability. Rituals are kept inscribed in a Ritual book. Drawing the ritual circle costs gold and time set by the Spell's Tier — the **Ritual** table below, in gold and in minutes — and lets you cast that Spell once, at its normal activation time, Mana cost and any other cost. The casting consumes the circle.
+
+{{table: Ritual | index: Tier | label: Drawing the circle}}
 
 ## Spells from Items
 
@@ -190,6 +206,10 @@ A **Reaction** is used during another creature's Main Action, and a creature get
 @player
 **Channel Divinity** is a Cleric's family of Talents, granted by deity and domains (see **Characters**). Each use costs Mana — the deity's own channel more than the rest — and any Roll it calls for uses Invocation. For a channel that fires on a table, roll the dice you spend for **Channel Successes**, then roll on the table: the Channel Successes scale the entry, and the DM applies it.
 
+Kesser's Gambit rolls on the Kesser Reversal Table:
+
+{{table: roll_tables.yaml > Kesser Reversal Table > entries | columns: name=Result, effect=What happens | label: Roll}}
+
 ### Luck
 
 @player
@@ -202,18 +222,9 @@ If the Performance check comes out below zero, the DM gains that many points of 
 @player
 Every Bonus and Penalty an Ability grants has a **Bonus Type**, and the stacking rule of **Dice Resolution** applies: of each Type, only your largest Bonus and your largest Penalty count.
 
-| Type | Comes from |
-|---|---|
-| **Competency** | Training and raw attributes. |
-| **Circumstance** | The situation — terrain, position, a foe caught off guard. |
-| **Morale** | Emotion, alchemy and body chemistry. |
-| **Guidance** | Magic that steers or strengthens — Spells and enchanted gear. |
-| **Inherent** | Your own Tier. |
-| **Ascendancy** | The amplified gap when Tiers clash on an opposed Check. |
-| **Racial** | Your Race. |
-| **Luck** | A twist of fortune. |
+{{table: Bonus Types List | label: Bonus Type | value: Comes from}}
 
-The same list is the **Bonus Types List** in the configuration table. Most Spell buffs and magical gear grant Guidance, so the larger wins rather than both adding. Bonuses are not only to Target Numbers: Abilities also grant typed Bonuses to Speed, damage reduction, damage resilience, saves and Attributes, which stack by the same rule.
+Most Spell buffs and magical gear grant Guidance, so the larger wins rather than both adding. Bonuses are not only to Target Numbers: Abilities also grant typed Bonuses to Speed, damage reduction, damage resilience, saves and Attributes, which stack by the same rule.
 
 ## For the DM — Adjudicating Magic
 
