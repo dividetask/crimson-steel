@@ -452,14 +452,16 @@ Challenge:
     - attribute: wis
       fail: challenged
       success: "0"
+  effect_hash:
+    damage_bonus: [0, 1, 2, 4, 8, 16]
   variant_overrides:
-    - { description: "Challenge one enemy within range: you deal +0 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
-    - { description: "Challenge one enemy within range: you deal +1 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
-    - { range: Medium, description: "Challenge one enemy within range: you deal +2 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
-    - { range: Medium, description: "Challenge one enemy within range: you deal +3 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
-    - { range: Long, description: "Challenge one enemy within range: you deal +4 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
-    - { range: Long, description: "Challenge one enemy within range: you deal +5 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
-  description: "Challenge one enemy within range: you deal bonus damage to it equal to the spell's Tier, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it."
+    - { description: "Challenge one enemy within range: on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+    - { target: "2", description: "Challenge up to 2 enemies within range: you deal +1 damage to each, and on a failed Wisdom save each must attack only you. The spell ends for a target you are, or move, out of range of." }
+    - { range: Medium, target: "4", description: "Challenge up to 4 enemies within range: you deal +2 damage to each, and on a failed Wisdom save each must attack only you. The spell ends for a target you are, or move, out of range of." }
+    - { range: Medium, target: "8", description: "Challenge up to 8 enemies within range: you deal +4 damage to each, and on a failed Wisdom save each must attack only you. The spell ends for a target you are, or move, out of range of." }
+    - { range: Long, target: "16", description: "Challenge up to 16 enemies within range: you deal +8 damage to each, and on a failed Wisdom save each must attack only you. The spell ends for a target you are, or move, out of range of." }
+    - { range: Long, target: "32", description: "Challenge up to 32 enemies within range: you deal +16 damage to each, and on a failed Wisdom save each must attack only you. The spell ends for a target you are, or move, out of range of." }
+  description: "Challenge enemies within range: you deal bonus damage to them, and on a failed Wisdom save each must attack only you. Targets and bonus double with each Tier."
 
 Last Stand:
   type: spell

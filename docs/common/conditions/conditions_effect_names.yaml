@@ -359,7 +359,7 @@ Effect Names:
         text: "Has temporary hit points from Ward; they and this condition fade together when the spell expires."
 
   challenged:
-    description: "Challenged by a Glory caster: it must attack only that caster, who deals bonus damage to it equal to the spell's Tier."
+    description: "Challenged by a Glory caster: it must attack only that caster, who deals bonus damage to it."
     mechanics:
       - kind: display
         text: "Must attack only its challenger. Ends if the challenger is out of range."
