@@ -773,8 +773,13 @@ module Encounter
         end
       end
 
-      supporting = attacker[:successes].to_i + allies.sum { |a| a[:successes].to_i }
+      # The weapon's +X extra dice (plain or flavored) were rolled with the
+      # attack and count toward its Successes.
+      ench_roll = p[:enchant] || {}
+      ench_succ = ench_roll[:dice].to_i.positive? ? ench_roll[:successes].to_i : 0
+      supporting = attacker[:successes].to_i + ench_succ + allies.sum { |a| a[:successes].to_i }
       net = supporting - opposing
+      enchantment = weapon[:enchantment]
       threshold = weapon[:threshold].to_i
       # Danger Sense's one-shot Damage Resilience adds to the bucketing for this
       # attack only (it is not a lingering Condition).
@@ -806,6 +811,16 @@ module Encounter
 
       if net.positive?
         base = weapon[:base_damage] ? weapon[:base_damage].to_i : p[:damage_bonus].to_i
+        # The skill bonus damage (Competency + the weapon's +X). On a typed
+        # weapon it converts to the enchantment's damage, and flavored
+        # Successes add none of the physical damage.
+        bonus_dmg = weapon[:bonus_damage].to_i
+        if enchantment
+          phys_net = [net - [ench_succ, 0].max, 0].max
+        else
+          base += bonus_dmg
+          phys_net = net
+        end
         # Computed damage / bleed, each replaceable by a DM override. Bleed is
         # the weapon's Bleed plus the damage dealt (encounter_design.md →
         # "actual bleed = Bleed Constant + damage dealt"), so a 0-Bleed weapon
@@ -814,7 +829,7 @@ module Encounter
         # Primal Tenacity's one-shot Damage Reduction is subtracted here, like
         # the Tier-Mismatch Inherent DR, before the Severity split (floored at 0).
         # Passive Damage Reduction (Armor / attribute / Rage) is subtracted too.
-        computed = [base + net - inherent_dr - passive_dr - extra_reduce, 0].max
+        computed = [base + phys_net - inherent_dr - passive_dr - extra_reduce, 0].max
         damage = over.key?(:damage) ? over[:damage].to_i : computed
         bleed  = over.key?(:bleed)  ? over[:bleed].to_i  : weapon[:bleed].to_i + damage
         # Poison potency = the weapon's Affliction Potency constant + the
@@ -835,18 +850,13 @@ module Encounter
         else
           sev = preview_severity(p[:target_id], damage, dtype, threshold, extra_resilience: extra_resil)
         end
-        # Magical weapon Damage Riders: the 4 extra dice the DM rolls
-        # client-side at the attack's Target Number once the hit lands. Each
-        # rider lands as its own Severity Calculation, kept separate from the
-        # weapon's base damage; a Vicious rider also bites the wielder. The
-        # per-rider Success / "1" counts arrive in `rider_results`.
-        riders = Array(weapon[:damage_riders]).each_with_index.map { |r, i| r.merge(id: i) }
-        rider_outcomes = apply_attack_riders(p[:target_id], attacker[:id], riders, p[:rider_results], commit)
+        ench_out = enchantment && apply_enchantment_damage(
+          p[:target_id], attacker, enchantment, bonus_dmg, ench_roll, over, commit)
         { ok: true, damage: damage, severity_map: sev, net_dos: net, damage_type: dtype,
           threshold: threshold, damage_resilience: resil, inherent_dr: inherent_dr,
           passive_dr: passive_dr, bleed: bleed,
           poison: poison, poison_name: poison_label,
-          riders: riders, rider_outcomes: rider_outcomes,
+          enchantment: ench_out,
           pool_spends: pool_spends, committed: commit }
       else
         { ok: true, damage: 0, severity_map: {}, net_dos: net, damage_type: dtype,
@@ -1072,47 +1082,49 @@ module Encounter
       {}
     end
 
-    # ---------- Magical weapon Damage Riders ----------
+    # ---------- Weapon enchantments ----------
 
-    # Apply the weapon's Damage Riders for a landed hit. `riders` are the
-    # resolved rider specs from Get Weapon Details; `results` is the client's
-    # per-rider roll — a list of { id:, damage:, self_damage: } (the rolled,
-    # DM-editable amounts: bonus damage to the target and self-damage to the
-    # wielder). Each rider lands as its own Severity Calculation, separate from
-    # the weapon's base damage. Returns one outcome per rider for the result
-    # panel; only mutates Conditions when `commit` is true.
-    def apply_attack_riders(target_id, attacker_id, riders, results, commit)
-      return [] if riders.nil? || riders.empty?
-      by_id = Array(results).each_with_object({}) do |r, h|
-        rr = deep_symbolize(r)
-        h[rr[:id].to_i] = rr
+    # A typed weapon's enchantment damage on a hit (equipment_design.md →
+    # Enhancement and Enchantment), landing as its own Severity Calculation:
+    #   * the converted bonus damage, plus 1 per flavored die that rolled a
+    #     Success (a Critical counts the Damage Type's critical value, 2 by
+    #     default) — doubled for Glorious, forced to a Severity for Vicious;
+    #   * Merciful: 2 Shock per point of that damage instead;
+    #   * Vicious: each 1 rolled on any attack die deals 1 minor to the wielder.
+    # The DM may override `enchant_damage`, `shock` and `self_damage`.
+    def apply_enchantment_damage(target_id, attacker, ench, bonus_dmg, roll, over, commit)
+      dtype = ench[:damage_type].to_s
+      tn    = roll[:tn].to_i
+      faces = Array(roll[:faces]).map(&:to_i)
+      size  = DiceResolution.config.die_size
+      crit  = Severity.critical_modifier_for(dtype.empty? ? 'physical' : dtype)
+      flavored = if roll[:dice].to_i.zero? then 0
+                 elsif faces.any? && tn.positive?
+                   faces.sum { |v| v == size ? crit : (v >= tn ? 1 : 0) }
+                 else [roll[:successes].to_i, 0].max
+                 end
+      flavored *= [ench[:multiplier].to_i, 1].max
+      amount = bonus_dmg.to_i + flavored
+      out = { label: ench[:label] }
+
+      if ench[:effect].to_s == 'shock'
+        shock = over.key?(:shock) ? over[:shock].to_i : amount * ench[:amount].to_i
+        out[:shock] = shock
+        apply_rider_named_effect(target_id, 'shock', shock) if commit && shock.positive?
+      else
+        amount = over[:enchant_damage].to_i if over.key?(:enchant_damage)
+        out[:damage] = amount
+        out[:damage_type] = dtype
+        out[:severity_map] = rider_target_severity(target_id, amount, ench, commit)
       end
-      riders.each_with_index.map do |rider, i|
-        # The client rolled each rider (4 dice at the attack's TN) and the DM may
-        # have edited the result in the damage screen; the payload carries the
-        # final `damage` (to the target) and `self_damage` (to the wielder).
-        res      = by_id[i] || {}
-        amt      = res[:damage].to_i
-        self_amt = res[:self_damage].to_i
-        outcome  = { id: i, label: rider[:label] }
 
-        if rider[:kind].to_s == 'named_effect'
-          outcome[:effect] = rider[:effect]
-          outcome[:amount] = amt
-          apply_rider_named_effect(target_id, rider[:effect], amt) if commit && amt.positive?
-        else
-          outcome[:damage]       = amt
-          outcome[:damage_type]  = rider[:damage_type]
-          outcome[:severity_map] = rider_target_severity(target_id, amt, rider, commit)
-        end
-
-        if rider[:self_damage]
-          sev = rider[:self_damage][:severity]
-          outcome[:self_damage] = { severity: sev.to_s, amount: self_amt }
-          apply_hp_severity(attacker_id, sev, self_amt) if commit && self_amt.positive?
-        end
-        outcome
+      if (sd = ench[:self_damage_per_one])
+        ones = (Array(attacker[:faces]) + faces).count { |v| v.to_i == 1 }
+        self_amt = over.key?(:self_damage) ? over[:self_damage].to_i : ones * sd[:amount].to_i
+        out[:self_damage] = { severity: sd[:severity].to_s, amount: self_amt }
+        apply_hp_severity(attacker[:id], sd[:severity], self_amt) if commit && self_amt.positive?
       end
+      out
     end
 
     # A Combatant's Creature Tier (0 when unknown). Tier 0 is the floor; the

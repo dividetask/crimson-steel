@@ -197,7 +197,7 @@ Returns a dict with: `category`, `item_type`, `definition` (the catalog block), 
 
 Input: a Stack with `category == Weapon`.
 
-Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override, plus the sum of every equipped Property's `weapon_modifiers.threshold_delta`; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `affliction` (the key of a Conditions Affliction the weapon injects on a hit — e.g. a spider's `spider_venom` Bite — or `null`; Combat offers a Poison input alongside Damage / Bleed when present), `damage_riders` (the resolved `damage_rider` of every magical Property on the Stack — sentinel Damage Types `from_subtype` / `from_weapon` already resolved to a concrete type — for Combat to roll at attack time), `tier_advantage` (summed `tier_advantage.amount` across the Stack's Properties — the Glory Tier bump; 0 for a mundane weapon).
+Returns *Get Item Details* extended with: `damage_formula` (per-weapon override → first Tag with `damage_formula` → Category default), `damage_types` (list), `bleed` (max over the Damage Types' defaults, or per-weapon override), `threshold` (min over the Damage Types' defaults, or per-weapon override, plus the sum of every equipped Property's `weapon_modifiers.threshold_delta`; `null` when explicitly null on the Weapon), `tags` (list), `ammo_type` (string or null), `affliction` (the key of a Conditions Affliction the weapon injects on a hit — e.g. a spider's `spider_venom` Bite — or `null`; Combat offers a Poison input alongside Damage / Bleed when present), `enhancement` (the weapon's +X — its Tier; 0 for a natural weapon) and `enchantment` (its one `flavor`, resolved — see *Enhancement and Enchantment*).
 
 A Weapon's `base_damage` is its **damage field** — the amount the weapon adds to an attack; `base_damage: 0` (e.g. the Bola) means the Weapon contributes no extra damage, not that the attack deals nothing. Two further per-weapon catalog fields are **declarative** (surfaced for Combat but not yet acted on): `range_feet` (a thrown Weapon's range in feet) and `on_hit_save` (a `{ attribute, fail, success }` save the target makes when hit — the Bola's Dexterity-save-or-`prone`).
 
@@ -490,38 +490,13 @@ A Property catalog entry may declare any combination of three effect-shape field
 
 **`effects:`** — Static on-equip Active Effects. Each entry uses the same fields Conditions consumes (`target_key`, `bonus_type`, `amount`, optional `ends_on_round`, optional `metadata`). At *Reconcile Loadout* time, every equipped Stack's Property effects are posted to Conditions with `source_id = equipment:<owner_id>:<stable_stack_key>:<effect_index>`. Subtyped Properties may declare per-Subtype Effects; the Subtype on the Stack picks which list is posted. Each `bonus_type` value must name an entry in the canonical Bonus Types List in `abilities/abilities_config.yaml`. Equipment does not validate the name itself — Modifiers / Conditions reject unknown names downstream.
 
-**`damage_rider:`** — Per-hit dice the weapon adds when an attack lands. Read by Combat during attack resolution. Schema:
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `dice` | non-neg int | required | Number of extra dice rolled when the attack hits. Not rolled to determine attack success — only when the attack has already landed. |
-| `on_success` | dict | required | What each rider die that comes up Success contributes. See below. |
-| `on_failure` | dict | null | What each rider die that comes up Failure (value 1) does. Optional. See below. |
-
-`on_success` dict:
-- `kind`: `damage` or `named_effect`.
-- For `damage`: `damage_type` is either a literal Damage Type name (`radiant`, `emotional`) or the sentinel `from_subtype` (use the Stack's Subtype as the Damage Type) or `from_weapon` (use the wielded weapon's normal Damage Type). `amount` is the damage per Success (default 1). Optional `severity` (`minor` / `moderate` / `major`) forces the Severity of the rider damage rather than deriving it from the Damage Type — Vicious uses `major` so every Success lands as Major damage.
-- For `named_effect`: `name` is the Effect Name from Conditions' catalog (e.g. `shock`). `amount` is the magnitude per Success (e.g. 2).
-
-The rider damage is applied as its **own** Severity Calculation, separate from the weapon's base damage — fire damage from a Flaming weapon buckets independently of the slashing damage the blade deals.
-
-`on_failure` dict (optional):
-- `kind`: `self_damage` is the only case in current data.
-- For `self_damage`: `severity` (`minor`, `moderate`, `major`) and `amount` per rider die that came up a Failure (a `1`). Optional `minimum` adds a flat floor applied once whenever the attack hits (even with zero `1`s) — Vicious deals `minimum: 1` plus `amount: 1` per `1` rolled to the wielder.
+**`flavor:`** — The weapon's enchantment. See *Enhancement and Enchantment* below.
 
 **`weapon_modifiers:`** — Per-weapon stat adjustments the Property applies. Schema:
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `threshold_delta` | integer | 0 | Added to the weapon's Threshold (for damage-bucketing rules in Combat). |
-
-**`tier_advantage:`** — A weapon-attack-only modifier (the Glory Property) that treats the wielder as that many Tiers higher when attacking a higher-Tier opponent, shrinking the Tier gap Combat applies before the per-step damage reduction. Single-target weapon attacks only — never a spell or area effect. Schema:
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `amount` | non-neg integer | required | Tiers added to the wielder's effective Tier for the attack's Tier-gap math. |
-
-*Get Weapon Details* surfaces the summed `tier_advantage` across the Stack's Properties; Combat reads it at attack time (it is not posted to Conditions).
 
 **`damage_resistance:`** — Incoming-damage filter the Property applies when the wearer is hit by damage of a matching type. Schema:
 
@@ -532,7 +507,41 @@ The rider damage is applied as its **own** Severity Calculation, separate from t
 
 Combat consults `damage_resistance` during the Severity Calculation pipeline: for each equipped Property whose `damage_type` matches the incoming attack's type, subtract `amount` from the raw damage (clamped at zero) before bucketing.
 
-`damage_rider`, `weapon_modifiers`, and `damage_resistance` are not posted to Conditions as Active Effects — they are consumed by Combat at attack / damage time. Equipment's role is to surface them through *Get Item Details*; Combat reads the relevant Property entries when building the attacker's Roll or resolving incoming damage.
+### Enhancement and Enchantment
+
+A weapon's **+X** is its Tier. A weapon holds **at most one enchantment** — one Property that declares a `flavor:`; adding a new one supersedes the old.
+
+- **+X (any weapon).** +X Guidance on the attack Roll (it lowers the TN) and +X bonus damage. The attack also rolls **X extra dice**, at the attack's TN. They are free: no Combat Pool, not limited by the Dice Cap, and they never get the attack's Starting Value. Their Successes count toward the attack.
+- **Untyped weapon.** The extra dice are plain: their Successes add physical damage like any other.
+- **Typed weapon (an enchantment).** The extra dice are **flavored**. All the bonus damage (Competency + the +X) converts to the flavor's Damage Type. A flavored die's Successes count toward the attack but add **no** physical damage; instead, when the attack hits, each flavored die that rolled a Success deals 1 damage of the flavor's type (a Critical deals the type's critical value, 2 by default). A +0 typed weapon rolls no extra dice; it only converts the bonus damage.
+
+The typed damage is its **own** Severity Calculation, separate from the weapon's physical damage.
+
+**`flavor:`** schema:
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `damage_type` | string | — | A Damage Type, or the sentinel `from_subtype` (the Stack's Subtype) or `from_weapon` (the weapon's own type). |
+| `effect` / `amount` | string / int | — | Instead of damage: a Conditions effect applied per point of typed damage. Merciful: `shock`, 2 — 2 Shock per point. |
+| `severity` | string | derived | Forces the typed damage into one Severity bucket. Vicious: `major`. |
+| `multiplier` | int | 1 | Multiplies the flavored dice's damage. Glorious: 2. |
+| `only_vs_higher_tier` | bool | false | The extra dice are rolled only against a higher-Tier target. Glorious. |
+| `self_damage_per_one` | dict | — | `{ severity, amount }` dealt to the wielder for every 1 rolled on any die of the attack. Vicious: 1 minor. |
+
+| Enchantment | Type | Notes |
+|---|---|---|
+| Flaming / Corrosive / Shocking / Freezing | fire / acid / electricity / cold | `from_subtype` |
+| Wrathful | emotional | |
+| Radiant | radiant | Also what Divine Favor makes a weapon. |
+| Merciful (Subdual) | 2 Shock per point | Keeps its `threshold_delta`. |
+| Vicious | demonic, forced Major | 1 minor to the wielder per 1 rolled. |
+| Glorious | the weapon's own type, ×2 | Extra dice only against a higher-Tier target. |
+
+**Divine Favor** puts a `radiant_weapon` modifier of its Tier on the wielder: their weapons become +N Radiant weapons, N = the spell's Tier or the weapon's own +X, whichever is higher, superseding the weapon's enchantment.
+
+*Get Weapon Details* surfaces `enhancement` (the +X; 0 for a natural weapon) and `enchantment` (the resolved `flavor`, sentinels expanded, or null).
+
+`flavor`, `weapon_modifiers`, and `damage_resistance` are not posted to Conditions as Active Effects — they are consumed by Combat at attack / damage time. Equipment's role is to surface them through *Get Item Details*; Combat reads the relevant Property entries when building the attacker's Roll or resolving incoming damage.
 
 ### Stable Stack Key
 

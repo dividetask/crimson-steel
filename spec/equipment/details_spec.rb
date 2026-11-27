@@ -71,72 +71,54 @@ RSpec.describe Equipment::Details do
     end
   end
 
-  describe 'Get Weapon Details — Damage Riders' do
-    it 'resolves an Elemental(Fire) rider, expanding from_subtype' do
+  describe 'Get Weapon Details — Enhancement and Enchantment' do
+    it "reports the weapon's +X from its Tier, and 0 for a natural weapon" do
+      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 2), catalog)[:enhancement]).to eq(2)
+      expect(described_class.weapon_details(Equipment::Stack.from_catalog('Bite (Jaws)', catalog), catalog)[:enhancement]).to eq(0)
+    end
+
+    it 'resolves a Flaming enchantment, expanding from_subtype' do
       d = described_class.weapon_details(
-        stack(item_type: 'Long sword', tier: 1,
-              properties: [{ name: 'Elemental', subtype: 'Fire' }]),
-        catalog
-      )
-      expect(d[:damage_riders]).to eq([
-        { property: 'Elemental', subtype: 'Fire', label: 'Flaming', dice: 4,
-          kind: 'damage', damage_type: 'fire', amount: 1, severity: nil }
-      ])
+        stack(item_type: 'Long sword', tier: 1, properties: [{ name: 'Elemental', subtype: 'Fire' }]), catalog)
+      expect(d[:enchantment]).to eq(property: 'Elemental', subtype: 'Fire', label: 'Flaming',
+                                    damage_type: 'fire', multiplier: 1)
     end
 
-    it 'resolves a Vicious rider: from_weapon type, forced Major, and self-damage' do
+    it 'resolves Vicious: demonic, forced Major, 1 minor to the wielder per 1' do
+      d = described_class.weapon_details(stack(item_type: 'Great sword', tier: 2, properties: [{ name: 'Vicious' }]), catalog)
+      e = d[:enchantment]
+      expect(e[:damage_type]).to eq('demonic')
+      expect(e[:severity]).to eq('major')
+      expect(e[:self_damage_per_one]).to eq(severity: 'minor', amount: 1)
+    end
+
+    it 'resolves Merciful as 2 Shock and keeps its threshold_delta' do
+      d = described_class.weapon_details(stack(item_type: 'Mace', tier: 1, properties: [{ name: 'Subdual' }]), catalog)
+      expect(d[:enchantment]).to include(effect: 'shock', amount: 2)
+      expect(d[:threshold]).to eq(8) # Bludgeoning Threshold 3 + Subdual threshold_delta 5
+    end
+
+    it "resolves Glorious as double damage of the weapon's own type, only against higher Tiers" do
+      d = described_class.weapon_details(stack(item_type: 'Long sword', tier: 1, properties: [{ name: 'Glory' }]), catalog)
+      expect(d[:enchantment]).to include(damage_type: 'slashing', multiplier: 2, only_vs_higher_tier: true)
+    end
+
+    it 'has no enchantment on a mundane weapon' do
+      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:enchantment]).to be_nil
+    end
+
+    it 'keeps only the newest enchantment when a weapon carries two' do
       d = described_class.weapon_details(
-        stack(item_type: 'Great sword', tier: 2, properties: [{ name: 'Vicious' }]),
-        catalog
-      )
-      r = d[:damage_riders].first
-      expect(r[:damage_type]).to eq('slashing')  # from_weapon -> Great sword's type
-      expect(r[:severity]).to eq('major')
-      expect(r[:self_damage]).to eq(severity: 'minor', amount: 1, minimum: 1)
+        stack(item_type: 'Long sword', tier: 2,
+              properties: [{ name: 'Elemental', subtype: 'Fire' }, { name: 'Radiant' }]), catalog)
+      expect(d[:enchantment][:damage_type]).to eq('radiant')
     end
 
-    it 'resolves a Subdual named-effect rider and adds its threshold_delta' do
-      d = described_class.weapon_details(
-        stack(item_type: 'Mace', tier: 1, properties: [{ name: 'Subdual' }]),
-        catalog
-      )
-      r = d[:damage_riders].first
-      expect(r[:kind]).to eq('named_effect')
-      expect(r[:effect]).to eq('shock')
-      expect(r[:amount]).to eq(2)
-      # Bludgeoning Threshold 3 + Subdual threshold_delta 5 = 8.
-      expect(d[:threshold]).to eq(8)
-    end
-
-    it 'has no riders for a mundane weapon' do
-      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:damage_riders]).to eq([])
-    end
-
-    it "hydrates a natural weapon's intrinsic Elemental(Acid) property into an acid rider" do
-      # The ankheg's Bite (Acid) bakes the Corrosive (Elemental: Acid) Property
-      # into the catalog entry; Stack.from_catalog applies it to the synthetic
-      # attack Stack so the bite carries the property's acid Damage Rider.
+    it "hydrates a natural weapon's intrinsic Corrosive property into an acid enchantment" do
       bite = Equipment::Stack.from_catalog('Bite (Acid)', catalog)
       d = described_class.weapon_details(bite, catalog)
       expect(d[:display_name]).to eq('Corrosive Bite (Acid)')
-      expect(d[:damage_types]).to eq(['Piercing'])
-      expect(d[:damage_riders]).to eq([
-        { property: 'Elemental', subtype: 'Acid', label: 'Corrosive', dice: 4,
-          kind: 'damage', damage_type: 'acid', amount: 1, severity: nil }
-      ])
-    end
-
-    it 'leaves a plain Bite (Jaws) rider-free (intrinsic acid is local to Bite (Acid))' do
-      jaws = Equipment::Stack.from_catalog('Bite (Jaws)', catalog)
-      expect(described_class.weapon_details(jaws, catalog)[:damage_riders]).to eq([])
-    end
-
-    it 'surfaces a Glory weapon Tier Advantage; a mundane weapon has none' do
-      glorious = described_class.weapon_details(
-        stack(item_type: 'Long sword', tier: 1, properties: [{ name: 'Glory' }]), catalog
-      )
-      expect(glorious[:tier_advantage]).to eq(1)
-      expect(described_class.weapon_details(stack(item_type: 'Long sword', tier: 0), catalog)[:tier_advantage]).to eq(0)
+      expect(d[:enchantment]).to include(label: 'Corrosive', damage_type: 'acid')
     end
   end
 

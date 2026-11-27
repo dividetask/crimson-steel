@@ -454,108 +454,113 @@ RSpec.describe 'Encounter::State#resolve_attack_payload (weapon-aware)' do
     expect(s.dm_luck_points).to eq(1) # 4 − 3
   end
 
-  it 'rolls a Damage Rider as its own Severity Calculation on a hit' do
-    cond = Conditions::Instance.new
-    s = state(cond)
-    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
-    out = s.resolve_attack_payload(
-      target_id: tgt[:id], attack_kind: 'melee', commit: true,
-      weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 0,
-                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
-                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1, severity: nil }] },
-      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
-      defense:  { choice: 'none' },
-      rider_results: [{ id: 0, damage: 2 }] # client-rolled bonus fire damage
-    )
-    ro = out[:rider_outcomes].first
-    expect(ro[:damage]).to eq(2)
-    expect(ro[:severity_map]).to eq(moderate: 3) # fire is moderate + its damage_per_hit 1
-    # Main slashing (3, runtime-bucketed at threshold 5 → minor) is kept
-    # separate from the rider's fire (moderate).
-    expect(cond.state.hp_damage[:minor]).to eq(3)
-    expect(cond.state.hp_damage[:moderate]).to eq(3)
-  end
+  describe 'weapon enhancement and enchantment' do
+    let(:flaming) { { property: 'Elemental', subtype: 'Fire', label: 'Flaming', damage_type: 'fire', multiplier: 1 } }
 
-  it 'applies a Vicious rider as Major to the target and bites the wielder' do
-    target_cond   = Conditions::Instance.new
-    attacker_cond = Conditions::Instance.new
-    conds = { '1' => attacker_cond, '2' => target_cond }
-    s = Encounter::State.new({}, data_path: data_path,
-                             creature_lookup: ->(_id) { creature },
-                             conditions_for: ->(id) { conds[id.to_s] })
-    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
-    out = s.resolve_attack_payload(
-      target_id: tgt[:id], attack_kind: 'melee', commit: true,
-      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
-                damage_riders: [{ property: 'Vicious', subtype: nil, label: 'Vicious',
-                                  dice: 4, kind: 'damage', damage_type: 'slashing', amount: 1,
-                                  severity: 'major',
-                                  self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
-      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
-      defense:  { choice: 'none' },
-      # e.g. 3 crits + 1 one: bonus damage 6 (crits ×2, the 1 ignored), self 3.
-      rider_results: [{ id: 0, damage: 6, self_damage: 3 }]
-    )
-    ro = out[:rider_outcomes].first
-    expect(ro[:severity_map]).to eq(major: 6)               # all bonus damage is Major
-    expect(target_cond.state.hp_damage[:major]).to eq(6)
-    expect(ro[:self_damage]).to eq(severity: 'minor', amount: 3)
-    expect(attacker_cond.state.hp_damage[:minor]).to eq(3)
-  end
+    # +2 weapon, Competency 1: bonus damage 3. Two extra dice at TN 6 roll a 7
+    # (Success) and a 10 (Critical, worth 2): 3 Successes on the attack.
+    def hit(s, atk, tgt, weapon, commit: true, enchant_faces: [7, 10], attacker_faces: [7, 8])
+      s.resolve_attack_payload(
+        target_id: tgt[:id], attack_kind: 'melee', commit: commit,
+        weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 2, bonus_damage: 3 }.merge(weapon),
+        attacker: { id: atk[:id], dice: 2, speed: 2, successes: 2, faces: attacker_faces },
+        enchant: { dice: 2, successes: 3, tn: 6, faces: enchant_faces },
+        defense: { choice: 'none' }
+      )
+    end
 
-  it 'applies the DM-edited self-damage to the wielder (minimum with no 1s)' do
-    target_cond   = Conditions::Instance.new
-    attacker_cond = Conditions::Instance.new
-    conds = { '1' => attacker_cond, '2' => target_cond }
-    s = Encounter::State.new({}, data_path: data_path,
-                             creature_lookup: ->(_id) { creature },
-                             conditions_for: ->(id) { conds[id.to_s] })
-    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
-    s.resolve_attack_payload(
-      target_id: tgt[:id], attack_kind: 'melee', commit: true,
-      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
-                damage_riders: [{ property: 'Vicious', label: 'Vicious', dice: 4, kind: 'damage',
-                                  damage_type: 'slashing', amount: 1, severity: 'major',
-                                  self_damage: { severity: 'minor', amount: 1, minimum: 1 } }] },
-      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 2 },
-      defense:  { choice: 'none' },
-      rider_results: [{ id: 0, damage: 0, self_damage: 1 }] # minimum self-damage, no 1s
-    )
-    expect(attacker_cond.state.hp_damage[:minor]).to eq(1)
-  end
+    it "an untyped +X weapon's extra dice and bonus all add physical damage" do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = hit(s, atk, tgt, {})
+      expect(out[:net_dos]).to eq(5)             # 2 attacker + 3 extra-dice Successes
+      expect(out[:damage]).to eq(2 + 3 + 5)      # base + bonus + net
+      expect(out[:enchantment]).to be_nil
+    end
 
-  it 'preview returns rider metadata but applies no rider damage' do
-    cond = Conditions::Instance.new
-    s = state(cond)
-    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
-    out = s.resolve_attack_payload(
-      target_id: tgt[:id], attack_kind: 'melee', commit: false,
-      weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 0,
-                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
-                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1 }] },
-      attacker: { id: atk[:id], dice: 4, speed: 2, successes: 3 },
-      defense:  { choice: 'none' }
-    )
-    expect(out[:riders].length).to eq(1)
-    expect(out[:riders].first[:label]).to eq('Flaming')
-    expect(cond.state.hp_damage.values.sum).to eq(0) # preview mutates nothing
-  end
+    it 'a typed weapon converts the bonus and pays flavored Successes as typed damage only' do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = hit(s, atk, tgt, { enchantment: flaming })
+      expect(out[:damage]).to eq(2 + (5 - 3))     # base + the non-flavored Successes
+      expect(out[:enchantment][:damage]).to eq(3 + 1 + 2) # bonus + Success + Critical
+      expect(out[:enchantment][:damage_type]).to eq('fire')
+      expect(out[:enchantment][:severity_map]).to eq(moderate: 7) # fire: moderate, +1 per hit
+    end
 
-  it 'a miss carries no riders' do
-    cond = Conditions::Instance.new
-    s = state(cond)
-    atk = s.add_combatant('1'); tgt = s.add_combatant('2')
-    out = s.resolve_attack_payload(
-      target_id: tgt[:id], attack_kind: 'melee', commit: true,
-      weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0,
-                damage_riders: [{ property: 'Elemental', subtype: 'Fire', label: 'Flaming',
-                                  dice: 4, kind: 'damage', damage_type: 'fire', amount: 1 }] },
-      attacker: { id: atk[:id], dice: 2, speed: 2, successes: 0 },
-      defense:  { choice: 'dodge', id: tgt[:id], dice: 3, speed: 0, successes: 2 }
-    )
-    expect(out[:net_dos]).to be <= 0
-    expect(out[:riders]).to be_nil
-    expect(out[:rider_outcomes]).to be_nil
+    it 'Merciful turns that damage into 2 Shock a point' do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = hit(s, atk, tgt, { enchantment: { property: 'Subdual', label: 'Merciful', effect: 'shock', amount: 2, multiplier: 1 } })
+      expect(out[:enchantment][:shock]).to eq(2 * (3 + 3))
+      expect(cond.state.shock).to eq(12)
+    end
+
+    it 'Vicious lands demonic damage as Major and bites the wielder for every 1 rolled' do
+      target_cond   = Conditions::Instance.new
+      attacker_cond = Conditions::Instance.new
+      conds = { '1' => attacker_cond, '2' => target_cond }
+      s = Encounter::State.new({}, data_path: data_path, creature_lookup: ->(_id) { creature },
+                                   conditions_for: ->(id) { conds[id.to_s] })
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      vicious = { property: 'Vicious', label: 'Vicious', damage_type: 'demonic', severity: 'major', multiplier: 1,
+                  self_damage_per_one: { severity: 'minor', amount: 1 } }
+      out = hit(s, atk, tgt, { enchantment: vicious }, enchant_faces: [1, 10], attacker_faces: [1, 9, 7])
+      expect(out[:enchantment][:severity_map]).to eq(major: 3 + 2) # bonus + one Critical
+      expect(target_cond.state.hp_damage[:major]).to eq(5)
+      expect(out[:enchantment][:self_damage]).to eq(severity: 'minor', amount: 2) # a 1 on each roll
+      expect(attacker_cond.state.hp_damage[:minor]).to eq(2)
+    end
+
+    it "Glorious doubles its flavored dice's damage" do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      glory = { property: 'Glory', label: 'Glorious', damage_type: 'slashing', multiplier: 2, only_vs_higher_tier: true }
+      out = hit(s, atk, tgt, { enchantment: glory })
+      expect(out[:enchantment][:damage]).to eq(3 + 2 * 3)
+    end
+
+    it 'takes the DM-edited enchantment damage and self damage' do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = s.resolve_attack_payload(
+        target_id: tgt[:id], attack_kind: 'melee', commit: true,
+        weapon: { damage_types: ['slashing'], threshold: 5, base_damage: 2, bonus_damage: 3, enchantment: flaming },
+        attacker: { id: atk[:id], dice: 2, speed: 2, successes: 2 },
+        enchant: { dice: 2, successes: 3, tn: 6, faces: [7, 10] },
+        defense: { choice: 'none' }, override: { enchant_damage: 1 }
+      )
+      expect(out[:enchantment][:damage]).to eq(1)
+    end
+
+    it 'a preview applies no enchantment damage' do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = hit(s, atk, tgt, { enchantment: flaming }, commit: false)
+      expect(out[:enchantment][:damage]).to eq(6)
+      expect(cond.state.hp_damage.values.sum).to eq(0)
+    end
+
+    it 'a miss deals no enchantment damage' do
+      cond = Conditions::Instance.new
+      s = state(cond)
+      atk = s.add_combatant('1'); tgt = s.add_combatant('2')
+      out = s.resolve_attack_payload(
+        target_id: tgt[:id], attack_kind: 'melee', commit: true,
+        weapon: { damage_types: ['slashing'], threshold: 0, base_damage: 0, bonus_damage: 3, enchantment: flaming },
+        attacker: { id: atk[:id], dice: 2, speed: 2, successes: 0 },
+        enchant: { dice: 2, successes: 0, tn: 6, faces: [2, 3] },
+        defense: { choice: 'dodge', id: tgt[:id], dice: 3, speed: 0, successes: 2 }
+      )
+      expect(out[:net_dos]).to be <= 0
+      expect(out[:enchantment]).to be_nil
+    end
   end
 
   # Tier Mismatch Inherent damage reduction + the Glory weapon Property.

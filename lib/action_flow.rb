@@ -552,6 +552,7 @@ class ActionFlow
     when 'attacker', 'caster', 'performance' then @actor_id
     when 'defender', 'target' then target_id
     when 'shield' then shield_caster([@choices['ally_defense'].to_s])
+    when 'enchant' then @actor_id # a weapon's +X extra dice, rolled with the attack
     when /\Arider-/ then @actor_id # a weapon's Damage Rider: the attacker's dice, once the hit lands
     when /\Asave-(\d+)\z/ then Regexp.last_match(1).to_i
     else r['owner_id']&.to_i

@@ -573,8 +573,8 @@ helpers do
     { item_type: item_type, display_name: wd[:display_name], ranged: ranged, natural: natural,
       speed: wd[:speed], damage_types: wd[:damage_types], threshold: wd[:threshold],
       bleed: wd[:bleed], damage_formula: wd[:damage_formula], affliction: wd[:affliction],
-      affliction_potency: wd[:affliction_potency], damage_riders: wd[:damage_riders],
-      tier_advantage: wd[:tier_advantage] }
+      affliction_potency: wd[:affliction_potency],
+      enhancement: wd[:enhancement].to_i, enchantment: wd[:enchantment] }
   end
 
   def equipped_melee_weapons(creature_id)

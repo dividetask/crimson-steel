@@ -54,58 +54,46 @@ module Equipment
         # damage dealt to form the injected Potency.
         affliction: defn['affliction'],
         affliction_potency: defn['affliction_potency'],
-        damage_riders: damage_riders(stack, types, catalog),
-        tier_advantage: tier_advantage(stack, catalog)
+        enhancement: enhancement(stack, defn),
+        enchantment: enchantment(stack, types, catalog)
       )
     end
 
-    # The weapon's Tier Advantage — how many Tiers higher the wielder is
-    # treated as when attacking a higher-Tier opponent (the Glory Property,
-    # equipment_design.md → Property Effects). Summed across the Stack's
-    # Properties; 0 for a mundane weapon. Combat shrinks the attack's Tier
-    # gap by this much before applying the per-step damage reduction.
-    def tier_advantage(stack, catalog)
-      stack.properties.sum do |prop|
-        adv = (catalog.property(prop[:name]) || {})['tier_advantage'] || {}
-        Integer(adv['amount'] || 0)
-      end
+    # The weapon's +X enhancement: its Tier (0 for a mundane or natural
+    # weapon). +X adds X Guidance to the attack and X extra dice
+    # (equipment_design.md → Enhancement and Enchantment).
+    def enhancement(stack, defn)
+      return 0 if defn['natural']
+      [stack.tier.to_i, 0].max
     end
 
-    # The resolved per-hit Damage Riders a weapon Stack adds when an
-    # attack lands — one entry per magical Property that declares a
-    # `damage_rider` (equipment_design.md → Property Effects). The
-    # sentinel Damage Types are resolved here so Combat reads a concrete
-    # type: `from_subtype` → the Property's Subtype, `from_weapon` → the
-    # weapon's first Damage Type. Combat rolls these dice at the attack's
-    # Target Number and applies each as its own Severity Calculation.
-    def damage_riders(stack, weapon_types, catalog)
-      stack.properties.filter_map do |prop|
+    # The weapon's single typed enchantment (the last Property that declares
+    # a `flavor` — a newer enchantment supersedes an older one), resolved so
+    # Combat reads a concrete Damage Type, or nil.
+    # A typed weapon's X extra dice are flavored, and its bonus damage
+    # converts to the flavor's type (or to Merciful shock).
+    def enchantment(stack, weapon_types, catalog)
+      stack.properties.reverse_each do |prop|
         pdef = catalog.property(prop[:name]) || {}
-        rider = pdef['damage_rider'] or next
-        on_success = rider['on_success'] || {}
-        on_failure = rider['on_failure']
+        fl = pdef['flavor'] or next
         disp = DisplayName.property_display(catalog, prop) || {}
-
-        entry = {
-          property: prop[:name], subtype: prop[:subtype],
-          label: (disp['word'] || disp[:word] || prop[:name]),
-          dice: Integer(rider['dice'] || 0), kind: on_success['kind'].to_s
-        }
-        if on_success['kind'].to_s == 'named_effect'
-          entry[:effect] = on_success['name']
-          entry[:amount] = Integer(on_success['amount'] || 1)
+        entry = { property: prop[:name], subtype: prop[:subtype],
+                  label: (disp['word'] || disp[:word] || prop[:name]).to_s }
+        if fl['effect']
+          entry[:effect] = fl['effect'].to_s
+          entry[:amount] = Integer(fl['amount'] || 1)
         else
-          entry[:damage_type] = resolve_rider_type(on_success['damage_type'], prop[:subtype], weapon_types)
-          entry[:amount]   = Integer(on_success['amount'] || 1)
-          entry[:severity] = on_success['severity']
+          entry[:damage_type] = resolve_rider_type(fl['damage_type'], prop[:subtype], weapon_types)
         end
-        if on_failure && on_failure['kind'].to_s == 'self_damage'
-          entry[:self_damage] = { severity: (on_failure['severity'] || 'minor').to_s,
-                                  amount: Integer(on_failure['amount'] || 1),
-                                  minimum: Integer(on_failure['minimum'] || 0) }
+        entry[:severity]   = fl['severity'].to_s if fl['severity']
+        entry[:multiplier] = Integer(fl['multiplier'] || 1)
+        entry[:only_vs_higher_tier] = true if fl['only_vs_higher_tier']
+        if (sd = fl['self_damage_per_one'])
+          entry[:self_damage_per_one] = { severity: (sd['severity'] || 'minor').to_s, amount: Integer(sd['amount'] || 1) }
         end
-        entry
+        return entry
       end
+      nil
     end
 
     # Resolve a rider Damage Type, expanding the `from_subtype` /

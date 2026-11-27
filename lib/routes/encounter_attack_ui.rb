@@ -50,11 +50,71 @@ helpers do
   # weapon's Martial, Strength a melee one. Shared by the DM's Attack builder
   # and the Android app's turn options (lib/routes/api.rb).
   def attack_weapons(attacker, acc = (Creatures.lookup(attacker[:creature_id]) rescue nil))
+    favor = divine_favor_tier(attacker[:creature_id])
     equipped_weapons(attacker[:creature_id]).map do |w|
+      w = bless_weapon(w, favor) if favor && !w[:natural]
       attr = w[:ranged] ? :dex : :str
       ri   = roll_inputs_for(acc, 'martial', attribute_override: attr)
-      w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier])
+      w.merge(dice_cap: ri[:dice_cap].to_i, competency: ri[:competency_modifier],
+              guidance: w[:enhancement].to_i)
     end
+  end
+
+  # The Tier of an active Divine Favor on the creature (its `radiant_weapon`
+  # modifier, spells.yaml), or nil. Read from the raw effects because a
+  # Trivial Divine Favor's +0 is a real blessing.
+  def divine_favor_tier(creature_id)
+    inst  = Conditions.store.instance_for(creature_id)
+    round = (encounter_state.current_abs_round rescue nil)
+    live  = inst.state.effects.select do |e|
+      Array(e[:target_key]).include?('radiant_weapon') &&
+        !(round && e[:ends_on_round] && e[:ends_on_round] <= round)
+    end
+    live.map { |e| e[:amount].to_i }.max
+  rescue StandardError
+    nil
+  end
+
+  # A Divine Favor makes the weapon a +N Radiant weapon (N = the favor's Tier
+  # or the weapon's own +X, whichever is higher), superseding its enchantment.
+  def bless_weapon(w, tier)
+    w.merge(enhancement: [w[:enhancement].to_i, tier].max,
+            enchantment: { property: 'Radiant', label: 'Radiant', damage_type: 'radiant', multiplier: 1 })
+  end
+
+  # Bonus Types that never cross from the enchantment-dice Roll to the
+  # defender: the attacker's own Roll already carries the same list.
+  ENCHANT_NO_CROSS = %w[Competency Guidance Inherent Ascendancy Circumstance Morale Racial Luck].freeze
+
+  # The weapon's +X extra dice against this target, rolled with the attack
+  # at the attacker's TN (equipment_design.md → Enhancement and Enchantment):
+  # flavored when the weapon is enchanted, plain otherwise. A Glorious
+  # weapon rolls them only against a higher-Tier target.
+  def enchant_dice(w, attacker_tier, target_tier)
+    n = w[:enhancement].to_i
+    ench = w[:enchantment]
+    return 0 if ench && ench[:only_vs_higher_tier] && target_tier.to_i <= attacker_tier.to_i
+    n
+  end
+
+  def enchant_roll_name(w)
+    ench = w[:enchantment]
+    ench ? "#{ench[:label]} dice" : "+#{w[:enhancement].to_i} dice"
+  end
+
+  # Patch entries putting the enchantment Roll in step with the attacker's.
+  def enchant_patch(w, attacker_tier, target_tier, attacker_bpl)
+    n = enchant_dice(w, attacker_tier, target_tier)
+    { set_dice: [{ id: 'enchant', count: n }],
+      set_bpl: [{ id: 'enchant', bonus_penalty_list: attacker_bpl }],
+      set_no_propagate: [{ id: 'enchant', types: ENCHANT_NO_CROSS }],
+      set_name: [{ id: 'enchant', roll_name: enchant_roll_name(w) }],
+      set_excluded: [{ id: 'enchant', excluded: n.zero? }] }
+  end
+
+  # Merge patch hashes, concatenating their per-Roll entry lists.
+  def merge_patch(a, b)
+    a.merge(b) { |_k, x, y| Array(x) + Array(y) }
   end
 
   def attack_builder_blob(attacker, active_spells: false, strike_spell: nil)
@@ -148,6 +208,10 @@ helpers do
       { id: 'defender', side: 'opposing', creature_name: '—',
         roll_name: 'Defense', die_size: die, tn: base_tn, starting_value: 0,
         base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true },
+      { id: 'enchant', side: 'supporting', creature_name: tracker_name(attacker),
+        roll_name: 'Extra dice', die_size: die, tn: base_tn, starting_value: 0,
+        base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true,
+        extra_dice: true },
       { id: 'shield', side: 'opposing', creature_name: '—',
         roll_name: 'Shield of Faith', die_size: die, tn: base_tn, starting_value: 0,
         base_tn: base_tn, bonus_penalty_list: [], dice_count: 0, speed: 0, excluded: true }
@@ -220,20 +284,21 @@ helpers do
       weapons.each do |w|
         comp = weapon_bpl.call(w)
         atk_tier_none = Encounter::Attack.attacker_tier_bonuses(
-          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: 0,
           inherent_table: inh_table, no_defense: true
         )
         def_tier = Encounter::Attack.defender_tier_bonuses(defender_tier: t[:tier], inherent_table: inh_table)
         atk_tier_def = Encounter::Attack.attacker_tier_bonuses(
-          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: w[:tier_advantage],
+          attacker_tier: atk_tier, defender_tier: t[:tier], tier_advantage: 0,
           inherent_table: inh_table, no_defense: false
         )
         atk_none_bpl     = comp + atk_tier_none + Encounter::Attack.attacker_bonuses(
           flatfooted: !t[:flatfooted_immune], unaware: t[:unaware] && !t[:flatfooted_immune], helpless: t[:helpless])
         opts = [{ value: 'none', group: 'none', label: 'No defense', summary: 'No defense',
-                  patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
-                           restore_dice: [{ id: 'attacker' }],
-                           set_excluded: [{ id: 'defender', excluded: true }] } }]
+                  patch: merge_patch({ set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
+                                       restore_dice: [{ id: 'attacker' }],
+                                       set_excluded: [{ id: 'defender', excluded: true }] },
+                                     enchant_patch(w, atk_tier, t[:tier], atk_none_bpl)) }]
         headers = [{ value: 'none', label: 'No defense' }]
         branches = []
         unless t[:helpless]
@@ -272,14 +337,15 @@ helpers do
           mk = lambda do |dice, label, disabled|
             { value: "#{b[:key]}|#{dice}", group: b[:group], label: label,
               summary: "#{b[:name]} — #{dice} dice", disabled: disabled,
-              patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_branch_bpl },
-                                 { id: 'defender', bonus_penalty_list: dcmp }],
-                       set_no_propagate: [{ id: 'defender', types: def_no_prop }],
-                       restore_dice: [{ id: 'attacker' }],
-                       set_dice:  [{ id: 'defender', count: dice }],
-                       set_speed: [{ id: 'defender', speed: dspd }],
-                       set_name:  [{ id: 'defender', roll_name: b[:name] }],
-                       set_excluded: [{ id: 'defender', excluded: false }] } }
+              patch: merge_patch({ set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_branch_bpl },
+                                             { id: 'defender', bonus_penalty_list: dcmp }],
+                                   set_no_propagate: [{ id: 'defender', types: def_no_prop }],
+                                   restore_dice: [{ id: 'attacker' }],
+                                   set_dice:  [{ id: 'defender', count: dice }],
+                                   set_speed: [{ id: 'defender', speed: dspd }],
+                                   set_name:  [{ id: 'defender', roll_name: b[:name] }],
+                                   set_excluded: [{ id: 'defender', excluded: false }] },
+                                 enchant_patch(w, atk_tier, t[:tier], atk_branch_bpl)) }
           end
           if b[:free]
             opts << mk.call(cap, "#{b[:name]} — #{cap} dice, free", cap < 1)
@@ -305,9 +371,10 @@ helpers do
           opts << { value: 'better_lucky', group: 'better_lucky',
                     label: "Better Lucky Than Good (#{bl_cost} mana)",
                     summary: 'Better Lucky Than Good', disabled: !bl_afford,
-                    patch: { set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
-                             scale_dice: [{ id: 'attacker', num: 1, den: 2, min: 3 }],
-                             set_excluded: [{ id: 'defender', excluded: true }] } }
+                    patch: merge_patch({ set_bpl: [{ id: 'attacker', bonus_penalty_list: atk_none_bpl }],
+                                         scale_dice: [{ id: 'attacker', num: 1, den: 2, min: 3 }],
+                                         set_excluded: [{ id: 'defender', excluded: true }] },
+                                       enchant_patch(w, atk_tier, t[:tier], atk_none_bpl)) }
           headers << { value: 'better_lucky', label: 'Better Lucky', disabled: !bl_afford }
         end
         defense_map["#{t[:id]}|#{w[:item_type]}"] = opts
@@ -432,19 +499,23 @@ helpers do
     end
     combatant = encounter_state.combatant(atk['id'].to_i) or return
     w = equipped_weapons(combatant[:creature_id]).find { |x| x[:item_type] == wt } or return
+    favor = divine_favor_tier(combatant[:creature_id])
+    w = bless_weapon(w, favor) if favor && !w[:natural]
     acc = Creatures.lookup(combatant[:creature_id]) rescue nil
     payload['attack_kind'] ||= w[:ranged] ? 'ranged' : 'melee'
     atk['speed'] = w[:speed]
     payload['attacker'] = atk
-    # Weapon Competency (the martial Competency Modifier) applies to both the
-    # attack Roll and the damage, so fold it into the weapon's base damage.
+    # The skill bonus — the martial Competency Modifier plus the weapon's +X —
+    # applies to both the attack Roll and the damage. It is kept apart from
+    # the base damage because a typed weapon converts it to its enchantment's
+    # damage (equipment_design.md → Enhancement and Enchantment).
     mcomp = acc ? roll_inputs_for(acc, 'martial', attribute_override: (w[:ranged] ? :dex : :str))[:competency_modifier] : nil
-    base_damage = evaluate_weapon_damage(w[:damage_formula], acc) + (mcomp ? mcomp[1].to_i : 0)
     payload['weapon'] = { 'damage_types' => w[:damage_types], 'threshold' => w[:threshold],
                           'bleed' => w[:bleed], 'affliction' => w[:affliction],
                           'affliction_potency' => w[:affliction_potency],
-                          'base_damage' => base_damage,
-                          'damage_riders' => w[:damage_riders], 'tier_advantage' => w[:tier_advantage] }
+                          'base_damage' => evaluate_weapon_damage(w[:damage_formula], acc),
+                          'bonus_damage' => (mcomp ? mcomp[1].to_i : 0) + w[:enhancement].to_i,
+                          'enchantment' => w[:enchantment] }
   end
 
   # Base damage for a Spiritual Weapon strike: a +N one-handed weapon (N = the

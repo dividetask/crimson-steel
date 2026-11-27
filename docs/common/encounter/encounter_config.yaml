@@ -101,6 +101,9 @@ damage_types:
   force:
     severity: moderate
 
+  # Vicious weapons' typed damage.
+  demonic:
+
 Metal Armor Categories:
   - medium
   - heavy

@@ -67,6 +67,9 @@ module StoreMagicWeapons
       built << { 'name' => pname, 'subtype' => subtype, 'cost' => pdef['cost'] }
     end
     return { error: 'no properties' } if built.empty?
+    # A weapon holds one enchantment type: a later one supersedes earlier ones.
+    flavored = built.select { |b| catalog.weapon_property(b['name'])['flavor'] }
+    built -= flavored[0...-1]
 
     f = { 'item' => item, 'tier' => tier, 'properties' => built }
     { fields: f, label: Equipment::DisplayName.call(Equipment::Stack.normalize(f), catalog) }

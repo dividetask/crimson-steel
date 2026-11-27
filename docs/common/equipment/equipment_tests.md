@@ -307,11 +307,11 @@ Conditions, Combat, and Abilities are mocked as recorded-call stubs. A test asse
 
 **Per-Weapon `threshold: null` propagates.** `Whip` declares `threshold: null`; *Get Weapon Details* returns `threshold: null` rather than the min over Damage Type defaults.
 
-**Damage Riders surface with sentinels resolved.** A `{Long sword, tier: 1, properties: [Elemental(Fire)]}` Stack returns `damage_riders: [{property: Elemental, subtype: Fire, label: "Flaming", dice: 4, kind: damage, damage_type: "fire", amount: 1, severity: null}]` — `from_subtype` expanded to `fire`. A `{Great sword, tier: 2, properties: [Vicious]}` Stack resolves `from_weapon` to `slashing`, carries `severity: major`, and a `self_damage: {severity: minor, amount: 1, minimum: 1}`. A mundane Stack returns `damage_riders: []`.
+**Enchantment surfaces with sentinels resolved.** A `{Long sword, tier: 1, properties: [Elemental(Fire)]}` Stack returns `enhancement: 1` and `enchantment: {property: Elemental, subtype: Fire, label: "Flaming", damage_type: fire, multiplier: 1}`. With two enchantments the newest wins.
 
 **Property `threshold_delta` raises the weapon Threshold.** A `{Mace, tier: 1, properties: [Subdual]}` Stack returns `threshold: 8` — the Bludgeoning default 3 plus Subdual's `weapon_modifiers.threshold_delta: 5`. A weapon whose Threshold is `null` (Whip) stays `null`.
 
-**Glory surfaces a Tier Advantage.** A `{Long sword, tier: 1, properties: [Glory]}` Stack returns `tier_advantage: 1` (the Property's `tier_advantage.amount`); a mundane weapon returns `tier_advantage: 0`.
+**Glorious doubles, only against higher Tiers.** A `{Long sword, tier: 1, properties: [Glory]}` Stack returns `enchantment: {damage_type: slashing, multiplier: 2, only_vs_higher_tier: true}`.
 
 **Get Armor Details computes Effective Hardness and Resilience.** For `{Chain mail, tier: 2, properties: []}`: `material: Metal`, `base_hardness: 10`, `effective_hardness: 14`, `damage_reduction: 3`, `resilience_increment: 2`, `resilience: 4`, `hit_points_formula: "30 * thickness"`, `thickness: 2`, `is_metal_armor: true` (Chain mail's catalog entry declares `metal: true`).
 

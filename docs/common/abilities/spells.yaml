@@ -365,40 +365,38 @@ Divine Favor:
   activation_time: bonus
   range: Self
   target: object
-  # The weapon becomes a +N Radiant weapon, N = the spell's Tier or the
-  # weapon's own bonus, whichever is higher. Guidance does not stack, so a
-  # +Tier Guidance modifier yields exactly that max.
+  # The wielder's weapons become +N Radiant weapons, N = the spell's Tier or
+  # the weapon's own bonus, whichever is higher: Combat reads the wielder's
+  # `radiant_weapon` modifier at attack time (it supersedes the weapon's own
+  # enchantment).
   duration: "rank turns"
+  modifiers:
+    - { target: radiant_weapon, type: Guidance, add: 0 }
   variant_overrides:
     - description: "The caster's own weapon becomes a +0 Radiant weapon, or a +X Radiant weapon where X is its existing bonus, for rank turns."
     - duration: "rank minutes"
       modifiers:
-        - { target: attack, type: Guidance, add: 1 }
-        - { target: damage, type: Guidance, add: 1 }
+        - { target: radiant_weapon, type: Guidance, add: 1 }
       description: "The caster's own weapon becomes a +1 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for rank minutes."
     - range: Close
       duration: "rank minutes"
       modifiers:
-        - { target: attack, type: Guidance, add: 2 }
-        - { target: damage, type: Guidance, add: 2 }
+        - { target: radiant_weapon, type: Guidance, add: 2 }
       description: "The weapon of a willing creature within range becomes a +2 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for rank minutes."
     - range: Close
       duration: "1 hour"
       modifiers:
-        - { target: attack, type: Guidance, add: 3 }
-        - { target: damage, type: Guidance, add: 3 }
+        - { target: radiant_weapon, type: Guidance, add: 3 }
       description: "The weapon of a willing creature within range becomes a +3 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for 1 hour."
     - range: Close
       duration: "24 hours"
       modifiers:
-        - { target: attack, type: Guidance, add: 4 }
-        - { target: damage, type: Guidance, add: 4 }
+        - { target: radiant_weapon, type: Guidance, add: 4 }
       description: "The weapon of a willing creature within range becomes a +4 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher, for 24 hours."
     - range: Close
       duration: permanent
       modifiers:
-        - { target: attack, type: Guidance, add: 5 }
-        - { target: damage, type: Guidance, add: 5 }
+        - { target: radiant_weapon, type: Guidance, add: 5 }
       description: "Either permanently imbue one weapon within range, or imbue every weapon within range for 24 hours. Each becomes a +5 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher."
   description: "Blesses a weapon with radiant power, making it a Radiant weapon of the spell's Tier or of its own bonus, whichever is higher."
 

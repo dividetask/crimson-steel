@@ -559,7 +559,7 @@ export class ActionBuilder {
       .filter((g) => !g.classList.contains('roll-group-excluded'));
     const rollFor = (g) => {
       let c; try { c = JSON.parse(g.dataset.config); } catch (e) { return null; }
-      return { _g: g, side: g.dataset.side, baseTn: c.base_tn,
+      return { _g: g, side: g.dataset.side, baseTn: c.base_tn, extraDice: !!c.extra_dice,
                bonusPenaltyList: c.bonus_penalty_list || [], noPropagate: c.no_propagate || [],
                startingContribution: 0 };
     };
@@ -572,6 +572,9 @@ export class ActionBuilder {
     const preview = CheckResolution.previewParameters({ supporting, opposing, spread });
     const applyOne = (roll, res) => {
       if (!roll || !res) return;
+      // Extra dice (a weapon's +X dice) share the TN but not the Starting
+      // Value, which counts once per Check.
+      if (roll.extraDice) res = { ...res, startingValue: 0 };
       ActionBuilder._renderTn(roll._g, roll.baseTn, res);
       let c; try { c = JSON.parse(roll._g.dataset.config); } catch (e) { return; }
       c.tn = res.tn; c.starting_value = res.startingValue;
@@ -625,6 +628,11 @@ export class ActionBuilder {
 
   // ----- confirm -----
 
+  static _rolledDice(g) {
+    if (!g.dataset.rolledDice) return null;
+    try { return JSON.parse(g.dataset.rolledDice); } catch (e) { return null; }
+  }
+
   static _confirm(root, opts) {
     opts = opts || {};
     const cb = root._cb;
@@ -639,7 +647,11 @@ export class ActionBuilder {
         successes: inputs[0] ? parseInt(inputs[0].value, 10) || 0 : 0,
         crits: inputs[1] ? parseInt(inputs[1].value, 10) || 0 : 0,
         dice_count: cfg.dice_count,
-        speed: cfg.speed
+        speed: cfg.speed,
+        tn: cfg.tn,
+        // The final dice faces, when rolled here or on a phone (a typed-in
+        // result has none). Enchantment damage and Vicious read them.
+        dice: ActionBuilder._rolledDice(g)
       });
     });
     const choices = {};

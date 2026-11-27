@@ -108,8 +108,12 @@ export class TurnAttack {
       // The rerolls are already on the chosen Rolls; the server only debits
       // each source's Reservoir / DM pool on commit.
       luck: ActionBuilder.luckSpends(choices),
-      attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes }
+      attacker: { id: parseInt(container._attackerId, 10), dice: atk.dice_count, speed: atk.speed, successes: atk.successes,
+                  faces: atk.dice || null }
     };
+    // The weapon's +X extra dice (plain or flavored), rolled with the attack.
+    const ench = rolls.find((r) => r.id === 'enchant');
+    if (ench) base.enchant = { dice: ench.dice_count, successes: ench.successes, tn: ench.tn, faces: ench.dice || null };
     // An Active Spells strike names its Spell so a committed strike can remember
     // the target it hit (the weapon then stops re-asking on later strikes).
     const strikeSpell = container.getAttribute('data-strike-spell');
@@ -147,24 +151,13 @@ export class TurnAttack {
     TurnAttack._post(container, payload, (res) => TurnAttack._renderResult(container, res, false));
   }
 
-  // Second Confirm: apply the attack for real, carrying any DM edits and the
-  // rolled magical Damage Riders.
+  // Second Confirm: apply the attack for real, carrying any DM edits.
   static _commit(container) {
     if (!container._lastDetail) return;
     const payload = TurnAttack._payload(container, container._lastDetail, true);
     payload.override = TurnAttack._gatherOverride(container);
-    payload.rider_results = TurnAttack._gatherRiders(container);
     payload.defender_reactions = TurnAttack._reactionsChosen(container);
     TurnAttack._post(container, payload, (res) => TurnAttack._renderResult(container, res, true));
-  }
-
-  // The rider amounts for the commit payload, read from the (DM-editable)
-  // damage screen fields: one { id, damage, self_damage } per rider.
-  static _gatherRiders(container) {
-    const f = ActionResult.fields(TurnAttack._screen(container));
-    return (container._riders || []).map((rider) => ({
-      id: rider.id, damage: f[`rider:${rider.id}`] || 0, self_damage: f[`rider_self:${rider.id}`] || 0
-    }));
   }
 
   // Read the editable result fields into an override the server applies.
@@ -174,6 +167,7 @@ export class TurnAttack {
     if ('damage' in f) o.damage = f.damage;
     if ('bleed' in f) o.bleed = f.bleed;
     if ('poison' in f) o.poison = f.poison;
+    ['enchant_damage', 'shock', 'self_damage'].forEach((k) => { if (k in f) o[k] = f[k]; });
     const pools = Object.keys(f).filter((k) => k.indexOf('pool:') === 0)
       .map((k) => ({ id: num(k.slice(5)), amount: f[k] }));
     if (pools.length) o.pool_spends = pools;
@@ -313,25 +307,26 @@ export class TurnAttack {
     if (!screen) return;
     const nameOf = TurnAttack._namer(container);
     const spends = (res.pool_spends || []).filter((s) => s.amount > 0);
-    const rolls = container._riderRolls || {};
     const fields = [];
     const gap = num(res.inherent_dr) > 0 ? ` (−${num(res.inherent_dr)} tier mismatch)` : '';
     const dr = num(res.passive_dr) > 0 ? ` (−${num(res.passive_dr)} reduction)` : '';
     fields.push({ key: 'damage', label: 'Damage', value: res.damage, editable: true,
                   suffix: (res.damage_type || '') + gap + dr, split: true });
-    // One bonus-damage field per rider, plus a self-damage field for a rider
-    // that bites the wielder.
-    (container._riders || []).forEach((rider) => {
-      const roll = rolls[rider.id] || { damage: 0, self_damage: 0 };
-      const note = rider.kind === 'named_effect' ? cap(String(rider.effect || '')) : (rider.damage_type || '');
-      const sev = rider.severity ? rider.severity + ' ' : '';
-      fields.push({ key: `rider:${rider.id}`, label: `${rider.label} damage`, value: roll.damage,
-                    editable: true, suffix: `${sev}${note}` });
-      if (rider.self_damage) {
-        fields.push({ key: `rider_self:${rider.id}`, label: 'Self damage (wielder)', value: roll.self_damage,
-                      editable: true, suffix: rider.self_damage.severity });
+    // A typed weapon's enchantment: its converted bonus + flavored-dice damage
+    // (or Merciful Shock), and Vicious's damage to the wielder.
+    const ench = res.enchantment;
+    if (ench) {
+      if ('shock' in ench) {
+        fields.push({ key: 'shock', label: `${ench.label} shock`, value: ench.shock, editable: true });
+      } else {
+        fields.push({ key: 'enchant_damage', label: `${ench.label} damage`, value: ench.damage,
+                      editable: true, suffix: ench.damage_type || '' });
       }
-    });
+      if (ench.self_damage) {
+        fields.push({ key: 'self_damage', label: 'Self damage (wielder)', value: ench.self_damage.amount,
+                      editable: true, suffix: ench.self_damage.severity });
+      }
+    }
     fields.push({ key: 'bleed', label: 'Bleed', value: res.bleed, editable: true });
     // Poison — only weapons that inject an Affliction (a spider's venom) return
     // a poison_name; its potency is editable like Bleed.
