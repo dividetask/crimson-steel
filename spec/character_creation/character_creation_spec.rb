@@ -115,7 +115,7 @@ RSpec.describe CharacterCreation, type: :model do
       expect(sel[:max_domains]).to eq(3)
       # The global domain catalog carries each domain's spells.
       war = sel[:domains].find { |d| d[:name] == 'War' }
-      expect(war[:spells]).to include('Lesser Spiritual Hammer')
+      expect(war[:spells]).to include('Lesser Spiritual Weapon')
       # Deities carry favored (ability-granting) and anathema (forbidden) lists.
       karthak = sel[:deities].find { |d| d[:name] == 'Karthak' }
       expect(karthak[:favored]).to include('War')
@@ -181,7 +181,7 @@ RSpec.describe CharacterCreation, type: :model do
       )
       names = Creatures.lookup(id).granted_abilities.map { |g| g[:name] }
       expect(names).to include('Trivial Ward')     # class-level granted spell
-      expect(names).to include('Lesser Spiritual Hammer') # War-domain spell
+      expect(names).to include('Lesser Spiritual Weapon') # War-domain spell
     end
 
     it 'rejects a character with no name' do

@@ -30,6 +30,11 @@ module DataMigrations
     # Silence (was Tier 2) and Divine Favor (was Tier 1) became Tier 0-5 series.
     '2026-11-26-silence-and-divine-favor-series' => lambda do
       DataMigrations.rename_known_spells!(SERIES_RENAMES)
+    end,
+
+    # Spiritual Hammer was the same spell as Spiritual Weapon; it is gone.
+    '2026-11-27-spiritual-hammer-is-spiritual-weapon' => lambda do
+      DataMigrations.rename_known_spells!(HAMMER_RENAMES)
     end
   }.freeze
 
@@ -41,6 +46,10 @@ module DataMigrations
   SPELL_RENAMES = {
     'spiritual_weapon' => 'lesser_spiritual_weapon',
     'spiritual_hammer' => 'lesser_spiritual_hammer'
+  }.freeze
+  HAMMER_RENAMES = {
+    'lesser_spiritual_hammer' => 'lesser_spiritual_weapon',
+    'spiritual_hammer'        => 'lesser_spiritual_weapon'
   }.freeze
   SERIES_RENAMES = {
     'silence'      => 'standard_silence',

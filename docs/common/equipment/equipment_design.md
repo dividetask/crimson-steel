@@ -537,7 +537,7 @@ The typed damage is its **own** Severity Calculation, separate from the weapon's
 | Vicious | demonic, forced Major | 1 minor to the wielder per 1 rolled. |
 | Glorious | the weapon's own type, ×2 | Extra dice only against a higher-Tier target. |
 
-**Divine Favor** puts a `radiant_weapon` modifier of its Tier on the wielder: their weapons become +N Radiant weapons, N = the spell's Tier or the weapon's own +X, whichever is higher, superseding the weapon's enchantment.
+**Divine Favor** (War) and **Glorious Weapon** (Glory) put a `radiant_weapon` / `glorious_weapon` modifier of their Tier on the wielder: their weapons become +N Radiant / Glorious weapons, N = the spell's Tier or the weapon's own +X, whichever is higher, superseding the weapon's enchantment. With both, the higher Tier wins.
 
 *Get Weapon Details* surfaces `enhancement` (the +X; 0 for a natural weapon) and `enchantment` (the resolved `flavor`, sentinels expanded, or null).
 

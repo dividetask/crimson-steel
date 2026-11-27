@@ -50,7 +50,7 @@ helpers do
   # weapon's Martial, Strength a melee one. Shared by the DM's Attack builder
   # and the Android app's turn options (lib/routes/api.rb).
   def attack_weapons(attacker, acc = (Creatures.lookup(attacker[:creature_id]) rescue nil))
-    favor = divine_favor_tier(attacker[:creature_id])
+    favor = weapon_blessing(attacker[:creature_id])
     equipped_weapons(attacker[:creature_id]).map do |w|
       w = bless_weapon(w, favor) if favor && !w[:natural]
       attr = w[:ranged] ? :dex : :str
@@ -60,26 +60,37 @@ helpers do
     end
   end
 
-  # The Tier of an active Divine Favor on the creature (its `radiant_weapon`
-  # modifier, spells.yaml), or nil. Read from the raw effects because a
-  # Trivial Divine Favor's +0 is a real blessing.
-  def divine_favor_tier(creature_id)
+  # Weapon blessings a spell puts on the wielder (spells.yaml): Divine Favor's
+  # `radiant_weapon`, Glorious Weapon's `glorious_weapon`.
+  WEAPON_BLESSINGS = %w[radiant_weapon glorious_weapon].freeze
+
+  # The wielder's strongest active weapon blessing as [key, Tier], or nil.
+  # Read from the raw effects because a Trivial blessing's +0 is real.
+  def weapon_blessing(creature_id)
     inst  = Conditions.store.instance_for(creature_id)
     round = (encounter_state.current_abs_round rescue nil)
-    live  = inst.state.effects.select do |e|
-      Array(e[:target_key]).include?('radiant_weapon') &&
-        !(round && e[:ends_on_round] && e[:ends_on_round] <= round)
+    live  = inst.state.effects.filter_map do |e|
+      key = (Array(e[:target_key]) & WEAPON_BLESSINGS).first or next
+      next if round && e[:ends_on_round] && e[:ends_on_round] <= round
+      [key, e[:amount].to_i]
     end
-    live.map { |e| e[:amount].to_i }.max
+    live.max_by { |_k, tier| tier }
   rescue StandardError
     nil
   end
 
-  # A Divine Favor makes the weapon a +N Radiant weapon (N = the favor's Tier
-  # or the weapon's own +X, whichever is higher), superseding its enchantment.
-  def bless_weapon(w, tier)
-    w.merge(enhancement: [w[:enhancement].to_i, tier].max,
-            enchantment: { property: 'Radiant', label: 'Radiant', damage_type: 'radiant', multiplier: 1 })
+  # A blessing makes the weapon a +N Radiant or Glorious weapon (N = the
+  # spell's Tier or the weapon's own +X, whichever is higher), superseding
+  # its enchantment.
+  def bless_weapon(w, blessing)
+    key, tier = blessing
+    ench = if key == 'glorious_weapon'
+             { property: 'Glory', label: 'Glorious', multiplier: 2, only_vs_higher_tier: true,
+               damage_type: (Array(w[:damage_types]).first || 'physical').to_s.downcase }
+           else
+             { property: 'Radiant', label: 'Radiant', damage_type: 'radiant', multiplier: 1 }
+           end
+    w.merge(enhancement: [w[:enhancement].to_i, tier].max, enchantment: ench)
   end
 
   # Bonus Types that never cross from the enchantment-dice Roll to the
@@ -499,7 +510,7 @@ helpers do
     end
     combatant = encounter_state.combatant(atk['id'].to_i) or return
     w = equipped_weapons(combatant[:creature_id]).find { |x| x[:item_type] == wt } or return
-    favor = divine_favor_tier(combatant[:creature_id])
+    favor = weapon_blessing(combatant[:creature_id])
     w = bless_weapon(w, favor) if favor && !w[:natural]
     acc = Creatures.lookup(combatant[:creature_id]) rescue nil
     payload['attack_kind'] ||= w[:ranged] ? 'ranged' : 'melee'

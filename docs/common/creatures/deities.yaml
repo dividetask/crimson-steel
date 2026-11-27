@@ -54,12 +54,12 @@ Domains:
     channel_divinity: Flame Devotion
   Glory:
     spells:
-      - Trivial Ward
-      - Lesser Ward
-      - Standard Ward
-      - Improved Ward
-      - Advanced Ward
-      - Superior Ward
+      - Trivial Glorious Weapon
+      - Lesser Glorious Weapon
+      - Standard Glorious Weapon
+      - Improved Glorious Weapon
+      - Advanced Glorious Weapon
+      - Superior Glorious Weapon
     channel_divinity: Glorious Charge
   Greed:
     spells:
@@ -95,23 +95,19 @@ Domains:
   Vengeance: {}
   War:
     spells:
-      - Trivial Divine Favor
-      - Lesser Divine Favor
-      - Standard Divine Favor
-      - Improved Divine Favor
-      - Advanced Divine Favor
-      - Superior Divine Favor
-      - Shield of Faith
-      - Lesser Spiritual Hammer
+      - Lesser Spiritual Weapon
       - Trivial Silence
       - Lesser Silence
       - Standard Silence
       - Improved Silence
       - Advanced Silence
       - Superior Silence
-      - Trivial Spiritual Shield
-      - Lesser Spiritual Shield
-      - Standard Spiritual Shield
+      - Trivial Divine Favor
+      - Lesser Divine Favor
+      - Standard Divine Favor
+      - Improved Divine Favor
+      - Advanced Divine Favor
+      - Superior Divine Favor
     channel_divinity: Martial Devotion
   Water: {}
   Wisdom: {}

@@ -2073,7 +2073,7 @@ module Encounter
                             initial_reservoir: initial, expires_on_round: exp)
         # Spiritual Weapon shows a condition on the caster that fades when the
         # weapon's time runs out.
-        if exp && spell[:name].to_s.match?(/Spiritual (Weapon|Hammer)\z/)
+        if exp && spell[:name].to_s.match?(/Spiritual Weapon\z/)
           ci = conditions_for(find!(caster_id)[:creature_id])
           if ci.respond_to?(:apply_named_effect)
             ci.apply_named_effect('spiritual_weapon', source_id: "#{cast_source_id(spell)}:active",

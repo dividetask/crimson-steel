@@ -400,6 +400,46 @@ Divine Favor:
       description: "Either permanently imbue one weapon within range, or imbue every weapon within range for 24 hours. Each becomes a +5 Radiant weapon, or a +X Radiant weapon where X is its existing bonus if higher."
   description: "Blesses a weapon with radiant power, making it a Radiant weapon of the spell's Tier or of its own bonus, whichever is higher."
 
+Glorious Weapon:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
+  school: pneumancy
+  activation_time: bonus
+  range: Self
+  target: object
+  # Divine Favor's Glory-domain counterpart: +N Glorious instead of Radiant.
+  duration: "rank turns"
+  modifiers:
+    - { target: glorious_weapon, type: Guidance, add: 0 }
+  variant_overrides:
+    - description: "The caster's own weapon becomes a +0 Glorious weapon, or a +X Glorious weapon where X is its existing bonus, for rank turns."
+    - duration: "rank minutes"
+      modifiers:
+        - { target: glorious_weapon, type: Guidance, add: 1 }
+      description: "The caster's own weapon becomes a +1 Glorious weapon, or a +X Glorious weapon where X is its existing bonus if higher, for rank minutes."
+    - range: Close
+      duration: "rank minutes"
+      modifiers:
+        - { target: glorious_weapon, type: Guidance, add: 2 }
+      description: "The weapon of a willing creature within range becomes a +2 Glorious weapon, or a +X Glorious weapon where X is its existing bonus if higher, for rank minutes."
+    - range: Close
+      duration: "1 hour"
+      modifiers:
+        - { target: glorious_weapon, type: Guidance, add: 3 }
+      description: "The weapon of a willing creature within range becomes a +3 Glorious weapon, or a +X Glorious weapon where X is its existing bonus if higher, for 1 hour."
+    - range: Close
+      duration: "24 hours"
+      modifiers:
+        - { target: glorious_weapon, type: Guidance, add: 4 }
+      description: "The weapon of a willing creature within range becomes a +4 Glorious weapon, or a +X Glorious weapon where X is its existing bonus if higher, for 24 hours."
+    - range: Close
+      duration: permanent
+      modifiers:
+        - { target: glorious_weapon, type: Guidance, add: 5 }
+      description: "Either permanently imbue one weapon within range, or imbue every weapon within range for 24 hours. Each becomes a +5 Glorious weapon, or a +X Glorious weapon where X is its existing bonus if higher."
+  description: "Blesses a weapon with glory, making it a Glorious weapon of the spell's Tier or of its own bonus, whichever is higher."
+
 Shield of Faith:
   type: spell
   tier: 1
@@ -487,23 +527,6 @@ Spiritual Weapon:
     retarget: true
     description: "As a Main Action, concentrate on the weapon to attack a target within range, spending from 2 Combat Pool dice up to the casting skill's Dice Cap."
   description: "Conjures a floating +1 one-handed weapon of force. Casting it costs 2 dice and does nothing on its own; while it lasts the caster may channel it to attack. Its attacks roll the casting skill instead of Martial and add the casting stat instead of Strength to damage. The weapon takes the form of the weapon you are holding or one favored by your deity. If it goes beyond the spell's range or out of the caster's sight, it returns to the caster and hovers."
-
-Spiritual Hammer:
-  type: spell
-  tier: [1]
-  prefix: [Lesser]
-  school: convergence
-  activation_time: bonus
-  range: Medium
-  target: "1"
-  duration: "rank turns"
-  skills: [invocation]
-  channel:
-    mode: auto
-    attack_roll: true
-    retarget: true
-    description: "As a Main Action, concentrate on the hammer to attack a target within range, spending from 2 Combat Pool dice up to the casting skill's Dice Cap."
-  description: "War-domain variant of Spiritual Weapon. Conjures a floating +1 warhammer of divine force. Casting it costs 2 dice and does nothing on its own; while it lasts the caster may channel it to attack. Its attacks roll the casting skill instead of Martial and add the casting stat instead of Strength to damage."
 
 Hold Person:
   type: spell

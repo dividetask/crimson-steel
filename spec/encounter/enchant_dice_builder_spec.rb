@@ -105,4 +105,22 @@ RSpec.describe 'Attack builder — enchantment dice', type: :request do
     blob = JSON.parse(CGI.unescapeHTML(last_response.body.match(/data-builder="([^"]*)"/)[1]))
     expect(enchant_patch(blob)).to include(dice: 3, name: 'Radiant dice')
   end
+
+  it "a Glorious Weapon blessing rolls its dice only against a higher-Tier target" do
+    allow_any_instance_of(Sinatra::Application).to receive(:dm_host?).and_return(true)
+    allow(Creatures).to receive(:lookup) { |cid| creature(cid.to_s == '1' ? 1 : 1) }
+    allow_any_instance_of(Sinatra::Application).to receive(:equipped_weapons) { |_app, cid| cid.to_s == '1' ? [weapon(nil)] : [] }
+    Conditions.store = Conditions::Store.new({}, data_path: File.join(tmp, 'c.json'))
+    Encounter.state = Encounter::State.new({}, data_path: File.join(tmp, 'e.json'),
+                                           creature_lookup: ->(_id) { creature(1) },
+                                           conditions_for: ->(cid) { Conditions.store.instance_for(cid) })
+    @atk = Encounter.state.add_combatant('1')
+    @tgt = Encounter.state.add_combatant('2')
+    header 'Host', 'localhost'
+    Conditions.store.instance_for('1').apply_effect('target_key' => 'glorious_weapon', 'bonus_type' => 'Guidance',
+                                                    'amount' => 1, 'source_id' => 'spell:Lesser Glorious Weapon')
+    get "/encounter/attack_builder?attacker_id=#{@atk[:id]}"
+    blob = JSON.parse(CGI.unescapeHTML(last_response.body.match(/data-builder="([^"]*)"/)[1]))
+    expect(enchant_patch(blob)).to include(dice: 0, excluded: true, name: 'Glorious dice') # same Tier
+  end
 end
