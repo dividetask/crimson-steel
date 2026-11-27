@@ -60,6 +60,12 @@ Domains:
       - Improved Glorious Weapon
       - Advanced Glorious Weapon
       - Superior Glorious Weapon
+      - Trivial Challenge
+      - Lesser Challenge
+      - Standard Challenge
+      - Improved Challenge
+      - Advanced Challenge
+      - Superior Challenge
     channel_divinity: Glorious Charge
   Greed:
     spells:

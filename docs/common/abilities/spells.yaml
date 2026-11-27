@@ -440,6 +440,27 @@ Glorious Weapon:
       description: "Either permanently imbue one weapon within range, or imbue every weapon within range for 24 hours. Each becomes a +5 Glorious weapon, or a +X Glorious weapon where X is its existing bonus if higher."
   description: "Blesses a weapon with glory, making it a Glorious weapon of the spell's Tier or of its own bonus, whichever is higher."
 
+Challenge:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
+  school: enchantment
+  range: Close
+  target: "1"
+  duration: "rank turns"
+  save:
+    - attribute: wis
+      fail: challenged
+      success: "0"
+  variant_overrides:
+    - { description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +0 damage to it. The spell ends if you are, or move, out of range of it." }
+    - { description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +1 damage to it. The spell ends if you are, or move, out of range of it." }
+    - { range: Medium, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +2 damage to it. The spell ends if you are, or move, out of range of it." }
+    - { range: Medium, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +3 damage to it. The spell ends if you are, or move, out of range of it." }
+    - { range: Long, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +4 damage to it. The spell ends if you are, or move, out of range of it." }
+    - { range: Long, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +5 damage to it. The spell ends if you are, or move, out of range of it." }
+  description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you, and you deal bonus damage to it equal to the spell's Tier. The spell ends if you are, or move, out of range of it."
+
 Shield of Faith:
   type: spell
   tier: 1
