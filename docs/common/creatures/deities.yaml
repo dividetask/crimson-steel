@@ -66,6 +66,12 @@ Domains:
       - Improved Challenge
       - Advanced Challenge
       - Superior Challenge
+      - Trivial Last Stand
+      - Lesser Last Stand
+      - Standard Last Stand
+      - Improved Last Stand
+      - Advanced Last Stand
+      - Superior Last Stand
     channel_divinity: Glorious Charge
   Greed:
     spells:

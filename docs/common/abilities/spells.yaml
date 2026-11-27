@@ -453,13 +453,32 @@ Challenge:
       fail: challenged
       success: "0"
   variant_overrides:
-    - { description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +0 damage to it. The spell ends if you are, or move, out of range of it." }
-    - { description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +1 damage to it. The spell ends if you are, or move, out of range of it." }
-    - { range: Medium, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +2 damage to it. The spell ends if you are, or move, out of range of it." }
-    - { range: Medium, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +3 damage to it. The spell ends if you are, or move, out of range of it." }
-    - { range: Long, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +4 damage to it. The spell ends if you are, or move, out of range of it." }
-    - { range: Long, description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you. You deal +5 damage to it. The spell ends if you are, or move, out of range of it." }
-  description: "Challenge one enemy within range. On a failed Wisdom save it must attack only you, and you deal bonus damage to it equal to the spell's Tier. The spell ends if you are, or move, out of range of it."
+    - { description: "Challenge one enemy within range: you deal +0 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+    - { description: "Challenge one enemy within range: you deal +1 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+    - { range: Medium, description: "Challenge one enemy within range: you deal +2 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+    - { range: Medium, description: "Challenge one enemy within range: you deal +3 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+    - { range: Long, description: "Challenge one enemy within range: you deal +4 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+    - { range: Long, description: "Challenge one enemy within range: you deal +5 damage to it, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it." }
+  description: "Challenge one enemy within range: you deal bonus damage to it equal to the spell's Tier, and on a failed Wisdom save it must attack only you. The spell ends if you are, or move, out of range of it."
+
+Last Stand:
+  type: spell
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
+  school: pneumancy
+  range: Close
+  target: "20"
+  duration: "rank turns"
+  effect_hash:
+    temp_hp_cap: [3, 6, 12, 24, 48, 96]
+  variant_overrides:
+    - { range: Self, target: self, description: "You gain 1 temporary hit point per hit point of damage taken, up to 3, for rank turns." }
+    - { description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 6, and while below half hit points a +1 Morale bonus on attacks and saves, for rank turns." }
+    - { description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 12, and while below half hit points a +2 Morale bonus on attacks and saves, for rank turns." }
+    - { range: Medium, description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 24, and while below half hit points a +3 Morale bonus on attacks and saves, for rank turns." }
+    - { range: Medium, description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 48, and while below half hit points a +4 Morale bonus on attacks and saves, for rank turns." }
+    - { range: Long, description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 96, and while below half hit points a +5 Morale bonus on attacks and saves, for rank turns." }
+  description: "Allies within range gain 1 temporary hit point per hit point of damage they have taken, up to a cap set by the Tier, and while below half hit points a Morale bonus equal to the Tier on attacks and saves."
 
 Shield of Faith:
   type: spell
