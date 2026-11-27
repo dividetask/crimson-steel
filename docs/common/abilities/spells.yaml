@@ -594,9 +594,10 @@ Silence:
       description: "Every enemy spellcaster in sight makes a Wisdom save or is silenced for rank minutes: it cannot speak or cast spells with verbal components."
   description: "Complete silence fills a 20-foot radius sphere centered on a creature or point within range, for rank minutes. A targeted creature carries the area with it and makes a Wisdom save to negate the spell; creatures inside an area cast on a point get no save. No sound issues from, enters, or passes through the area; verbal-component spells cannot be cast."
 
-Standard Surgery:
+Surgery:
   type: spell
-  tier: 1
+  tier: [0, 1, 2, 3, 4, 5]
+  prefix: [Trivial, Lesser, Standard, Improved, Advanced, Superior]
   school: pneumancy
   activation_time: "360 minutes"
   range: Touch
@@ -606,6 +607,18 @@ Standard Surgery:
   effect_hash:
     saturation_per_major_cured: 10
     minimum_saturation_per_major_cured: 5
+  variant_overrides:
+    - activation_time: "1 minute"
+      range: Touch
+      area: { shape: square, size: 1 }
+      duration: "rank hours"
+      effect_hash: null
+      description: "Set up a surgeon's table in a 5-foot square. While it lasts, a creature in the square takes 1 less bleed damage and 1 less from each bleed potency increase. The healer may make a check on a creature in the square to reduce its bleed potency by 1 per success."
+    - description: "Target helpless or willing creature immediately loses all temporary hitpoints and takes 4 moderate damage, whether or not the spell succeeds. Any attempt to prevent this damage causes the spell to fail. At the end of casting a spell check is rolled; a success cures 1 point of major damage. This spell causes 10 points of magic toxicity per major point cured, with a minimum of 5 points of magic toxicity per point cured."
+    - null
+    - description: "Target helpless or willing creature immediately loses all temporary hitpoints and takes an amount of moderate damage equal to its major damage. Any attempt to prevent this damage causes the spell to fail. At the end of casting a spell check is rolled and each success cures 1 point of major damage. This spell causes 10 points of magic toxicity per major point cured, with a minimum of 5 points of magic toxicity per point cured."
+    - description: "Target helpless or willing creature immediately loses all temporary hitpoints and takes an amount of moderate damage equal to its major damage. Any attempt to prevent this damage causes the spell to fail. At the end of casting a spell check is rolled and each success cures 2 points of major damage; a severed limb may be reattached. This spell causes 10 points of magic toxicity per major point cured, with a minimum of 5 points of magic toxicity per point cured."
+    - description: "Target helpless or willing creature immediately loses all temporary hitpoints. Any attempt to interfere causes the spell to fail. At the end of casting all of its major damage becomes minor damage, and lost limbs regrow. This spell causes 10 points of magic toxicity per major point converted, with a minimum of 5 points of magic toxicity per point converted."
   description: "Target helpless or willing creature immediately loses all temporary hitpoints and takes an amount of moderate damage equal to double its major damage. Any attempt to prevent this damage causes the spell to fail. At the end of casting a spell check is rolled and each success cures 1 point of major damage. This spell causes 10 points of magic toxicity per major point cured, with a minimum of 5 points of magic toxicity per point cured."
 
 Message:
