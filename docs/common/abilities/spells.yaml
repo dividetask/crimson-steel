@@ -476,10 +476,10 @@ Last Stand:
   variant_overrides:
     - { range: Self, target: self, description: "You gain 1 temporary hit point per hit point of damage taken, up to 3, for rank turns." }
     - { description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 6, and while below half hit points a +1 Morale bonus on attacks and saves, for rank turns." }
-    - { description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 12, and while below half hit points a +2 Morale bonus on attacks and saves, for rank turns." }
-    - { range: Medium, description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 24, and while below half hit points a +3 Morale bonus on attacks and saves, for rank turns." }
-    - { range: Medium, description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 48, and while below half hit points a +4 Morale bonus on attacks and saves, for rank turns." }
-    - { range: Long, description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 96, and while below half hit points a +5 Morale bonus on attacks and saves, for rank turns." }
+    - { description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 12, and while below half hit points a +2 Morale bonus on attacks, saves and damage reduction, for rank turns." }
+    - { range: Medium, duration: "rank minutes", description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 24, and while below half hit points a +3 Morale bonus on attacks, saves and damage reduction, for rank minutes." }
+    - { range: Medium, duration: "rank minutes", description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 48, and while below half hit points a +4 Morale bonus on attacks, saves and damage reduction, for rank minutes." }
+    - { range: Long, duration: "rank hours", description: "Each ally within range, you included, gains 1 temporary hit point per hit point of damage taken, up to 96, and while below half hit points a +5 Morale bonus on attacks, saves and damage reduction, for rank hours." }
   description: "Allies within range gain 1 temporary hit point per hit point of damage they have taken, up to a cap set by the Tier, and while below half hit points a Morale bonus equal to the Tier on attacks and saves."
 
 Shield of Faith:
