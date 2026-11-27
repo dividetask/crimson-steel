@@ -358,6 +358,31 @@ Effect Names:
       - kind: display
         text: "Has temporary hit points from Ward; they and this condition fade together when the spell expires."
 
+  # Advanced / Superior Challenge on a critically failed Wisdom save.
+  frenzied:
+    description: "Frenzied by a Glory caster's challenge: it deals +4 damage but takes a -2 Competency penalty."
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: 4
+        applies_to: [damage]
+      - kind: modifier
+        modifier_type: Competency
+        amount: -2
+        applies_to: [attack, ability_checks, spell_checks]
+
+  frenzied_superior:
+    description: "Frenzied by a Superior Challenge: it deals +5 damage but takes a -3 Competency penalty."
+    mechanics:
+      - kind: modifier
+        modifier_type: Morale
+        amount: 5
+        applies_to: [damage]
+      - kind: modifier
+        modifier_type: Competency
+        amount: -3
+        applies_to: [attack, ability_checks, spell_checks]
+
   challenged:
     description: "Challenged by a Glory caster: it must attack only that caster, who deals bonus damage to it."
     mechanics:
